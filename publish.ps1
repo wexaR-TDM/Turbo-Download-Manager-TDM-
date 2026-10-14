@@ -1,0 +1,51 @@
+﻿# Derlenmiş sürümü GitHub Releases'e yayımlar (GitHub CLI 'gh' ile).
+# Önce: build.ps1. Gereksinim: https://cli.github.com  →  gh auth login
+# Kullanım: powershell -ExecutionPolicy Bypass -File publish.ps1
+$ErrorActionPreference = "Stop"
+$root = $PSScriptRoot
+$appinfo = Get-Content (Join-Path $root "turbodm\appinfo.py") -Raw -Encoding UTF8
+$version = [regex]::Match($appinfo, 'VERSION\s*=\s*"([^"]+)"').Groups[1].Value
+$repo = [regex]::Match($appinfo, 'UPDATE_REPO\s*=\s*"([^"]*)"').Groups[1].Value
+if (-not $repo) { throw "turbodm\appinfo.py içinde UPDATE_REPO boş (ör. kullanici/turbodm)" }
+$setup = Join-Path $root "dist\TurboDM-Setup-$version.exe"
+$latest = Join-Path $root "dist\latest.json"
+foreach ($f in $setup, $latest) { if (-not (Test-Path $f)) { throw "$f yok — önce build.ps1" } }
+$m = Get-Content $latest -Raw -Encoding UTF8 | ConvertFrom-Json  # UTF8 şart: yoksa Türkçe harfler bozulur
+if ($m.version -ne $version) { throw "latest.json sürümü ($($m.version)) appinfo ile ($version) uyuşmuyor — build.ps1'i yeniden çalıştırın" }
+if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw "GitHub CLI (gh) yok: https://cli.github.com" }
+
+Write-Host "GitHub'a yayımlanacak: $repo  v$version" -ForegroundColor Cyan
+# Boş depoda sürüm etiketi oluşturulamaz: ilk kez yayımlanıyorsa depoya kısa bir README eklenir
+gh api "repos/$repo/commits?per_page=1" --silent 2>$null
+if ($LASTEXITCODE) {
+    $readme = "# TurboDM`n`nHTTP, FTP, video ve BitTorrent indirme yöneticisi.`n`n" +
+              "İndirmek için: [Releases](https://github.com/$repo/releases/latest) sayfasındaki ``TurboDM-Setup-*.exe`` dosyası.`n"
+    $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($readme))
+    gh api -X PUT "repos/$repo/contents/README.md" -f message="TurboDM" -f content=$b64 --silent
+    if ($LASTEXITCODE) { throw "Depoya README eklenemedi" }
+}
+$notesFile = New-TemporaryFile
+# Sürüm sayfasında en üstte: hangi dosyanın indirileceği ("Source code" dosyalarını GitHub kendisi ekler)
+$body = "**Kurmak için ``TurboDM-Setup-$version.exe`` dosyasını indirin** (aşağıda, Assets bölümünde).`n`n" + $m.notes +
+        "`n`n---`n<sub>``ffmpeg-...-source.tar.gz``: kurulumla gelen ffmpeg.exe'nin birebir kaynak kodu (LGPL gereği). Kurulum için gerekmez.</sub>"
+[IO.File]::WriteAllText($notesFile, $body, (New-Object Text.UTF8Encoding $false))
+# LGPL: dağıtılan ffmpeg.exe'nin birebir kaynak kodu her sürümle birlikte yayımlanır
+$ffsrc = Get-ChildItem (Join-Path $root "vendor\ffmpeg\source") -Filter "ffmpeg-*-source.tar.gz" | Select-Object -First 1
+if (-not $ffsrc) { throw "vendor\ffmpeg\source içinde ffmpeg kaynak arşivi yok (LGPL gereği yayımlanmalı)" }
+gh release create "v$version" $setup $latest $ffsrc.FullName --repo $repo --title "TurboDM $version" --notes-file $notesFile --latest
+if ($LASTEXITCODE) { throw "gh release create başarısız" }
+Remove-Item $notesFile
+
+# Deponun ön sayfası (README + ekran görüntüleri) her sürümde güncellenir
+python (Join-Path $root "installer\push_readme.py") $repo
+if ($LASTEXITCODE) { Write-Warning "README güncellenemedi" }
+
+# Yalnızca son sürüm kalsın: önceki sürümler (ve etiketleri) silinir. Güncelleme denetimi her zaman
+# releases/latest adresini kullandığı için kurulu programlar bundan etkilenmez.
+$old = gh release list --repo $repo --limit 200 --json tagName --jq ".[].tagName" | Where-Object { $_ -and $_ -ne "v$version" }
+foreach ($tag in $old) {
+    gh release delete $tag --repo $repo --cleanup-tag --yes
+    if ($LASTEXITCODE) { Write-Warning "$tag silinemedi" } else { Write-Host "Eski sürüm kaldırıldı: $tag" }
+}
+Write-Host "Yayımlandı. Kullanıcılar 'Güncellemeleri denetle' ile v$version'ı görecek:" -ForegroundColor Green
+Write-Host "  https://github.com/$repo/releases/latest/download/latest.json"

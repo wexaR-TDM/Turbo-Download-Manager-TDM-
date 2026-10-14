@@ -1,0 +1,62 @@
+import os
+import sys
+import tempfile
+import time
+
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+os.environ["QT_QPA_FONTDIR"] = r"C:\Windows\Fonts"
+tmp = tempfile.mkdtemp(prefix="tdm_shot_")
+os.environ["APPDATA"] = tmp
+sys.path.insert(0, r"C:\TurboDM Projem")
+from PySide6.QtGui import QFont  # noqa: E402
+from PySide6.QtWidgets import QApplication  # noqa: E402
+
+mode, out = sys.argv[1], sys.argv[2]
+app = QApplication([])
+app.setStyle("Fusion")
+app.setFont(QFont("Segoe UI", 9))
+from turbodm import manager as M  # noqa: E402
+M.DEFAULT_SETTINGS.update(download_root=os.path.join(tmp, "dl"), server_port=9697, torrent_port=6997,
+                          auto_update_check=False, theme=mode)
+from turbodm.gui import MainWindow, ProgressDialog, apply_theme  # noqa: E402
+apply_theme(app)
+mgr = M.Manager()
+rows = [("Doğa Belgeseli - Kuzey Ormanları.mp4", "downloading", 512, 0.62, 48.4, "video"),
+        ("ubuntu-24.04-desktop-amd64.iso", "downloading", 5900, 0.31, 61.2, "general"),
+        ("Proje Sunumu.pdf", "completed", 14, 1, 0, "documents"),
+        ("Albüm - Canlı Kayıt.zip", "completed", 820, 1, 0, "compressed"),
+        ("kurulum-araci.exe", "queued", 96, 0, 0, "programs"),
+        ("Oyun Kurulumu.iso", "stopped", 33000, 0.44, 0, "general"),
+        ("eski-baglanti.rar", "error", 300, 0.12, 0, "compressed")]
+for name, status, mb, frac, speed, cat in rows:
+    it = mgr.add_http(f"https://ornek.test/{name}", os.path.join(tmp, "dl", name), start=False)
+    it.size, it.status, it.category = mb * 1024 * 1024, status, cat
+    it.done_bytes = int(it.size * frac)
+    it.speed = speed * 1024 * 1024
+    it.error = "HTTP 404" if status == "error" else None
+win = MainWindow(mgr)
+win.resize(1280, 640)
+win.show()
+win.select_where(lambda it: it.status == "stopped")
+for _ in range(15):
+    app.processEvents()
+    time.sleep(0.02)
+win.refresh(force=True)
+app.processEvents()
+win.grab().save(out)
+from turbodm.gui import OptionsDialog  # noqa: E402
+d = OptionsDialog(win)
+d.show()
+app.processEvents()
+d.grab().save(out.replace(".png", "_opt.png"))
+d.close()
+iid = mgr.order[5]
+it = mgr.items[iid]
+it.segments = [[0, it.size // 2, int(it.size * 0.3)], [it.size // 2 + 1, it.size - 1, int(it.size * 0.7)]]
+pd = ProgressDialog(win, iid)
+pd.show()
+for _ in range(10):
+    app.processEvents()
+    time.sleep(0.03)
+pd.grab().save(out.replace(".png", "_pd.png"))
+os._exit(0)

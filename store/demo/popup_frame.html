@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font: 13px system-ui, sans-serif; width: 320px; margin: 12px; }
+  h3 { margin: 0 0 10px; color: #1e6fd9; }
+  label { display: block; margin: 4px 0; }
+  #st { margin: 8px 0; font-size: 12px; }
+  h4 { margin: 12px 0 6px; }
+  .m { display: flex; gap: 6px; align-items: center; padding: 5px 0; border-top: 1px solid #eee; }
+  .m span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  button { background: #1e6fd9; color: #fff; border: 0; border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+  .empty { color: #777; }
+</style>
+</head>
+<body>
+  <h3>TurboDM</h3>
+  <label><input type="checkbox" id="en"> İndirmeleri yakala</label>
+  <label><input type="checkbox" id="gr"> Video yakalayıcı</label>
+  <div id="st">Bağlantı denetleniyor…</div>
+  <button id="page" style="display:none; width:100%; padding:8px">⬇ Bu sayfadaki videoyu TurboDM'de aç</button>
+  <h4>Bu sayfadaki medyalar</h4>
+  <div id="list" class="empty">Yok. Videoyu oynatmayı deneyin.</div>
+  <script>
+window.chrome = {
+  storage: { local: { get(d, cb) { cb({ enabled: true, grabber: true }); }, set() {} } },
+  tabs: { query(q, cb) { cb([{ id: 1, url: "https://ornekvideo.test/izle/123", title: "Doğa Belgeseli" }]); } },
+  runtime: { sendMessage(m, cb) { cb([{ url: "https://cdn.ornekvideo.test/master.m3u8", label: "Video akışı (HLS) · 1080p" },
+                                     { url: "https://cdn.ornekvideo.test/tanitim.mp4", label: "Video · 48,2 MB · video/mp4" }]); } },
+};
+window.fetch = () => Promise.resolve({ json: () => Promise.resolve({ app: "TurboDM" }) });
+</script>
+<script src="../../browser_extension/popup.js"></script>
+</body>
+</html>

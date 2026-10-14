@@ -1,0 +1,13 @@
+# İmzalama anahtarı ASLA depoya girmez
+keys/
+
+# Derleme çıktıları
+build/
+dist/
+store/cikti/
+__pycache__/
+*.pyc
+
+# Büyük ikili dosyalar (özetleri vendor/SHA256SUMS'ta, kaynakları resmi sitelerinde)
+vendor/**/*.exe
+vendor/ffmpeg/source/*.tar.gz

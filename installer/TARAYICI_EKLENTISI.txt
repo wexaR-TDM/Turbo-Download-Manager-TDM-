@@ -1,0 +1,22 @@
+TurboDM TARAYICI EKLENTİSİ — KURULUM
+=====================================
+
+Eklenti; tarayıcıda başlayan indirmeleri TurboDM'e yönlendirir, sayfalardaki videoları
+yakalar ("⬇ Bu videoyu indir" düğmesi) ve sağ tık menüsüne "TurboDM ile indir" ekler.
+
+Chrome / Edge / Brave / Opera:
+  1. Adres çubuğuna yazın:
+       Chrome : chrome://extensions
+       Edge   : edge://extensions
+       Brave  : brave://extensions
+  2. "Geliştirici modu"nu açın (sağ üst ya da sol alt köşede).
+  3. "Paketlenmemiş öğe yükle" düğmesine tıklayın.
+  4. Şu klasörü seçin:
+       C:\Program Files\TurboDM\browser_extension
+     (TurboDM'i başka bir klasöre kurduysanız oradaki browser_extension klasörü)
+  5. Araç çubuğundaki yapboz simgesinden TurboDM'i sabitleyin.
+
+Notlar:
+  * TurboDM kapalıyken indirmeler tarayıcıda normal şekilde devam eder.
+  * Eklenti simgesine tıklayarak indirme yakalamayı ve video yakalayıcıyı açıp kapatabilirsiniz.
+  * TurboDM'i kaldırdığınızda eklentiyi de tarayıcının eklentiler sayfasından "Kaldır" ile silin.

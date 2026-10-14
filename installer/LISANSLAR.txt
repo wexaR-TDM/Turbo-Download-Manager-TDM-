@@ -1,0 +1,19 @@
+TurboDM, aşağıdaki açık kaynak bileşenleri kullanır:
+
+  Python 3.12          — PSF License                 https://www.python.org
+  Qt 6 / PySide6       — LGPL v3                     https://www.qt.io / https://pyside.org
+  libtorrent           — BSD 3-Clause                https://libtorrent.org
+  cryptography         — Apache 2.0 / BSD            https://cryptography.io
+  OpenSSL 3            — Apache 2.0                  https://www.openssl.org
+  yt-dlp               — Unlicense (kamu malı)       https://github.com/yt-dlp/yt-dlp
+      tools\yt-dlp.exe; güncellenen kopya %LOCALAPPDATA%\TurboDM\tools altına indirilir.
+  Deno                 — MIT                         https://deno.com
+      tools\deno.exe; yt-dlp'nin ihtiyaç duyduğu JavaScript çalıştırma ortamı (dosya/ağ erişimi kapalı).
+  FFmpeg (LGPL derlemesi, BtbN) — LGPL v3            https://ffmpeg.org
+      ffmpeg.exe değiştirilmeden, ayrı bir program olarak dağıtılır; lisans metni: ffmpeg\LICENSE.txt.
+      Bu ffmpeg.exe'nin birebir kaynak kodu her TurboDM sürüm sayfasında (ffmpeg-...-source.tar.gz)
+      yayımlanır: https://github.com/wexaR-TDM/TurboDM/releases/latest
+      Sürüm, kaynak commit'i ve derleme betikleri: ffmpeg\DERLEME_BILGISI.txt
+
+Qt/PySide6 kitaplıkları _internal klasöründe ayrı DLL dosyaları olarak bulunur ve
+LGPL gereği kullanıcı tarafından değiştirilebilir.

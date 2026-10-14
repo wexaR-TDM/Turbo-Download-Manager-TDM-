@@ -1,0 +1,4 @@
+{
+  "extName": { "message": "TurboDM Integration" },
+  "extDescription": { "message": "Sends browser downloads and on-page videos to the TurboDM download manager." }
+}

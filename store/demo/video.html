@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Doğa Belgeseli — ÖrnekVideo</title>
+<link rel="stylesheet" href="../../browser_extension/content.css">
+<style>
+  body { margin: 0; font: 14px "Segoe UI", system-ui, sans-serif; background: #f4f5f7; color: #1d1f23; }
+  header { height: 56px; background: #fff; border-bottom: 1px solid #e3e5e8; display: flex; align-items: center; padding: 0 24px; gap: 14px; }
+  header b { font-size: 20px; color: #e8453c; } header input { flex: 0 0 420px; margin: 0 auto; padding: 8px 14px; border: 1px solid #ccd; border-radius: 18px; }
+  main { display: flex; gap: 24px; padding: 20px 24px; }
+  .player { flex: 1; }
+  video { display: block; width: 100%; height: 520px; border-radius: 10px;
+    background: radial-gradient(circle at 70% 30%, #6fb3d9 0, #2c6a8f 35%, #10324a 70%, #081a28 100%); }
+  h1 { font-size: 20px; margin: 14px 0 6px; } .meta { color: #666; }
+  aside { width: 300px; } .rel { display: flex; gap: 10px; margin-bottom: 12px; }
+  .thumb { width: 140px; height: 80px; border-radius: 6px; background: linear-gradient(135deg, #9ab, #456); flex: none; }
+  .rel div:last-child { font-size: 13px; color: #333; }
+</style>
+<script>
+  // Mağaza ekran görüntüsü için eklenti arka planının sahte yanıtları (ağ yok)
+  window.chrome = { runtime: { lastError: null, onMessage: { addListener() {} },
+    sendMessage(msg, cb) {
+      const r = msg.type === "tdm-list" ? [{ url: "https://cdn.ornekvideo.test/master.m3u8", kind: "hls", label: "Video akışı (HLS) · 1080p" }]
+        : msg.type === "tdm-formats" ? { title: "Doğa Belgeseli", choices: [
+            { label: "2160p (4K) · mp4 · 1,8 GB" }, { label: "1440p · mp4 · 980 MB" }, { label: "1080p · mp4 · 512 MB" },
+            { label: "720p · mp4 · 260 MB" }, { label: "Yalnızca ses · m4a · 18 MB" }] }
+        : { ok: true };
+      setTimeout(() => cb(r), 20);
+    } } };
+  addEventListener("load", () => setTimeout(() => document.querySelector(".tdm-grab").click(), 300));
+</script>
+</head>
+<body>
+<header><b>▶ ÖrnekVideo</b><input placeholder="Ara"></header>
+<main>
+  <div class="player">
+    <video></video>
+    <h1>Doğa Belgeseli — Kuzey Ormanları</h1>
+    <div class="meta">125 B görüntüleme · 2 gün önce</div>
+  </div>
+  <aside>
+    <div class="rel"><div class="thumb"></div><div>Dağların Sessizliği<br><span style="color:#777">48 B görüntüleme</span></div></div>
+    <div class="rel"><div class="thumb"></div><div>Okyanus Kıyısında Bir Gün<br><span style="color:#777">31 B görüntüleme</span></div></div>
+    <div class="rel"><div class="thumb"></div><div>Göçmen Kuşlar<br><span style="color:#777">12 B görüntüleme</span></div></div>
+  </aside>
+</main>
+<script src="../../browser_extension/content.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+﻿TurboDM ile dağıtılan ffmpeg.exe — kaynak kodu bilgisi (LGPL)
+
+Sürüm      : ffmpeg n8.1.3-18-g46d899d7a0-20261013
+Lisans     : LGPL v3 (--enable-version3; GPL ve non-free bileşenler kapalı)
+Kaynak    : https://github.com/FFmpeg/FFmpeg/commit/46d899d7a02bc63237472cc4897258d5ddf274ac
+Arşiv      : ffmpeg-n8.1.3-18-g46d899d7a0-source.tar.gz (her TurboDM sürüm sayfasında)
+Derleyen   : BtbN/FFmpeg-Builds, win64-lgpl, autobuild-2026-10-13-13-05
+Betikler   : https://github.com/BtbN/FFmpeg-Builds/tree/autobuild-2026-10-13-13-05 (bağımlılık sürümleri ve derleme ayarları)
+Değişiklik: yok — ffmpeg.exe olduğu gibi, ayrı bir program olarak dağıtılır.
