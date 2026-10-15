@@ -28,7 +28,10 @@
 
 ### 🎬 Video indirme
 - Tarayıcı eklentisi, sayfadaki videonun üstüne **"Bu videoyu indir"** düğmesi koyar; tıklayınca kaliteler listelenir (4K, 1080p, yalnızca ses…), seçilen kalite TurboDM'in kayıt penceresinde hazır gelir.
-- Yüzlerce video sitesi desteklenir (yt-dlp ile). HLS (m3u8) ve şifreli (AES-128) akışlar indirilip tek dosyada birleştirilir.
+- Yüzlerce video sitesi desteklenir (yt-dlp ile). HLS (m3u8), DASH (mpd) ve şifreli (AES-128) akışlar indirilip tek dosyada birleştirilir.
+- Gömülü oynatıcılar (başka siteden gelen video) desteklenir: video, oynatıcının kendi adresiyle istenir.
+- **Biçim seçimi:** indirme bitince MP4 olarak bırakılır ya da **MKV** (kayıpsız, saniyeler sürer), **AVI** (eski TV/oynatıcılar için) veya **MP3** (yalnızca ses) olarak kaydedilir.
+- DRM ile korunan yayınlar (Netflix, Disney+ vb.) indirilmez.
 
 ### 🧲 Torrent
 - Magnet bağlantıları ve .torrent dosyaları doğrudan TurboDM'de açılır; indirmeden önce dosya seçimi.
@@ -78,6 +81,7 @@ Telif hakkıyla korunan içerikleri yalnızca hak sahibinin izin verdiği ölç�
 - [x] Program içinden otomatik güncelleme (GitHub)
 - [x] Açık/koyu moda uyan TurboDM teması, toplu işlem
 - [x] Sunucu bağlantı sınırını öğrenen akıllı bağlantı yönetimi
+- [x] DASH akışları, gömülü oynatıcı desteği, MKV/AVI/MP3 dönüştürme
 - [ ] Tarayıcı eklentisinin Edge Eklentiler mağazasında yayımlanması (incelemede), ardından Chrome Web Mağazası
 - [ ] İmzalı kurulum dosyası (SmartScreen uyarısının kalkması)
 

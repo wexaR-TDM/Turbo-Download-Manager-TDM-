@@ -120,6 +120,18 @@ const media = new Map(); // tabId -> [{url, kind, type, size, label}]
 const MEDIA_EXT = /\.(m3u8|mp4|webm|mkv|flv|mov|m4v|mp3|m4a|aac|ogg|opus|wav)(\?|#|$)/i;
 const SKIP_EXT = /\.(ts|m4s|aac\?.*range|key|vtt|srt)(\?|#|$)/i; // tek tek akış parçalarını listeleme
 const HLS_TYPES = ["application/vnd.apple.mpegurl", "application/x-mpegurl", "audio/mpegurl", "audio/x-mpegurl"];
+const DASH_TYPES = ["application/dash+xml"];
+// Oynatıcı çoğu zaman başka bir siteden gömülü (iframe) gelir; video sunucusu isteğin o oynatıcı sayfasından
+// geldiğini denetleyebilir. Her çerçevenin adresi tutulur, indirme o adresle (Referer/Origin) istenir.
+const frameUrls = new Map(); // "sekme:çerçeve" -> adres
+
+function forgetTab(tabId) {
+  for (const k of frameUrls.keys()) if (k.startsWith(tabId + ":")) frameUrls.delete(k);
+}
+
+function originOf(url) {
+  try { return new URL(url).origin; } catch { return ""; }
+}
 
 function header(headers, name) {
   const h = (headers || []).find((x) => x.name.toLowerCase() === name);
@@ -130,6 +142,7 @@ function classify(url, ctype, size) {
   const t = (ctype || "").split(";")[0].trim().toLowerCase();
   const path = url.split("?")[0].toLowerCase();
   if (HLS_TYPES.includes(t) || path.endsWith(".m3u8")) return "hls";
+  if (DASH_TYPES.includes(t) || path.endsWith(".mpd")) return "dash";
   if (SKIP_EXT.test(path)) return null;
   if (t.startsWith("video/") || t.startsWith("audio/") || MEDIA_EXT.test(path)) {
     if (size && size < 200 * 1024) return null; // küçük reklam/önizleme dosyaları
@@ -176,10 +189,12 @@ chrome.webRequest.onHeadersReceived.addListener(
     if (cr) size = parseInt(cr[1], 10);
     const kind = classify(d.url, ctype, size);
     if (!kind) return;
-    const label = (kind === "hls" ? "Video akışı (HLS)" : kind === "audio" ? "Ses" : "Video")
+    const label = (kind === "hls" ? "Video akışı (HLS)" : kind === "dash" ? "Video akışı (DASH)"
+      : kind === "audio" ? "Ses" : "Video")
       + (size ? " · " + fmtSize(size) : "")
       + " · " + (ctype.split(";")[0] || d.url.split("?")[0].split(".").pop());
-    addMedia(d.tabId, { url: d.url, kind, size, label, referrer: d.initiator || "" });
+    const referrer = frameUrls.get(d.tabId + ":" + d.frameId) || d.initiator || "";
+    addMedia(d.tabId, { url: d.url, kind, size, label, referrer });
   },
   { urls: ["<all_urls>"], types: ["media", "xmlhttprequest", "other", "object"] },
   ["responseHeaders"]
@@ -188,10 +203,11 @@ chrome.webRequest.onHeadersReceived.addListener(
 chrome.tabs.onUpdated.addListener((tabId, info) => {
   if (info.url) { // yeni sayfaya gidildi → listeyi sıfırla
     media.delete(tabId);
+    forgetTab(tabId);
     chrome.action.setBadgeText({ tabId, text: "" });
   }
 });
-chrome.tabs.onRemoved.addListener((tabId) => media.delete(tabId));
+chrome.tabs.onRemoved.addListener((tabId) => { media.delete(tabId); forgetTab(tabId); });
 
 function safeName(title, kind, url) {
   let ext = ".mp4";
@@ -206,7 +222,9 @@ function safeName(title, kind, url) {
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   const tabId = msg.tabId ?? (sender.tab ? sender.tab.id : -1);
-  if (msg.type === "tdm-list") {
+  if (msg.type === "tdm-frame") {
+    if (sender.tab && typeof msg.url === "string") frameUrls.set(sender.tab.id + ":" + (sender.frameId || 0), msg.url);
+  } else if (msg.type === "tdm-list") {
     reply(media.get(tabId) || []);
   } else if (msg.type === "tdm-element-src") {
     // <video src="..."> doğrudan bağlantıysa (blob: değilse) onu da listeye ekle
@@ -224,9 +242,11 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return true;
   } else if (msg.type === "tdm-download") {
     const m = msg.media;
+    const referrer = m.referrer || msg.pageUrl || "";  // akışı isteyen oynatıcının (çerçevenin) adresi
     sendToApp({
       url: m.url,
-      referrer: msg.pageUrl || m.referrer || "",
+      referrer,
+      origin: originOf(referrer),
       filename: safeName(msg.title, m.kind, m.url),
     }).then((ok) => reply({ ok })).catch(() => reply({ ok: false }));
     return true; // async yanıt

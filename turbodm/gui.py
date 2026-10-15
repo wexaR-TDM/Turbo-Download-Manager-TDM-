@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
+from . import convert
 from . import hls
 from . import server
 from . import theme
@@ -34,7 +35,7 @@ APP_NAME = "TurboDM"
 STATUS_TEXT = {
     "stopped": "Durduruldu", "queued": "Kuyrukta", "connecting": "Bağlanıyor…",
     "downloading": "İndiriliyor", "completed": "Tamamlandı", "error": "Hata",
-    "seeding": "Paylaşılıyor",
+    "seeding": "Paylaşılıyor", "converting": "Dönüştürülüyor…",
 }
 
 
@@ -159,6 +160,12 @@ def open_folder(path):
         folder = path if os.path.isdir(path) else os.path.dirname(path)
         if os.path.isdir(folder):
             os.startfile(folder)
+
+
+def is_dash(url, content_type=""):
+    """DASH (MPEG-DASH, .mpd) video akışı mı?"""
+    return ((content_type or "").split(";")[0].strip().lower() == "application/dash+xml"
+            or urllib.parse.urlparse(url).path.lower().endswith(".mpd"))
 
 
 def is_magnet(text):
@@ -318,16 +325,21 @@ class FileInfoDialog(QDialog):
         self.size_lbl.setWordWrap(True)
         self.quality = QComboBox()   # yalnızca HLS videolarda görünür
         self.hls_info = None
+        self.fmt = QComboBox()       # indirme bitince dönüştürme (video/ses)
+        for key, (text, _) in convert.FORMATS.items():
+            self.fmt.addItem(text, key)
 
         form = QFormLayout()
         self.form = form
         form.addRow("Adres (URL):", self.url_edit)
         form.addRow("Kalite:", self.quality)
+        form.addRow("Biçim:", self.fmt)
         form.addRow("Kategori:", self.cat)
         form.addRow("Kayıt klasörü:", prow)
         form.addRow("Açıklama:", self.desc)
         form.addRow("Boyut:", self.size_lbl)
         form.setRowVisible(self.quality, False)
+        form.setRowVisible(self.fmt, False)
 
         b_start = QPushButton("İndirmeyi Başlat")
         b_start.setDefault(True)
@@ -366,6 +378,8 @@ class FileInfoDialog(QDialog):
             self._start_video()
         elif hls.is_hls(url):
             self._start_hls()
+        elif is_dash(url):
+            self._start_video()  # DASH (.mpd): yt-dlp akışı indirip birleştirir
         else:
             threading.Thread(target=self._probe, daemon=True).start()
 
@@ -380,7 +394,7 @@ class FileInfoDialog(QDialog):
 
         def work():
             try:
-                self.bridge.video.emit(ytdlp.inspect(self.url, self.mgr.ffmpeg(), self.cookies), None)
+                self.bridge.video.emit(ytdlp.inspect(self.url, self.mgr.ffmpeg(), self.cookies, self.headers), None)
             except Exception as e:  # noqa: BLE001
                 self.bridge.video.emit(None, str(e))
         threading.Thread(target=work, daemon=True).start()
@@ -394,6 +408,7 @@ class FileInfoDialog(QDialog):
                 self.size_lbl.setText(f"Video bilgisi alınamadı: {err or 'indirilebilir biçim yok'}")
             return
         self.video_info = info
+        self._update_format_row()
         self.quality.blockSignals(True)
         self.quality.clear()
         default = 0
@@ -440,6 +455,7 @@ class FileInfoDialog(QDialog):
             self.size_lbl.setText("Bu bir canlı yayın; canlı yayınlar desteklenmiyor.")
             return
         self.hls_info = info
+        self._update_format_row()
         self.quality.clear()
         for v in info["variants"]:
             self.quality.addItem(hls.variant_label(v), v)
@@ -455,6 +471,11 @@ class FileInfoDialog(QDialog):
             stem = "video"
         self._set_name(stem + ".mp4")
 
+    def _update_format_row(self):
+        cat = self.cat.currentData()
+        show = bool(self.video_info or self.hls_info or cat in ("video", "music"))
+        self.form.setRowVisible(self.fmt, show)
+
     def _set_name(self, name):
         """Dosya adı arka planda tutulur (videonun başlığı / sunucunun verdiği ad); alanda yalnızca klasör görünür.
         Klasör, kullanıcı elle seçmediyse kategoriye göre belirlenir."""
@@ -466,6 +487,8 @@ class FileInfoDialog(QDialog):
         if not self.user_edited:
             self.path_edit.setText(self.mgr.category_dir(cat))
         self.path_edit.setToolTip(name)
+        if hasattr(self, "form"):
+            self._update_format_row()
 
     def _cat_changed(self):
         self.path_edit.setText(self.mgr.category_dir(self.cat.currentData()))
@@ -493,6 +516,10 @@ class FileInfoDialog(QDialog):
         if hls.is_hls(info["final_url"], info["content_type"]):
             self.url = info["final_url"]
             self._start_hls()
+            return
+        if is_dash(info["final_url"], info["content_type"]) and ytdlp.available():
+            self.url = info["final_url"]
+            self._start_video()
             return
         if (info.get("content_type") or "").startswith("text/html") and ytdlp.available():
             # Bir web sayfası: içinde indirilebilir video var mı? (IDM'deki gibi)
@@ -539,31 +566,27 @@ class FileInfoDialog(QDialog):
         if not folder:
             return
         path = os.path.join(folder, getattr(self, "name", "") or "download")
-        if self.video_info:
-            it = self.mgr.add_ytdlp(self.url_edit.text().strip(), path, self.quality.currentData(),
-                                    self.video_info["title"], self.headers, self.cookies,
-                                    self.desc.text(), start)
-            if start:
-                self.win.show_progress(it.id)
-            self.win.refresh(force=True)
-            self.accept()
-            return
-        if self.hls_info:
-            v = self.quality.currentData()
-            it = self.mgr.add_hls(self.url_edit.text().strip(), v["url"], v.get("audio_url"), path,
-                                  self.headers, self.desc.text(), start)
-            if start:
-                self.win.show_progress(it.id)
-            self.win.refresh(force=True)
-            self.accept()
-            return
-        it = self.mgr.add_http(self.url_edit.text().strip(), path, self.cat.currentData(),
-                               self.headers, self.desc.text(), start,
-                               self.info.get("size"), self.info.get("resumable", True))
+        fmt = self.fmt.currentData() if self.form.isRowVisible(self.fmt) else ""
+        it = self._create(path, start)
+        if fmt:
+            it.extra["convert"] = fmt  # indirme bitince ffmpeg ile dönüştürülür
         if start:
             self.win.show_progress(it.id)
         self.win.refresh(force=True)
         self.accept()
+
+    def _create(self, path, start):
+        if self.video_info:
+            return self.mgr.add_ytdlp(self.url_edit.text().strip(), path, self.quality.currentData(),
+                                      self.video_info["title"], self.headers, self.cookies,
+                                      self.desc.text(), start)
+        if self.hls_info:
+            v = self.quality.currentData()
+            return self.mgr.add_hls(self.url_edit.text().strip(), v["url"], v.get("audio_url"), path,
+                                    self.headers, self.desc.text(), start)
+        return self.mgr.add_http(self.url_edit.text().strip(), path, self.cat.currentData(),
+                                 self.headers, self.desc.text(), start,
+                                 self.info.get("size"), self.info.get("resumable", True))
 
 
 # ------------------------------------------------------------------ torrent ekleme
@@ -1772,7 +1795,8 @@ class MainWindow(QMainWindow):
                 st += f"  ·  {it.peers} eş"
             frac = (it.done_bytes / it.size if it.size and it.status in ("downloading", "connecting", "stopped",
                                                                          "queued", "error") else None)
-            tone = {"completed": "ok", "seeding": "ok", "error": "bad", "downloading": "accent"}.get(
+            tone = {"completed": "ok", "seeding": "ok", "error": "bad", "downloading": "accent",
+                    "converting": "accent"}.get(
                 it.status, "muted" if it.status in ("stopped", "queued") else "text")
             sc = self.table.item(r, STATUS)
             if sc.data(PROGRESS_ROLE) != frac or sc.data(TONE_ROLE) != tone:
@@ -1937,6 +1961,8 @@ class MainWindow(QMainWindow):
             headers["Referer"] = req["referrer"]
         if req.get("userAgent"):
             headers["User-Agent"] = req["userAgent"]
+        if isinstance(req.get("origin"), str) and re.match(r"^https?://[^/]+$", req["origin"]):
+            headers["Origin"] = req["origin"]  # gömülü oynatıcının kökeni (video sunucusu denetleyebilir)
         name = os.path.basename(req.get("filename") or "") or None
         cookies = req.get("cookies") if isinstance(req.get("cookies"), list) else None
         if cookies:  # yapılandırılmış çerezler (YouTube): yt-dlp'ye çerez dosyasıyla verilir

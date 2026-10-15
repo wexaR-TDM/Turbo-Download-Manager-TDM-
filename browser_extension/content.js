@@ -81,7 +81,8 @@
 
   function streamRows(menu, btn, list) {
     // HLS önce, sonra büyük dosyalar
-    list.sort((a, b) => (b.kind === "hls") - (a.kind === "hls") || (b.size || 0) - (a.size || 0));
+    const stream = (m) => m.kind === "hls" || m.kind === "dash";
+    list.sort((a, b) => stream(b) - stream(a) || (b.size || 0) - (a.size || 0));
     for (const m of list) {
       const item = menuRow(menu, "tdm-item", m.label, m.url);
       item.addEventListener("click", async () => {
@@ -148,6 +149,7 @@
     if (location.href !== lastHref) {  // sayfa içi geçiş (tek sayfalık uygulamalar): eski menüyü kapat
       lastHref = location.href;
       closeMenus();
+      send({ type: "tdm-frame", url: location.href });
     }
     document.querySelectorAll("video").forEach((v) => {
       let btn = panels.get(v);
@@ -176,5 +178,6 @@
   window.addEventListener("resize", position);
   new MutationObserver(() => position()).observe(document.documentElement, { childList: true, subtree: true });
   setInterval(position, 1000);
+  send({ type: "tdm-frame", url: location.href });  // bu çerçevenin adresi (gömülü oynatıcılar için)
   send({ type: "tdm-list" }).then((l) => { mediaCount = (l || []).length; position(); });
 })();

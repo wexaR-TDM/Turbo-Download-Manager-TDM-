@@ -272,6 +272,32 @@ class GuiTests(unittest.TestCase):
             d.close()
         self.win.mgr.remove(it.id, False)
 
+    def test_dash_stream_opens_video_dialog_with_format_choice(self):
+        info = {"title": "Örnek akış", "duration": 60, "extractor": "Generic", "choices": [
+            {"label": "1080p · mp4", "format": "v1080+a", "ext": "mp4", "size": 1000, "height": 1080, "streams": None}]}
+        seen = {}
+
+        def fake_inspect(url, ffmpeg=None, cookies=None, headers=None):
+            seen.update(url=url, headers=headers)
+            return info
+        with mock.patch.object(G.ytdlp, "inspect", fake_inspect), mock.patch.object(G.ytdlp, "available", lambda: True):
+            hdr = {"Referer": "https://oynatici.example/embed/1", "Origin": "https://oynatici.example"}
+            d = G.FileInfoDialog(self.win, "https://cdn.example/akis/manifest.mpd", hdr)
+            d.show()
+            self.assertTrue(pump(10, lambda: d.video_info), d.size_lbl.text())
+            self.assertEqual(seen["url"], "https://cdn.example/akis/manifest.mpd")
+            self.assertEqual(seen["headers"]["Origin"], "https://oynatici.example")  # oynatıcının kökeni iletilir
+            self.assertTrue(d.form.isRowVisible(d.fmt), "biçim seçimi görünmüyor")
+            self.assertEqual([d.fmt.itemData(i) for i in range(d.fmt.count())], ["", "mkv", "avi", "mp3"])
+            # seçilen biçim indirmeye yazılır (indirme bitince dönüştürülür)
+            d.fmt.setCurrentIndex(d.fmt.findData("mkv"))
+            before = set(self.win.mgr.items)
+            d._go(False)
+            new = [self.win.mgr.items[i] for i in self.win.mgr.items if i not in before]
+            self.assertEqual(len(new), 1)
+            self.assertEqual(new[0].extra.get("convert"), "mkv")
+            self.win.mgr.remove(new[0].id, False)
+
     def test_list_survives_restart(self):
         it = self.win.mgr.add_http(self.s.url("/arsiv.zip"), os.path.join(TMP, "dl", "kalici.zip"), start=False)
         self.win.mgr.save()

@@ -3,6 +3,12 @@
 Her yeni sürümde en üste bir bölüm ekleyin. "Güncellemeleri denetle" penceresinde kullanıcıya
 o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar).
 
+## 1.6.0
+• Biçim seçimi: indirme penceresinde "Biçim" — MP4 (olduğu gibi), MKV (kayıpsız, hızlı), AVI (eski TV/oynatıcılar için), MP3 (yalnızca ses); dönüştürme indirme bitince yapılır
+• DASH (.mpd) video akışları desteklenir
+• Gömülü oynatıcılar: video, oynatıcının kendi sayfa adresi ve kökeniyle istenir (403 hatası veren sunucular için)
+• Tarayıcı eklentisi 1.4.4: DASH akışlarını ve gömülü oynatıcıların adresini yakalar
+
 ## 1.5.8
 • Proje deposunun yeni adresi: github.com/wexaR-TDM/TurboDM (eski adres yönlendirir; güncellemeler kesintisiz)
 • Lisans: kurulumla gelen ffmpeg'in birebir kaynak kodu her sürüm sayfasında yayımlanır; kaynak bilgisi ffmpeg klasöründe

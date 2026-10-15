@@ -477,7 +477,8 @@ def _draw(name, p, fg, ac):
 
 STATUS_ICON = {"downloading": ("st_down", "accent"), "connecting": ("st_wait", "accent"),
                "completed": ("st_done", "ok"), "error": ("st_error", "bad"), "seeding": ("st_up", "ok"),
-               "queued": ("st_queue", "accent"), "stopped": ("st_pause", "accent")}
+               "queued": ("st_queue", "accent"), "stopped": ("st_pause", "accent"),
+               "converting": ("st_wait", "accent")}
 
 
 def icon(name, accent="accent"):

@@ -11,7 +11,7 @@ from datetime import datetime
 from . import torrent as tmod
 from .engine import ChainLimiter, HttpTask, SpeedLimiter
 from .hls import HlsTask, find_ffmpeg
-from . import ytdlp
+from . import convert, ytdlp
 
 APP_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "TurboDM")
 TORRENT_DIR = os.path.join(APP_DIR, "torrents")
@@ -112,7 +112,7 @@ class DownloadItem:
         for k in ("cookies", "streams", "streams_t"):  # oturum çerezleri / geçici akış adresleri diske yazılmaz
             d["extra"].pop(k, None)
         d["name"] = self.name
-        if self.status == "seeding":
+        if self.status in ("seeding", "converting"):  # yarıda kalan dönüştürme: asıl dosya duruyor
             d["status"] = "completed"
         elif self.status in ("downloading", "connecting"):
             d["status"] = "queued" if self.in_queue else "stopped"
@@ -376,7 +376,7 @@ class Manager:
     # ------------------------------------------------------------ kontrol
     def start(self, iid):
         it = self.items.get(iid)
-        if not it or it.status in ("downloading", "connecting", "seeding"):
+        if not it or it.status in ("downloading", "connecting", "seeding", "converting"):
             return
         if it.status == "completed" and (it.kind != "torrent" or not self.settings["seed_after_complete"]):
             return
@@ -498,7 +498,9 @@ class Manager:
     def tick(self):
         now = time.time()
         for it in list(self.items.values()):
-            if it.kind != "torrent":
+            if it.status == "converting":
+                self._tick_convert(it)
+            elif it.kind != "torrent":
                 self._tick_http(it, now)
             else:
                 self._tick_torrent(it, now)
@@ -537,6 +539,9 @@ class Manager:
             if getattr(t, "note", None):
                 it.description = (it.description + " " + t.note).strip()
             it.done_bytes = it.size or it.done_bytes
+            if it.extra.get("convert") in convert.FORMATS and it.extra.get("convert"):
+                self._start_convert(it)  # "tamamlandı" bildirimi dönüştürme bitince
+                return
             self.events.append(("completed", it))
             self.save()
         elif t.state in ("error", "stopped") and getattr(it, "pending_start", False):
@@ -552,6 +557,38 @@ class Manager:
             it.task, it.speed = None, 0
             if it.status not in ("queued",):
                 it.status = "stopped"
+
+    # ------------------------------------------------------------ biçim dönüştürme (indirme bitince)
+    def _start_convert(self, it):
+        it.status = "converting"
+        it._conv = None
+        fmt, src, ff = it.extra["convert"], it.path, self.ffmpeg()
+
+        def work():
+            try:
+                it._conv = (convert.convert(ff, src, fmt), None)
+            except Exception as e:  # noqa: BLE001
+                it._conv = (None, str(e))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _tick_convert(self, it):
+        res = getattr(it, "_conv", None)
+        if res is None:
+            return
+        it._conv = None
+        dst, err = res
+        it.status = "completed"
+        it.extra.pop("convert", None)
+        if dst:
+            it.path = dst
+            try:
+                it.size = it.done_bytes = os.path.getsize(dst)
+            except OSError:
+                pass
+        else:
+            it.description = (it.description + f" ({err}; asıl dosya korundu)").strip()
+        self.events.append(("completed", it))
+        self.save()
 
     def _tick_torrent(self, it, now):
         if not self.torrents:

@@ -418,6 +418,102 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(md5(open(it.path, "rb").read()), md5(self.big))
 
 
+@unittest.skipUnless(FF, "ffmpeg yok")
+class ConvertTests(unittest.TestCase):
+    """İndirme bitince biçim dönüştürme (MKV / AVI / MP3)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.dir = newdir()
+        cls.sample = os.path.join(cls.dir, "ornek.mp4")
+        subprocess.run([FF, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
+                        "testsrc=size=320x240:rate=25:duration=2", "-f", "lavfi", "-i",
+                        "sine=frequency=440:duration=2", "-c:v", "mpeg4", "-c:a", "aac", "-shortest",
+                        cls.sample], check=True, capture_output=True)
+        with open(cls.sample, "rb") as f:
+            cls.data = f.read()
+
+    def fresh(self, name):
+        p = os.path.join(newdir(), name)
+        with open(p, "wb") as f:
+            f.write(self.data)
+        return p
+
+    def test_formats(self):
+        from turbodm import convert
+        magic = {"mkv": b"\x1aE\xdf\xa3", "avi": b"RIFF", "mp3": (b"ID3", b"\xff\xfb", b"\xff\xf3")}
+        for fmt, sig in magic.items():
+            src = self.fresh("film.mp4")
+            dst = convert.convert(FF, src, fmt)
+            self.assertTrue(dst.endswith("." + fmt), dst)
+            self.assertFalse(os.path.exists(src), "asıl dosya silinmedi")
+            head = open(dst, "rb").read(4)
+            sigs = sig if isinstance(sig, tuple) else (sig,)
+            self.assertTrue(any(head.startswith(x) for x in sigs), (fmt, head))
+            if fmt == "avi":
+                self.assertIn(b"AVI ", open(dst, "rb").read(12))
+
+    def test_failure_keeps_original(self):
+        from turbodm import convert
+        src = os.path.join(newdir(), "bozuk.mp4")
+        with open(src, "wb") as f:
+            f.write(b"bu bir video degil")
+        with self.assertRaises(OSError):
+            convert.convert(FF, src, "avi")
+        self.assertTrue(os.path.exists(src))
+        self.assertEqual(os.listdir(os.path.dirname(src)), ["bozuk.mp4"], "yarım dosya kaldı")
+
+    def test_existing_target_not_overwritten(self):
+        from turbodm import convert
+        src = self.fresh("klip.mp4")
+        other = os.path.splitext(src)[0] + ".mkv"
+        with open(other, "wb") as f:
+            f.write(b"kullanicinin dosyasi")
+        dst = convert.convert(FF, src, "mkv")
+        self.assertEqual(os.path.basename(dst), "klip (2).mkv")
+        self.assertEqual(open(other, "rb").read(), b"kullanicinin dosyasi")
+
+    def test_download_then_convert_via_manager(self):
+        s = FakeServer()
+        s.files["/video.mp4"] = self.data
+        try:
+            m = manager.Manager()
+            it = m.add_http(s.url("/video.mp4"), os.path.join(newdir(), "video.mp4"), start=False)
+            it.extra["convert"] = "mkv"
+            m.start(it.id)
+            end = time.time() + 60
+            seen = set()
+            while time.time() < end and it.status != "completed":
+                m.tick()
+                seen.add(it.status)
+                time.sleep(0.05)
+            self.assertEqual(it.status, "completed", it.description)
+            self.assertIn("converting", seen)
+            self.assertTrue(it.path.endswith(".mkv") and os.path.isfile(it.path))
+            self.assertFalse(os.path.exists(os.path.splitext(it.path)[0] + ".mp4"))
+            self.assertIn(("completed", it), m.events)
+            if m.torrents:
+                m.torrents.shutdown()
+        finally:
+            s.close()
+
+
+class VideoHeaderTests(unittest.TestCase):
+    def test_referer_and_origin_passed_to_ytdlp(self):
+        h = {"Referer": "https://oynatici.example/embed/1", "Origin": "https://oynatici.example",
+             "Cookie": "x=1", "User-Agent": "UA"}
+        args = ytdlp._header_args("https://cdn.example/v/master.mpd", h)
+        self.assertEqual(args, ["--referer", "https://oynatici.example/embed/1",
+                                "--add-header", "Origin:https://oynatici.example"])
+        self.assertEqual(ytdlp._header_args("https://www.youtube.com/watch?v=abcDEF12345", h), [])
+
+    def test_dash_detection(self):
+        from turbodm.gui import is_dash
+        self.assertTrue(is_dash("https://cdn.example/a/manifest.mpd?token=1"))
+        self.assertTrue(is_dash("https://cdn.example/play", "application/dash+xml; charset=utf-8"))
+        self.assertFalse(is_dash("https://cdn.example/a/video.mp4", "video/mp4"))
+
+
 class FilenameTests(unittest.TestCase):
     def test_sanitize(self):
         self.assertEqual(sanitize_filename('a<b>c:"d"/e\\f|g?h*.mp4'), "a_b_c__d__e_f_g_h_.mp4")

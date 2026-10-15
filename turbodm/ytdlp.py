@@ -90,9 +90,23 @@ def version():
 UTF8_ENV = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
 
 
-def _base_args(ffmpeg=None, cookies_file=None):
+def _header_args(url, headers):
+    """Gömülü oynatıcılar: video sunucusu isteğin oynatıcı sayfasından geldiğini (Referer/Origin) denetler;
+    tarayıcının gönderdiği bu başlıklar yt-dlp'ye de verilir. YouTube'da yt-dlp kendi başlıklarını kullanır."""
+    if not headers or is_youtube(url):
+        return []
+    h = {k.lower(): v for k, v in headers.items() if isinstance(v, str) and v}
+    out = []
+    if h.get("referer"):
+        out += ["--referer", h["referer"]]
+    if h.get("origin"):
+        out += ["--add-header", "Origin:" + h["origin"]]
+    return out
+
+
+def _base_args(ffmpeg=None, cookies_file=None, url=None, headers=None):
     args = [ytdlp_path(), "--no-warnings", "--no-playlist", "--ignore-config", "--no-color",
-            "--encoding", "utf-8"]
+            "--encoding", "utf-8"] + _header_args(url, headers)
     deno = deno_path()
     if deno:
         args += ["--js-runtimes", f"deno:{deno}"]
@@ -159,12 +173,12 @@ def partial_files(path):
 
 
 # ------------------------------------------------------------------ kalite listesi
-def inspect(url, ffmpeg=None, cookies=None):
+def inspect(url, ffmpeg=None, cookies=None, headers=None):
     """Video bilgisi ve sunulacak kalite seçenekleri.
     Dönüş: {"title", "duration", "thumbnail", "choices": [{"label", "format", "ext", "size"}]}"""
     ck = write_cookies(cookies)
     try:
-        r = subprocess.run(_base_args(ffmpeg, ck) + ["-J", url], capture_output=True, timeout=120,
+        r = subprocess.run(_base_args(ffmpeg, ck, url, headers) + ["-J", url], capture_output=True, timeout=120,
                            env=UTF8_ENV, creationflags=NO_WINDOW)
     finally:
         if ck:
@@ -438,7 +452,7 @@ class YtdlpTask:
             return pre  # kalite listesinden gelen taze adresler (YouTube'a ikinci istek yok)
         ck = write_cookies(ex.get("cookies"))
         try:
-            r = subprocess.run(_base_args(self.ffmpeg, ck) + ["-J", "-f", ex["format"], self.item.url],
+            r = subprocess.run(_base_args(self.ffmpeg, ck, self.item.url, self.item.headers) + ["-J", "-f", ex["format"], self.item.url],
                                capture_output=True, timeout=120, env=UTF8_ENV, creationflags=NO_WINDOW)
         finally:
             if ck and os.path.exists(ck):
@@ -643,7 +657,7 @@ class YtdlpTask:
         try:
             out_dir, name = os.path.split(it.path)
             stem = os.path.splitext(name)[0]
-            args = _base_args(self.ffmpeg, ck) + [
+            args = _base_args(self.ffmpeg, ck, it.url, it.headers) + [
                 "--newline", "--progress", "--quiet", "--continue", "--no-mtime",
                 "-f", ex["format"], "-N", str(max(1, min(16, it.connections))),
                 "--progress-template",
