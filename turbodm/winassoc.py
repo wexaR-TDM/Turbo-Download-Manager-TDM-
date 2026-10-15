@@ -7,6 +7,7 @@ import ctypes
 import os
 import sys
 import winreg
+from .i18n import _t
 
 APP = "TurboDM"
 HKCU = winreg.HKEY_CURRENT_USER
@@ -77,15 +78,15 @@ def register(root="Software"):
     cmd = launch_command('"%1"')
     icon = f'"{icon_path()}",0'
     # magnet: protokolü
-    _set(classes + r"\magnet", "", "URL:Magnet bağlantısı")
+    _set(classes + r"\magnet", "", _t("URL:Magnet bağlantısı"))
     _set(classes + r"\magnet", "URL Protocol", "")
     _set(classes + r"\magnet\DefaultIcon", "", icon)
     _set(classes + r"\magnet\shell\open\command", "", cmd)
     # ProgID'ler
-    _set(classes + r"\TurboDM.magnet", "", "Magnet bağlantısı")
+    _set(classes + r"\TurboDM.magnet", "", _t("Magnet bağlantısı"))
     _set(classes + r"\TurboDM.magnet", "URL Protocol", "")
     _set(classes + r"\TurboDM.magnet\shell\open\command", "", cmd)
-    _set(classes + r"\TurboDM.torrent", "", "Torrent dosyası")
+    _set(classes + r"\TurboDM.torrent", "", _t("Torrent dosyası"))
     _set(classes + r"\TurboDM.torrent\DefaultIcon", "", icon)
     _set(classes + r"\TurboDM.torrent\shell\open\command", "", cmd)
     # .torrent uzantısı
@@ -95,7 +96,7 @@ def register(root="Software"):
     # Varsayılan uygulamalar ekranı için yetenekler
     cap = root + rf"\{APP}\Capabilities"
     _set(cap, "ApplicationName", APP)
-    _set(cap, "ApplicationDescription", "İnternet indirme yöneticisi (HTTP, FTP, HLS, BitTorrent)")
+    _set(cap, "ApplicationDescription", _t("İnternet indirme yöneticisi (HTTP, FTP, HLS, BitTorrent)"))
     _set(cap + r"\URLAssociations", "magnet", "TurboDM.magnet")
     _set(cap + r"\FileAssociations", ".torrent", "TurboDM.torrent")
     _set(root + r"\RegisteredApplications", APP, cap)

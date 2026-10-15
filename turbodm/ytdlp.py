@@ -21,6 +21,7 @@ import urllib.parse
 import urllib.request
 
 from .appinfo import install_dir
+from .i18n import _t
 
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 USER_TOOLS = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "TurboDM", "tools")
@@ -185,11 +186,11 @@ def inspect(url, ffmpeg=None, cookies=None, headers=None):
             os.remove(ck)
     if r.returncode != 0:
         err = r.stderr.decode("utf-8", "replace").strip().splitlines()
-        msg = next((e for e in reversed(err) if "ERROR" in e), err[-1] if err else "bilinmeyen hata")
+        msg = next((e for e in reversed(err) if "ERROR" in e), err[-1] if err else _t("bilinmeyen hata"))
         raise RuntimeError(_friendly_error(msg))
     info = json.loads(r.stdout.decode("utf-8", "replace"))
     if info.get("_type") == "playlist":
-        raise RuntimeError("Bu bir oynatma listesi; tek bir video bağlantısı verin.")
+        raise RuntimeError(_t("Bu bir oynatma listesi; tek bir video bağlantısı verin."))
     return {"title": info.get("title") or "video", "duration": info.get("duration"),
             "id": info.get("id"), "extractor": info.get("extractor_key"),
             "choices": build_choices(info.get("formats") or [], info.get("duration"))}
@@ -243,19 +244,19 @@ def build_choices(formats, duration=None):
         has_audio = pick.get("acodec") not in (None, "none")
         size = _size(pick, duration) + (0 if has_audio or not best_audio else _size(best_audio, duration))
         fmt = pick["format_id"] if has_audio or not best_audio else f"{pick['format_id']}+{best_audio['format_id']}"
-        label = f"{h}p{fps} · {codec}" + (f" · ≈{size / 1048576:.0f} MB" if size else "")
+        label = _t("{0}p{1} · {2}").format(h, fps, codec) + (_t(" · ≈{0:.0f} MB").format(size / 1048576) if size else "")
         choices.append({"label": label, "format": fmt, "ext": "mp4", "size": size, "height": h,
                         "streams": _streams(formats, fmt)})
     if best_audio:
         size = _size(best_audio, duration)
-        choices.append({"label": f"Yalnızca ses · {best_audio.get('ext', 'm4a')}"
-                                  + (f" · ≈{size / 1048576:.0f} MB" if size else ""),
+        choices.append({"label": _t("Yalnızca ses · {0}").format(best_audio.get('ext', 'm4a'))
+                                  + (_t(" · ≈{0:.0f} MB").format(size / 1048576) if size else ""),
                         "format": best_audio["format_id"], "ext": best_audio.get("ext", "m4a"),
                         "size": size, "height": 0, "streams": _streams(formats, best_audio["format_id"])})
     if not choices:  # tek dosya sunan siteler
         f = max(formats, key=lambda f: f.get("tbr") or 0, default=None)
         if f:
-            choices.append({"label": "En iyi kalite", "format": f["format_id"], "ext": f.get("ext", "mp4"),
+            choices.append({"label": _t("En iyi kalite"), "format": f["format_id"], "ext": f.get("ext", "mp4"),
                             "size": _size(f, duration), "height": f.get("height") or 0})
     return choices
 
@@ -263,16 +264,15 @@ def build_choices(formats, duration=None):
 def _friendly_error(msg):
     m = msg.lower()
     if "sign in to confirm" in m or "not a bot" in m:
-        return ("YouTube giriş doğrulaması istiyor. Videoyu tarayıcı eklentisindeki düğmeyle gönderin "
-                "(oturum çerezleri birlikte gönderilir) ya da biraz sonra tekrar deneyin.")
+        return (_t("YouTube giriş doğrulaması istiyor. Videoyu tarayıcı eklentisindeki düğmeyle gönderin (oturum çerezleri birlikte gönderilir) ya da biraz sonra tekrar deneyin."))
     if "private video" in m:
-        return "Bu video gizli."
+        return _t("Bu video gizli.")
     if "members-only" in m or "join this channel" in m:
-        return "Bu video yalnızca kanal üyelerine açık."
+        return _t("Bu video yalnızca kanal üyelerine açık.")
     if "drm" in m:
-        return "Bu video DRM ile korunuyor, indirilemez."
+        return _t("Bu video DRM ile korunuyor, indirilemez.")
     if "unsupported url" in m:
-        return "Bu adreste indirilebilir bir video bulunamadı."
+        return _t("Bu adreste indirilebilir bir video bulunamadı.")
     return re.sub(r"^ERROR:\s*(\[[^\]]+\]\s*)?", "", msg).strip()
 
 
@@ -343,7 +343,7 @@ class YtdlpTask:
         self.done_formats = {}   # native: format_id -> bayt
         self.cur = (None, 0, 0)  # native: (format_id, indirilen, toplam)
         self.parts = []          # fast: [(_Part, HttpTask)]
-        self.phase = "Video adresleri çözülüyor…"
+        self.phase = _t("Video adresleri çözülüyor…")
 
     # ---------------------------------------------------------------- dış API
     def start(self):
@@ -406,7 +406,7 @@ class YtdlpTask:
         if self.mode == "fast":
             out = []
             for p, t in list(self.parts):
-                label = "Görüntü" if p.kind == "video" else "Ses"
+                label = _t("Görüntü") if p.kind == "video" else "Ses"
                 for _, done, total, info in t.connections_snapshot():
                     out.append((len(out) + 1, done, total, f"{label} · {info}"))
             return out or [(1, 0, None, self.phase)]
@@ -460,7 +460,7 @@ class YtdlpTask:
         if r.returncode != 0:
             err = r.stderr.decode("utf-8", "replace").strip().splitlines()
             msg = next((e for e in reversed(err) if "ERROR" in e), err[-1] if err else "")
-            raise RuntimeError(_friendly_error(msg) if msg else "Video bilgisi alınamadı")
+            raise RuntimeError(_friendly_error(msg) if msg else _t("Video bilgisi alınamadı"))
         info = json.loads(r.stdout.decode("utf-8", "replace"))
         fmts = info.get("requested_formats") or [info]
         for f in fmts:
@@ -519,7 +519,7 @@ class YtdlpTask:
         self.mode = "fast"
         parts = self._make_parts(fmts)
         self.parts = [(p, _DoneTask(p) if p.done else self._start_part(p)) for p in parts]
-        self.phase = "İndiriliyor"
+        self.phase = _t("İndiriliyor")
         refreshes, mark = 0, self.downloaded()
         while True:
             if self.stop_event.is_set():
@@ -535,7 +535,7 @@ class YtdlpTask:
                 expired = any(c in errs for c in ("HTTP 403", "HTTP 410", "HTTP 404"))
                 if not expired:
                     self._halt_parts()
-                    raise RuntimeError(errs.strip() or "İndirme hatası")
+                    raise RuntimeError(errs.strip() or _t("İndirme hatası"))
                 # Akış adresinin süresi doldu. İlerleme oldukça hak sıfırlanır; ilerleme yokken art arda
                 # reddediliyorsa sonsuz döngüye girilmez.
                 if self.downloaded() - mark > 16 * 1024 * 1024:
@@ -557,7 +557,7 @@ class YtdlpTask:
         """Tek bir yeniden çözümlemeyle bitmemiş TÜM parçaların adreslerini yenile ve kaldığı yerden sürdür.
         (Aynı anda alınmış adreslerin hepsinin süresi birlikte dolar; yalnızca hata vereni yenilemek
         yenileme hakkını boşa harcıyordu.) False: biçim artık sunulmuyor."""
-        self.phase = "Adres yenileniyor…"
+        self.phase = _t("Adres yenileniyor…")
         # Önce eski bağlantılar tamamen kapanmalı: aynı segmentlere iki görev yazarsa dosyaya boşluk karışır.
         self._halt_parts()
         try:
@@ -577,7 +577,7 @@ class YtdlpTask:
                 t = self._start_part(p)
             new.append((p, t))
         self.parts = new
-        self.phase = "İndiriliyor"
+        self.phase = _t("İndiriliyor")
         return True
 
     def _give_up(self):
@@ -587,8 +587,7 @@ class YtdlpTask:
         total = self.estimated_size() or 0
         if self.downloaded() < max(32 * 1024 * 1024, total * 0.05):
             return False
-        raise RuntimeError("YouTube akış adresini şu an kabul etmiyor. İndirilen kısım korundu; "
-                           "biraz sonra Devam Et ile kaldığı yerden sürdürebilirsiniz.")
+        raise RuntimeError(_t("YouTube akış adresini şu an kabul etmiyor. İndirilen kısım korundu; biraz sonra Devam Et ile kaldığı yerden sürdürebilirsiniz."))
 
     def _wait_parts(self, timeout=30):
         """Tüm alt görevlerin bağlantıları gerçekten kapanana kadar bekle."""
@@ -605,9 +604,9 @@ class YtdlpTask:
             os.replace(p.path, final)
             leftovers = []
         else:
-            self.phase = "Birleştiriliyor (ffmpeg)…"
+            self.phase = _t("Birleştiriliyor (ffmpeg)…")
             if not self.ffmpeg:
-                raise RuntimeError("Görüntü ve sesi birleştirmek için ffmpeg gerekli")
+                raise RuntimeError(_t("Görüntü ve sesi birleştirmek için ffmpeg gerekli"))
             video = next(p for p in parts if p.kind == "video")
             audio = next(p for p in parts if p.kind == "audio")
             ext = "." + (ex.get("ext") or "mp4").lstrip(".")
@@ -619,7 +618,7 @@ class YtdlpTask:
             if r.returncode != 0 or not os.path.isfile(tmp):
                 if os.path.exists(tmp):
                     os.remove(tmp)
-                raise RuntimeError("ffmpeg birleştiremedi: " + r.stderr.decode("utf-8", "replace")[-200:])
+                raise RuntimeError(_t("ffmpeg birleştiremedi: ") + r.stderr.decode("utf-8", "replace")[-200:])
             os.replace(tmp, final)
             leftovers = [p.path for p in parts]
         # Önce sonucu kaydet: parça silme anlık bir kilit (antivirüs, önizleme) yüzünden başarısız olsa bile
@@ -652,7 +651,7 @@ class YtdlpTask:
     def _run_native(self):
         it, ex = self.item, self.item.extra
         self.mode = "native"
-        self.phase = "Bağlanıyor…"
+        self.phase = _t("Bağlanıyor…")
         ck = write_cookies(ex.get("cookies"))
         try:
             out_dir, name = os.path.split(it.path)
@@ -687,10 +686,10 @@ class YtdlpTask:
                             self.done_formats[self.cur[0]] = max(self.cur[1], self.cur[2])
                         self.cur = (fid, got, total)
                     self.state = "downloading"
-                    self.phase = "Ses indiriliyor" if "+" in ex["format"] and fid == ex["format"].split("+")[1] \
-                        else "Görüntü indiriliyor"
+                    self.phase = _t("Ses indiriliyor") if "+" in ex["format"] and fid == ex["format"].split("+")[1] \
+                        else _t("Görüntü indiriliyor")
                     if total and got >= total:
-                        self.phase = "Birleştiriliyor (ffmpeg)…" if "+" in ex["format"] else self.phase
+                        self.phase = _t("Birleştiriliyor (ffmpeg)…") if "+" in ex["format"] else self.phase
                 elif line.startswith("TDMF "):
                     final = line[5:].strip()
             rc = self.proc.wait()
@@ -703,8 +702,8 @@ class YtdlpTask:
             if rc != 0 or not final or not os.path.isfile(final):
                 msg = next((e for e in reversed(last_err) if "ERROR" in e), last_err[-1] if last_err else "")
                 raise RuntimeError(_friendly_error(msg) if msg else
-                                   ("İndirme bitti ama çıktı dosyası bulunamadı" if rc == 0
-                                    else f"yt-dlp beklenmedik şekilde sonlandı (kod {rc})"))
+                                   (_t("İndirme bitti ama çıktı dosyası bulunamadı") if rc == 0
+                                    else _t("yt-dlp beklenmedik şekilde sonlandı (kod {0})").format(rc)))
             it.path = final
             it.size = os.path.getsize(final)
             with self.lock:
@@ -759,12 +758,12 @@ def update(progress=None):
     """Son yt-dlp.exe'yi indirip SHA-256 ile doğrular ve %LOCALAPPDATA%\\TurboDM\\tools'a koyar."""
     rel = latest_release()
     if not rel["exe"] or not rel["sums"]:
-        raise RuntimeError("Sürüm dosyaları bulunamadı")
+        raise RuntimeError(_t("Sürüm dosyaları bulunamadı"))
     with urllib.request.urlopen(urllib.request.Request(rel["sums"], headers={"User-Agent": "TurboDM"}), timeout=30) as r:
         sums = r.read().decode()
     expected = next((ln.split()[0] for ln in sums.splitlines() if ln.strip().endswith(" yt-dlp.exe")), None)
     if not expected:
-        raise RuntimeError("Doğrulama özeti bulunamadı")
+        raise RuntimeError(_t("Doğrulama özeti bulunamadı"))
     os.makedirs(USER_TOOLS, exist_ok=True)
     tmp = os.path.join(USER_TOOLS, "yt-dlp.exe.download")
     h = hashlib.sha256()
@@ -783,6 +782,6 @@ def update(progress=None):
                 progress(got, total)
     if h.hexdigest().lower() != expected.lower():
         os.remove(tmp)
-        raise RuntimeError("İndirilen dosya doğrulanamadı (SHA-256 uyuşmuyor); güncelleme yapılmadı.")
+        raise RuntimeError(_t("İndirilen dosya doğrulanamadı (SHA-256 uyuşmuyor); güncelleme yapılmadı."))
     os.replace(tmp, os.path.join(USER_TOOLS, "yt-dlp.exe"))
     return rel["version"]

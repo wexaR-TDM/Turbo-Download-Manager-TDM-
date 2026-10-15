@@ -8,7 +8,7 @@ a = Analysis(
     [os.path.join(ROOT, "main.py")],
     pathex=[ROOT],
     binaries=[],
-    datas=[],
+    datas=[(os.path.join(ROOT, "turbodm", "locale", "*.json"), os.path.join("turbodm", "locale"))],  # çeviriler
     hiddenimports=["libtorrent", "cryptography.hazmat.primitives.ciphers"],
     excludes=["tkinter", "unittest", "pydoc", "PySide6.QtNetwork", "PySide6.QtQml",
               "PySide6.QtQuick", "PySide6.QtPdf", "PySide6.QtOpenGL"],

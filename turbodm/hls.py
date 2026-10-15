@@ -16,6 +16,7 @@ import urllib.parse
 
 from .appinfo import bundled_ffmpeg
 from .engine import CHUNK, MAX_RETRIES, _err_text, _open
+from .i18n import _t
 
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -127,7 +128,7 @@ def inspect(url, headers=None):
     data, final = fetch(url, headers)
     text = data.decode("utf-8", "replace")
     if "#EXTM3U" not in text[:2048]:
-        raise ValueError("Geçerli bir HLS (m3u8) listesi değil")
+        raise ValueError(_t("Geçerli bir HLS (m3u8) listesi değil"))
     if "#EXT-X-STREAM-INF" in text:
         return {"variants": parse_master(text, final), "duration": None}
     m = parse_media(text, final)
@@ -142,8 +143,8 @@ def variant_label(v):
     if v.get("bandwidth"):
         parts.append(f"{v['bandwidth'] // 1000} kbps")
     if v.get("audio_url"):
-        parts.append("ayrı ses")
-    return " · ".join(parts) or "Varsayılan"
+        parts.append(_t("ayrı ses"))
+    return " · ".join(parts) or _t("Varsayılan")
 
 
 def _unique(path):
@@ -227,7 +228,7 @@ class HlsTask:
         it, ex = self.item, self.item.extra
         try:
             if any(ex.get(k) and ex[k].lower().endswith(".mpd") for k in ("media_url",)):
-                raise ValueError("DASH (.mpd) akışları desteklenmiyor")
+                raise ValueError(_t("DASH (.mpd) akışları desteklenmiyor"))
             tracks = [("v", ex["media_url"])]
             if ex.get("audio_url"):
                 tracks.append(("a", ex["audio_url"]))
@@ -246,17 +247,17 @@ class HlsTask:
                     text = data.decode("utf-8", "replace")
                 m = parse_media(text, final)
                 if not m["endlist"]:
-                    raise ValueError("Canlı yayınlar desteklenmiyor (liste bitmemiş)")
+                    raise ValueError(_t("Canlı yayınlar desteklenmiyor (liste bitmemiş)"))
                 for s in m["segments"]:
                     if s["key"] and s["key"]["method"] != "AES-128":
-                        raise ValueError("Bu video DRM (SAMPLE-AES) ile korunuyor, indirilemez")
+                        raise ValueError(_t("Bu video DRM (SAMPLE-AES) ile korunuyor, indirilemez"))
                     if s["key"] and Cipher is None:
-                        raise ValueError("Şifreli akış: 'pip install cryptography' gerekli")
+                        raise ValueError(_t("Şifreli akış: 'pip install cryptography' gerekli"))
                 self.inits[name] = m["init"]
                 self.counts[name] = len(m["segments"])
                 jobs += [(name, i, s) for i, s in enumerate(m["segments"])]
             if not jobs:
-                raise ValueError("Listede hiç parça yok")
+                raise ValueError(_t("Listede hiç parça yok"))
             with self.lock:
                 self.jobs = jobs
                 self.todo = [j for j in jobs if f"{j[0]}:{j[1]}" not in self.done]
@@ -301,7 +302,7 @@ class HlsTask:
             for attempt in range(MAX_RETRIES + 1):
                 if self.stop_event.is_set():
                     return False
-                self.conn_info[key] = f"{'Ses' if name == 'a' else 'Görüntü'} parçası {idx + 1}"
+                self.conn_info[key] = _t("{0} parçası {1}").format(_t('Ses') if name == 'a' else _t('Görüntü'), idx + 1)
                 try:
                     buf = bytearray()
                     with _open(s["url"], self.item.headers, *(s["range"] or (None, None))) as r:
@@ -367,7 +368,7 @@ class HlsTask:
 
     def _assemble(self):
         it = self.item
-        self.conn_info = {"z": "Parçalar birleştiriliyor…"}
+        self.conn_info = {"z": _t("Parçalar birleştiriliyor…")}
         outs = {}
         for name, count in self.counts.items():
             if self.inits.get(name):
@@ -396,13 +397,13 @@ class HlsTask:
             if "a" in outs:
                 args += [*probe, "-i", outs["a"], "-map", "0:v:0?", "-map", "1:a:0"]
             args += ["-c", "copy", target]
-            self.conn_info = {"z": "ffmpeg ile dönüştürülüyor…"}
+            self.conn_info = {"z": _t("ffmpeg ile dönüştürülüyor…")}
             r = subprocess.run(args, capture_output=True,
                                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             if r.returncode == 0 and os.path.exists(target):
                 final = target
             else:
-                self.note = "ffmpeg dönüştüremedi: " + r.stderr.decode("utf-8", "replace")[-200:]
+                self.note = _t("ffmpeg dönüştüremedi: ") + r.stderr.decode("utf-8", "replace")[-200:]
                 if os.path.exists(target):
                     os.remove(target)
         if not final:
@@ -410,8 +411,8 @@ class HlsTask:
             if "a" in outs:
                 final = _unique(base + vext)
                 shutil.move(outs["a"], _unique(base + ".ses" + os.path.splitext(outs["a"])[1]))
-                why = "ffmpeg birleştiremediği" if self.note else "ffmpeg olmadığı"
-                self.note = ((self.note or "") + f" {why} için ses ayrı dosyaya kaydedildi.").strip()
+                why = _t("ffmpeg birleştiremediği") if self.note else _t("ffmpeg olmadığı")
+                self.note = ((self.note or "") + _t(" {0} için ses ayrı dosyaya kaydedildi.").format(why)).strip()
             else:
                 final = _unique(base + vext)
             shutil.move(outs["v"], final)

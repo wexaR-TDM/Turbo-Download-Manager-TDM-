@@ -15,6 +15,7 @@ import urllib.request
 from unittest import mock
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+os.environ["TURBODM_LANG"] = "tr"  # testler Türkçe metinlerle yazıldı; sistem dilinden bağımsız
 os.makedirs(os.path.join(ROOT, "build", "tmp"), exist_ok=True)
 TMP = tempfile.mkdtemp(prefix="tdm_gui_", dir=os.path.join(ROOT, "build", "tmp"))  # proje içinde
 atexit.register(shutil.rmtree, TMP, True)  # bilgisayarda test kalıntısı bırakma

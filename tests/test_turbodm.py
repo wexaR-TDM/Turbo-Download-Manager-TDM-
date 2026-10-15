@@ -21,6 +21,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest import mock
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+os.environ["TURBODM_LANG"] = "tr"  # testler Türkçe metinlerle yazıldı; sistem dilinden bağımsız
 os.makedirs(os.path.join(ROOT, "build", "tmp"), exist_ok=True)
 TMP = tempfile.mkdtemp(prefix="tdm_tests_", dir=os.path.join(ROOT, "build", "tmp"))  # proje içinde
 atexit.register(shutil.rmtree, TMP, True)  # bilgisayarda test kalıntısı bırakma
@@ -592,6 +593,56 @@ class UpdateSecurityTests(unittest.TestCase):
         self.assertIn(sign_update.public_b64(sign_update.load_key()), self.u.PUBLIC_KEYS)
 
 
+class LocaleTests(unittest.TestCase):
+    """Çeviriler: koddaki her _t() metni her dilde var mı, yer tutucular ({0}, {1:.2f}…) aynı mı."""
+
+    def test_all_languages_complete_and_placeholders_match(self):
+        import string
+        sys.path.insert(0, os.path.join(ROOT, "installer"))
+        import i18n_wrap
+        from turbodm import i18n
+        files = [os.path.join(ROOT, "main.py")] + [os.path.join(ROOT, "turbodm", f) for f in os.listdir(
+            os.path.join(ROOT, "turbodm")) if f.endswith(".py")]
+        keys = set(i18n_wrap.keys(files))
+        self.assertGreater(len(keys), 300)
+        fields = lambda s: sorted((f, spec) for _, f, spec, _ in string.Formatter().parse(s) if f is not None)  # noqa: E731
+        for code in i18n.LANGUAGES:
+            if code == "tr":
+                continue
+            with open(os.path.join(ROOT, "turbodm", "locale", code + ".json"), encoding="utf-8") as f:
+                table = json.load(f)
+            missing = sorted(keys - set(table))
+            self.assertEqual(missing, [], f"{code}: çevirisi eksik metinler")
+            for k in keys:
+                self.assertEqual(fields(k), fields(table[k]), f"{code}: yer tutucu uyuşmuyor: {k!r}")
+
+    def test_switching_language_translates(self):
+        from turbodm import i18n
+        try:
+            i18n.set_language("de")
+            self.assertEqual(i18n._t("İndirmeyi Başlat"), "Download starten")
+            i18n.set_language("ar")
+            self.assertTrue(i18n.is_rtl())
+            self.assertEqual(i18n._t("bu metin çevrilmemiş"), "bu metin çevrilmemiş")  # yoksa Türkçe kalır
+        finally:
+            i18n.set_language("tr")
+
+    def test_installer_language_saved_without_touching_other_settings(self):
+        # kurulumda seçilen dil: TurboDM.exe --set-language <kod> (APPDATA testte sahte klasör)
+        import main
+        from turbodm import i18n
+        path = os.path.join(os.environ["APPDATA"], "TurboDM", "settings.json")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"max_connections": 5}, f)
+        self.assertEqual(main._tool_mode(["--set-language", "fr"]), 0)
+        with open(path, encoding="utf-8") as f:
+            self.assertEqual(json.load(f), {"max_connections": 5, "language": "fr"})
+        self.assertEqual(main._tool_mode(["--set-language", "xx"]), 1)  # bilinmeyen dil yazılmaz
+        self.assertEqual(i18n.language(), "tr")  # çalışan programın dili değişmez (yeniden açınca geçerli)
+        os.remove(path)
+
+
 class ExtensionTests(unittest.TestCase):
     def test_page_url_is_reduced_to_single_video(self):
         w = "https://www.youtube.com/watch?v=abcDEF12345"
@@ -608,7 +659,13 @@ class ExtensionTests(unittest.TestCase):
         man = json.load(open(os.path.join(folder, "manifest.json"), encoding="utf-8"))
         keys = set(re.findall(r"__MSG_(\w+)__", json.dumps(man)))
         self.assertTrue(keys)
-        for lang in ("en", "tr"):
+        # arayüz metinleri: kodda M("anahtar") ve popup.html'de data-i18n="anahtar"
+        for name in ("background.js", "content.js", "popup.js", "popup.html"):
+            with open(os.path.join(folder, name), encoding="utf-8") as f:
+                text = f.read()
+            keys |= set(re.findall(r'\bM\("(\w+)"\)', text)) | set(re.findall(r'data-i18n="(\w+)"', text))
+        self.assertIn("btnDownload", keys)
+        for lang in ("tr", "en", "de", "fr", "es", "ar", "it"):
             msgs = json.load(open(os.path.join(folder, "_locales", lang, "messages.json"), encoding="utf-8"))
             self.assertFalse(keys - set(msgs), lang)
         self.assertTrue(os.path.isdir(os.path.join(folder, "_locales", man["default_locale"])))

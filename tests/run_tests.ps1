@@ -25,7 +25,7 @@ if ($Installer) {
     else {
         $out = powershell -NoProfile -ExecutionPolicy Bypass -File "$PSScriptRoot\test_installer.ps1" -Project $root -Stage $stage
         $out
-        $bad = $out | Where-Object { $_ -match "kaldı mı: True|hepsi tamam: False|exit=[1-9]|korunmuş mu: False|başlatma kaydı: True|dosya sayısı: 0$|klasöründe: False" }
+        $bad = $out | Where-Object { $_ -match "kaldı mı: True|hepsi tamam: False|exit=[1-9]|korunmuş mu: False|başlatma kaydı: True|dosya sayısı: 0$|klasöründe: False|ayarlarda: False|BROWSER_EXTENSION.txt\): False" }
         if ($bad) { Write-Host "Kurulum testinde sorun:" -ForegroundColor Red; $bad; $failed++ }
         Remove-Item -LiteralPath (Join-Path $root "build\test") -Recurse -Force -ErrorAction SilentlyContinue
     }

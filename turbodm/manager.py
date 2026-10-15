@@ -12,6 +12,7 @@ from . import torrent as tmod
 from .engine import ChainLimiter, HttpTask, SpeedLimiter
 from .hls import HlsTask, find_ffmpeg
 from . import convert, ytdlp
+from .i18n import _t
 
 APP_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "TurboDM")
 TORRENT_DIR = os.path.join(APP_DIR, "torrents")
@@ -19,16 +20,16 @@ DEFAULT_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "TurboDM")
 
 # anahtar: (görünen ad, klasör, uzantılar)
 CATEGORIES = {
-    "compressed": ("Sıkıştırılmış", "Compressed",
+    "compressed": (_t("Sıkıştırılmış"), "Compressed",
                    "zip rar 7z tar gz tgz bz2 xz iso cab arj lzh z ace".split()),
-    "documents": ("Belgeler", "Documents",
+    "documents": (_t("Belgeler"), "Documents",
                   "pdf doc docx xls xlsx ppt pptx txt rtf odt ods epub csv".split()),
-    "music": ("Müzik", "Music", "mp3 wav flac aac ogg wma m4a opus aif aiff".split()),
-    "programs": ("Programlar", "Programs", "exe msi apk dmg deb rpm msix appx bat".split()),
-    "video": ("Video", "Video",
+    "music": (_t("Müzik"), "Music", "mp3 wav flac aac ogg wma m4a opus aif aiff".split()),
+    "programs": (_t("Programlar"), "Programs", "exe msi apk dmg deb rpm msix appx bat".split()),
+    "video": (_t("Video"), "Video",
               "mp4 mkv avi mov wmv flv webm m4v mpg mpeg 3gp ts m2ts".split()),
-    "torrent": ("Torrent", "Torrent", []),
-    "general": ("Genel", "General", []),
+    "torrent": (_t("Torrent"), "Torrent", []),
+    "general": (_t("Genel"), "General", []),
 }
 
 DEFAULT_SETTINGS = {
@@ -49,6 +50,7 @@ DEFAULT_SETTINGS = {
     "schedule_stop": "07:00",
     "ffmpeg_path": "",
     "auto_update_check": True,
+    "language": "auto",         # auto (Windows dili) | tr | en | de | fr | es | ar | it
     "theme": "auto",            # auto (Windows ile aynı) | light | dark
     "last_update_check": 0,
     "update_repo": "",      # boşsa appinfo.UPDATE_REPO kullanılır
@@ -103,7 +105,7 @@ class DownloadItem:
     @property
     def filename(self):
         if self.kind == "torrent":
-            return self.name or "(meta veri bekleniyor)"
+            return self.name or _t("(meta veri bekleniyor)")
         return os.path.basename(self.path)
 
     def to_dict(self):
@@ -156,7 +158,7 @@ class Manager:
             except Exception as e:  # noqa: BLE001
                 self.torrent_error = str(e)
         else:
-            self.torrent_error = "libtorrent yüklü değil"
+            self.torrent_error = _t("libtorrent yüklü değil")
         self._apply_torrent_limits()
         for d in self._load_json("downloads.json", []):
             it = DownloadItem(**d)
@@ -176,7 +178,7 @@ class Manager:
                     data = json.load(f)
                 if isinstance(data, type(default)):
                     return data
-                raise ValueError("beklenmeyen biçim")
+                raise ValueError(_t("beklenmeyen biçim"))
             except FileNotFoundError:
                 continue
             except (OSError, ValueError):
@@ -311,7 +313,7 @@ class Manager:
         """source: magnet ya da .torrent yolu. probe_key: dosya seçimi için meta verisi
         önceden alınmış magnet (TorrentEngine.probe_start) → aynı oturum devralınır."""
         if not self.torrents:
-            raise RuntimeError(self.torrent_error or "Torrent desteği yok")
+            raise RuntimeError(self.torrent_error or _t("Torrent desteği yok"))
         it = DownloadItem(kind="torrent", category="torrent", path=save_dir, description=description)
         if priorities:
             it.extra["priorities"] = list(priorities)
@@ -586,7 +588,7 @@ class Manager:
             except OSError:
                 pass
         else:
-            it.description = (it.description + f" ({err}; asıl dosya korundu)").strip()
+            it.description = (it.description + _t(" ({0}; asıl dosya korundu)").format(err)).strip()
         self.events.append(("completed", it))
         self.save()
 
@@ -648,10 +650,10 @@ class Manager:
         self._sched_last = hm
         if hm == self.settings["schedule_start"]:
             self.start_queue()
-            self.events.append(("info", "Zamanlayıcı: kuyruk başlatıldı"))
+            self.events.append(("info", _t("Zamanlayıcı: kuyruk başlatıldı")))
         elif hm == self.settings["schedule_stop"]:
             self.stop_queue()
-            self.events.append(("info", "Zamanlayıcı: kuyruk durduruldu"))
+            self.events.append(("info", _t("Zamanlayıcı: kuyruk durduruldu")))
 
     def total_speed(self):
         return sum(i.speed for i in self.items.values())

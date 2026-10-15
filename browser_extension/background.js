@@ -14,6 +14,8 @@ chrome.storage.onChanged.addListener((c) => {
   if (c.grabber) grabber = c.grabber.newValue;
 });
 
+const M = (key) => chrome.i18n.getMessage(key) || key;  // _locales/<dil>/messages.json
+
 async function cookiesFor(url) {
   try {
     const list = await chrome.cookies.getAll({ url });
@@ -189,8 +191,8 @@ chrome.webRequest.onHeadersReceived.addListener(
     if (cr) size = parseInt(cr[1], 10);
     const kind = classify(d.url, ctype, size);
     if (!kind) return;
-    const label = (kind === "hls" ? "Video akışı (HLS)" : kind === "dash" ? "Video akışı (DASH)"
-      : kind === "audio" ? "Ses" : "Video")
+    const label = M(kind === "hls" ? "labelHls" : kind === "dash" ? "labelDash"
+      : kind === "audio" ? "labelAudio" : "labelVideo")
       + (size ? " · " + fmtSize(size) : "")
       + " · " + (ctype.split(";")[0] || d.url.split("?")[0].split(".").pop());
     const referrer = frameUrls.get(d.tabId + ":" + d.frameId) || d.initiator || "";
@@ -228,10 +230,10 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     reply(media.get(tabId) || []);
   } else if (msg.type === "tdm-element-src") {
     // <video src="..."> doğrudan bağlantıysa (blob: değilse) onu da listeye ekle
-    addMedia(tabId, { url: msg.url, kind: "video", size: 0, label: "Video · sayfadaki oynatıcı" });
+    addMedia(tabId, { url: msg.url, kind: "video", size: 0, label: M("labelPagePlayer") });
   } else if (msg.type === "tdm-formats") {
     // Sayfadaki kalite menüsü için: TurboDM yt-dlp ile kaliteleri listeler (~3 sn; sonuç 10 dk önbellekte)
-    getFormats(msg.url).then(reply).catch((e) => reply({ error: e.message || "TurboDM çalışmıyor" }));
+    getFormats(msg.url).then(reply).catch((e) => reply({ error: e.message || M("appDown") }));
     return true;
   } else if (msg.type === "tdm-page") {
     // Sayfa videosu. msg.choice varsa (menüden seçilen kalite) TurboDM soru sormadan indirmeye başlar;
@@ -257,7 +259,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "turbodm-link",
-    title: "TurboDM ile indir",
+    title: M("ctxDownload"),
     contexts: ["link", "image", "video", "audio"],
   });
 });
@@ -268,6 +270,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   try {
     await sendToApp({ url, referrer: info.pageUrl || (tab && tab.url) || "" });
   } catch {
-    console.warn("TurboDM çalışmıyor");
+    console.warn(M("appDown"));
   }
 });

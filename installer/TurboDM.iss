@@ -36,7 +36,7 @@ AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher=TurboDM
-AppComments=HTTP, FTP, HLS video ve BitTorrent indirme yöneticisi
+AppComments=HTTP, FTP, HLS video and BitTorrent download manager
 ; test derlemesi gerçek kurulumun kısayollarıyla çakışmasın
 DefaultGroupName={#LinkName}
 DisableProgramGroupPage=yes
@@ -66,30 +66,306 @@ LZMANumBlockThreads=4
 LZMAUseSeparateProcess=yes
 CloseApplications=yes
 RestartApplications=no
-ShowLanguageDialog=no
+; Kurulum başında dil seçimi (varsayılan: Windows'un dili). Güncellemede önceki kurulumun dili kullanılır.
+ShowLanguageDialog=yes
+LanguageDetectionMethod=uilanguage
+UsePreviousLanguage=yes
 VersionInfoVersion={#AppVersion}.0
-VersionInfoDescription=TurboDM Kurulum Programı
+VersionInfoDescription=TurboDM Setup
 VersionInfoProductName={#AppName}
 
 [Languages]
+; Adlar değiştirilmemeli: güncellemede önceki kurulumun dili bu adla bulunur (1.6.x yalnızca "turkish" idi)
 Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
+Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "german"; MessagesFile: "compiler:Languages\German.isl"
+Name: "french"; MessagesFile: "compiler:Languages\French.isl"
+Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
+Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
+Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 
 [Messages]
-SetupWindowTitle=TurboDM Kurulumu
-WelcomeLabel1=TurboDM'e hoş geldiniz
-WelcomeLabel2=Hızlı, çok bağlantılı indirme yöneticiniz birkaç adımda hazır olacak.%n%n⚡  Dosyaları 8 bağlantıyla paralel indirir, kaldığı yerden devam eder%n🎬  Sitelerdeki videoları tek tıkla .mp4 olarak kaydeder%n🧲  Magnet ve .torrent dosyalarını, dosya seçerek indirir%n🌐  Tarayıcı eklentisiyle indirmeleri otomatik yakalar
-SelectDirLabel3=TurboDM şu klasöre kurulacak. Varsayılan konum çoğu kullanıcı için uygundur.
-SelectTasksLabel2=TurboDM'in Windows ile nasıl çalışacağını seçin. Bu ayarları daha sonra TurboDM → Seçenekler'den değiştirebilirsiniz.
-ReadyLabel1=TurboDM kurulmaya hazır.
-FinishedHeadingLabel=TurboDM kuruldu 🎉
-FinishedLabelNoIcons=TurboDM bilgisayarınıza kuruldu.
-FinishedLabel=TurboDM bilgisayarınıza kuruldu. Masaüstündeki ya da Başlat menüsündeki TurboDM kısayoluyla başlatabilirsiniz.%n%nİpucu: Tarayıcınızdaki indirmelerin TurboDM'e gelmesi için tarayıcı eklentisini kurun.
+turkish.SetupWindowTitle=TurboDM Kurulumu
+turkish.WelcomeLabel1=TurboDM'e hoş geldiniz
+turkish.WelcomeLabel2=Hızlı, çok bağlantılı indirme yöneticiniz birkaç adımda hazır olacak.%n%n⚡  Dosyaları 8 bağlantıyla paralel indirir, kaldığı yerden devam eder%n🎬  Sitelerdeki videoları tek tıkla .mp4 olarak kaydeder%n🧲  Magnet ve .torrent dosyalarını, dosya seçerek indirir%n🌐  Tarayıcı eklentisiyle indirmeleri otomatik yakalar
+turkish.SelectDirLabel3=TurboDM şu klasöre kurulacak. Varsayılan konum çoğu kullanıcı için uygundur.
+turkish.SelectTasksLabel2=TurboDM'in Windows ile nasıl çalışacağını seçin. Bu ayarları daha sonra TurboDM → Seçenekler'den değiştirebilirsiniz.
+turkish.ReadyLabel1=TurboDM kurulmaya hazır.
+turkish.FinishedHeadingLabel=TurboDM kuruldu 🎉
+turkish.FinishedLabelNoIcons=TurboDM bilgisayarınıza kuruldu.
+turkish.FinishedLabel=TurboDM bilgisayarınıza kuruldu. Masaüstündeki ya da Başlat menüsündeki TurboDM kısayoluyla başlatabilirsiniz.%n%nİpucu: Tarayıcınızdaki indirmelerin TurboDM'e gelmesi için tarayıcı eklentisini kurun.
+
+english.SetupWindowTitle=TurboDM Setup
+english.WelcomeLabel1=Welcome to TurboDM
+english.WelcomeLabel2=Your fast, multi-connection download manager will be ready in a few steps.%n%n⚡  Downloads files over 8 parallel connections and resumes where it left off%n🎬  Saves videos from websites as .mp4 with one click%n🧲  Downloads magnet links and .torrent files with file selection%n🌐  Catches downloads automatically with the browser extension
+english.SelectDirLabel3=TurboDM will be installed in the following folder. The default location suits most users.
+english.SelectTasksLabel2=Choose how TurboDM works with Windows. You can change these settings later in TurboDM → Options.
+english.ReadyLabel1=TurboDM is ready to install.
+english.FinishedHeadingLabel=TurboDM is installed 🎉
+english.FinishedLabelNoIcons=TurboDM has been installed on your computer.
+english.FinishedLabel=TurboDM has been installed on your computer. You can start it with the TurboDM shortcut on the desktop or in the Start menu.%n%nTip: install the browser extension so that your browser's downloads go to TurboDM.
+
+german.SetupWindowTitle=TurboDM Setup
+german.WelcomeLabel1=Willkommen bei TurboDM
+german.WelcomeLabel2=Ihr schneller Download-Manager mit mehreren Verbindungen ist in wenigen Schritten bereit.%n%n⚡  Lädt Dateien über 8 parallele Verbindungen und setzt dort fort, wo er aufgehört hat%n🎬  Speichert Videos von Websites mit einem Klick als .mp4%n🧲  Lädt Magnet-Links und .torrent-Dateien mit Dateiauswahl herunter%n🌐  Fängt Downloads mit der Browsererweiterung automatisch ab
+german.SelectDirLabel3=TurboDM wird in den folgenden Ordner installiert. Der Standardort ist für die meisten Benutzer geeignet.
+german.SelectTasksLabel2=Wählen Sie, wie TurboDM mit Windows zusammenarbeitet. Sie können diese Einstellungen später unter TurboDM → Optionen ändern.
+german.ReadyLabel1=TurboDM ist bereit zur Installation.
+german.FinishedHeadingLabel=TurboDM ist installiert 🎉
+german.FinishedLabelNoIcons=TurboDM wurde auf Ihrem Computer installiert.
+german.FinishedLabel=TurboDM wurde auf Ihrem Computer installiert. Sie können es über die TurboDM-Verknüpfung auf dem Desktop oder im Startmenü starten.%n%nTipp: Installieren Sie die Browsererweiterung, damit die Downloads Ihres Browsers an TurboDM gehen.
+
+french.SetupWindowTitle=Installation de TurboDM
+french.WelcomeLabel1=Bienvenue dans TurboDM
+french.WelcomeLabel2=Votre gestionnaire de téléchargement rapide à connexions multiples sera prêt en quelques étapes.%n%n⚡  Télécharge les fichiers via 8 connexions parallèles et reprend là où il s'est arrêté%n🎬  Enregistre les vidéos des sites web en .mp4 en un clic%n🧲  Télécharge les liens magnet et les fichiers .torrent avec choix des fichiers%n🌐  Capture automatiquement les téléchargements grâce à l'extension de navigateur
+french.SelectDirLabel3=TurboDM sera installé dans le dossier suivant. L'emplacement par défaut convient à la plupart des utilisateurs.
+french.SelectTasksLabel2=Choisissez comment TurboDM fonctionne avec Windows. Vous pourrez modifier ces paramètres plus tard dans TurboDM → Options.
+french.ReadyLabel1=TurboDM est prêt à être installé.
+french.FinishedHeadingLabel=TurboDM est installé 🎉
+french.FinishedLabelNoIcons=TurboDM a été installé sur votre ordinateur.
+french.FinishedLabel=TurboDM a été installé sur votre ordinateur. Vous pouvez le lancer avec le raccourci TurboDM sur le bureau ou dans le menu Démarrer.%n%nAstuce : installez l'extension de navigateur pour que les téléchargements de votre navigateur passent par TurboDM.
+
+spanish.SetupWindowTitle=Instalación de TurboDM
+spanish.WelcomeLabel1=Bienvenido a TurboDM
+spanish.WelcomeLabel2=Su gestor de descargas rápido y multiconexión estará listo en unos pocos pasos.%n%n⚡  Descarga archivos con 8 conexiones en paralelo y continúa donde lo dejó%n🎬  Guarda los vídeos de los sitios web como .mp4 con un clic%n🧲  Descarga enlaces magnet y archivos .torrent con selección de archivos%n🌐  Captura las descargas automáticamente con la extensión del navegador
+spanish.SelectDirLabel3=TurboDM se instalará en la siguiente carpeta. La ubicación predeterminada es adecuada para la mayoría de los usuarios.
+spanish.SelectTasksLabel2=Elija cómo funcionará TurboDM con Windows. Puede cambiar estos ajustes más tarde en TurboDM → Opciones.
+spanish.ReadyLabel1=TurboDM está listo para instalarse.
+spanish.FinishedHeadingLabel=TurboDM está instalado 🎉
+spanish.FinishedLabelNoIcons=TurboDM se ha instalado en su equipo.
+spanish.FinishedLabel=TurboDM se ha instalado en su equipo. Puede iniciarlo con el acceso directo de TurboDM en el escritorio o en el menú Inicio.%n%nConsejo: instale la extensión del navegador para que las descargas de su navegador vayan a TurboDM.
+
+arabic.SetupWindowTitle=تثبيت TurboDM
+arabic.WelcomeLabel1=مرحبًا بك في TurboDM
+arabic.WelcomeLabel2=سيكون مدير التنزيل السريع متعدد الاتصالات جاهزًا في بضع خطوات.%n%n⚡  ينزّل الملفات عبر 8 اتصالات متوازية ويستأنف من حيث توقف%n🎬  يحفظ مقاطع الفيديو من المواقع بصيغة mp4 بنقرة واحدة%n🧲  ينزّل روابط magnet وملفات torrent مع اختيار الملفات%n🌐  يلتقط التنزيلات تلقائيًا عبر إضافة المتصفح
+arabic.SelectDirLabel3=سيتم تثبيت TurboDM في المجلد التالي. الموقع الافتراضي مناسب لمعظم المستخدمين.
+arabic.SelectTasksLabel2=اختر كيف يعمل TurboDM مع Windows. يمكنك تغيير هذه الإعدادات لاحقًا من TurboDM ← الخيارات.
+arabic.ReadyLabel1=TurboDM جاهز للتثبيت.
+arabic.FinishedHeadingLabel=تم تثبيت TurboDM 🎉
+arabic.FinishedLabelNoIcons=تم تثبيت TurboDM على جهازك.
+arabic.FinishedLabel=تم تثبيت TurboDM على جهازك. يمكنك تشغيله من اختصار TurboDM على سطح المكتب أو في قائمة ابدأ.%n%nنصيحة: ثبّت إضافة المتصفح لكي تنتقل تنزيلات متصفحك إلى TurboDM.
+
+italian.SetupWindowTitle=Installazione di TurboDM
+italian.WelcomeLabel1=Benvenuto in TurboDM
+italian.WelcomeLabel2=Il tuo gestore di download veloce e multi-connessione sarà pronto in pochi passaggi.%n%n⚡  Scarica i file con 8 connessioni in parallelo e riprende da dove si era interrotto%n🎬  Salva i video dei siti web in .mp4 con un clic%n🧲  Scarica link magnet e file .torrent con la scelta dei file%n🌐  Intercetta automaticamente i download con l'estensione del browser
+italian.SelectDirLabel3=TurboDM verrà installato nella cartella seguente. La posizione predefinita è adatta alla maggior parte degli utenti.
+italian.SelectTasksLabel2=Scegli come TurboDM funzionerà con Windows. Potrai modificare queste impostazioni in seguito da TurboDM → Opzioni.
+italian.ReadyLabel1=TurboDM è pronto per l'installazione.
+italian.FinishedHeadingLabel=TurboDM è installato 🎉
+italian.FinishedLabelNoIcons=TurboDM è stato installato sul computer.
+italian.FinishedLabel=TurboDM è stato installato sul computer. Puoi avviarlo dal collegamento TurboDM sul desktop o nel menu Start.%n%nSuggerimento: installa l'estensione del browser perché i download del browser passino a TurboDM.
+
+[CustomMessages]
+; AppLang: programın dil kodu (kurulumda seçilen dil programa da aktarılır: TurboDM.exe --set-language)
+; ExtHelpFile: tarayıcı eklentisi kurulum yardımı (Türkçe ya da İngilizce)
+turkish.AppLang=tr
+turkish.ExtHelpFile=TARAYICI_EKLENTISI.txt
+turkish.GroupIcons=Ek simgeler:
+turkish.TaskDesktop=Masaüstüne kısayol oluştur
+turkish.GroupWindows=Windows entegrasyonu:
+turkish.TaskAssoc=magnet: bağlantılarını ve .torrent dosyalarını TurboDM ile aç
+turkish.TaskFirewall=Windows Güvenlik Duvarı'nda torrent bağlantılarına izin ver (önerilir)
+turkish.TaskAutostart=Windows açılışında başlat (sistem tepsisinde)
+turkish.IconComment=İnternet indirme yöneticisi
+turkish.IconExtHelp=Tarayıcı Eklentisi (kurulum yardımı)
+turkish.IconUninstall=TurboDM'i Kaldır
+turkish.StatusFirewall=Güvenlik duvarı kuralı ekleniyor...
+turkish.StatusAssoc=Dosya ilişkilendirmeleri yapılıyor...
+turkish.RunNow=TurboDM'i şimdi başlat
+turkish.RunExtHelp=Tarayıcı eklentisinin nasıl kurulacağını göster
+turkish.NewerInstalled=Bu bilgisayarda TurboDM'in daha yeni bir sürümü (%1) kurulu.%n%nBu kurulum dosyası daha eski (%2) olduğu için hiçbir değişiklik yapılmadı.
+turkish.UpToDate=TurboDM zaten en güncel sürüm (%1).%n%nKurulu dosyalar bu kurulum dosyasıyla aynı; hiçbir değişiklik yapılmadı.
+turkish.UpgradeTitle=TurboDM güncellemesi
+turkish.UpgradeText=Bilgisayarınızda TurboDM %1 kurulu. Bu yardımcı onu %2 sürümüne (derleme %3) güncelleyecek.%n%nAyarlarınız, indirme listeniz ve yarım kalmış indirmeleriniz korunur. TurboDM açıksa güncelleme öncesinde otomatik olarak kapatılır.
+turkish.UpgradeDone=TurboDM güncellendi
+turkish.UnTitle=TurboDM'i Kaldır
+turkish.UnInfo=Program dosyaları, kısayollar, kayıt defteri girdileri (magnet/.torrent ilişkilendirmesi, Windows açılışında başlatma) ve güvenlik duvarı kuralı her zaman kaldırılır.%n%nAyrıca silinmesini istediklerinizi seçin:
+turkish.UnAppData=Ayarlar, indirme listesi ve torrent devam verileri
+turkish.UnPartials=Yarım kalmış indirmeler (geçici parçalar, bitmemiş torrent dosyaları)
+turkish.UnDownloads=Tamamlanmış indirilen dosyalar (yalnızca TurboDM listesindekiler)
+turkish.UnWarn=Son seçenek indirdiğiniz filmleri, programları vb. kalıcı olarak siler. TurboDM ile ilgisi olmayan dosyalarınıza ve klasörlerinize hiçbir durumda dokunulmaz.
+turkish.UnCancel=İptal
+turkish.UnRemove=Kaldır
+
+english.AppLang=en
+english.ExtHelpFile=BROWSER_EXTENSION.txt
+english.GroupIcons=Additional icons:
+english.TaskDesktop=Create a desktop shortcut
+english.GroupWindows=Windows integration:
+english.TaskAssoc=Open magnet: links and .torrent files with TurboDM
+english.TaskFirewall=Allow torrent connections in Windows Firewall (recommended)
+english.TaskAutostart=Start with Windows (in the system tray)
+english.IconComment=Internet download manager
+english.IconExtHelp=Browser extension (setup help)
+english.IconUninstall=Uninstall TurboDM
+english.StatusFirewall=Adding firewall rule...
+english.StatusAssoc=Setting up file associations...
+english.RunNow=Start TurboDM now
+english.RunExtHelp=Show how to install the browser extension
+english.NewerInstalled=A newer version of TurboDM (%1) is already installed on this computer.%n%nThis setup file is older (%2), so no changes were made.
+english.UpToDate=TurboDM is already up to date (%1).%n%nThe installed files are the same as this setup file; no changes were made.
+english.UpgradeTitle=TurboDM update
+english.UpgradeText=TurboDM %1 is installed on your computer. This wizard will update it to version %2 (build %3).%n%nYour settings, download list and unfinished downloads are kept. If TurboDM is open, it is closed automatically before the update.
+english.UpgradeDone=TurboDM has been updated
+english.UnTitle=Uninstall TurboDM
+english.UnInfo=Program files, shortcuts, registry entries (magnet/.torrent association, starting with Windows) and the firewall rule are always removed.%n%nSelect what else should be deleted:
+english.UnAppData=Settings, download list and torrent resume data
+english.UnPartials=Unfinished downloads (temporary parts, incomplete torrent files)
+english.UnDownloads=Completed downloaded files (only those in the TurboDM list)
+english.UnWarn=The last option permanently deletes the movies, programs etc. you downloaded. Files and folders unrelated to TurboDM are never touched.
+english.UnCancel=Cancel
+english.UnRemove=Uninstall
+
+german.AppLang=de
+german.ExtHelpFile=BROWSER_EXTENSION.txt
+german.GroupIcons=Zusätzliche Symbole:
+german.TaskDesktop=Desktopverknüpfung erstellen
+german.GroupWindows=Windows-Integration:
+german.TaskAssoc=magnet:-Links und .torrent-Dateien mit TurboDM öffnen
+german.TaskFirewall=Torrent-Verbindungen in der Windows-Firewall zulassen (empfohlen)
+german.TaskAutostart=Mit Windows starten (im Infobereich)
+german.IconComment=Internet-Download-Manager
+german.IconExtHelp=Browsererweiterung (Installationshilfe)
+german.IconUninstall=TurboDM deinstallieren
+german.StatusFirewall=Firewall-Regel wird hinzugefügt...
+german.StatusAssoc=Dateizuordnungen werden eingerichtet...
+german.RunNow=TurboDM jetzt starten
+german.RunExtHelp=Anleitung zur Installation der Browsererweiterung anzeigen
+german.NewerInstalled=Auf diesem Computer ist bereits eine neuere Version von TurboDM (%1) installiert.%n%nDiese Setup-Datei ist älter (%2), daher wurden keine Änderungen vorgenommen.
+german.UpToDate=TurboDM ist bereits auf dem neuesten Stand (%1).%n%nDie installierten Dateien entsprechen dieser Setup-Datei; es wurden keine Änderungen vorgenommen.
+german.UpgradeTitle=TurboDM-Update
+german.UpgradeText=Auf Ihrem Computer ist TurboDM %1 installiert. Dieser Assistent aktualisiert es auf Version %2 (Build %3).%n%nIhre Einstellungen, Ihre Downloadliste und unvollständige Downloads bleiben erhalten. Ist TurboDM geöffnet, wird es vor dem Update automatisch geschlossen.
+german.UpgradeDone=TurboDM wurde aktualisiert
+german.UnTitle=TurboDM deinstallieren
+german.UnInfo=Programmdateien, Verknüpfungen, Registrierungseinträge (magnet/.torrent-Zuordnung, Start mit Windows) und die Firewall-Regel werden immer entfernt.%n%nWählen Sie aus, was zusätzlich gelöscht werden soll:
+german.UnAppData=Einstellungen, Downloadliste und Torrent-Fortsetzungsdaten
+german.UnPartials=Unvollständige Downloads (temporäre Teile, unfertige Torrent-Dateien)
+german.UnDownloads=Fertige heruntergeladene Dateien (nur die aus der TurboDM-Liste)
+german.UnWarn=Die letzte Option löscht Ihre heruntergeladenen Filme, Programme usw. dauerhaft. Dateien und Ordner, die nichts mit TurboDM zu tun haben, werden niemals angerührt.
+german.UnCancel=Abbrechen
+german.UnRemove=Deinstallieren
+
+french.AppLang=fr
+french.ExtHelpFile=BROWSER_EXTENSION.txt
+french.GroupIcons=Icônes supplémentaires :
+french.TaskDesktop=Créer un raccourci sur le bureau
+french.GroupWindows=Intégration à Windows :
+french.TaskAssoc=Ouvrir les liens magnet: et les fichiers .torrent avec TurboDM
+french.TaskFirewall=Autoriser les connexions torrent dans le pare-feu Windows (recommandé)
+french.TaskAutostart=Démarrer avec Windows (dans la zone de notification)
+french.IconComment=Gestionnaire de téléchargement Internet
+french.IconExtHelp=Extension de navigateur (aide à l'installation)
+french.IconUninstall=Désinstaller TurboDM
+french.StatusFirewall=Ajout de la règle de pare-feu...
+french.StatusAssoc=Configuration des associations de fichiers...
+french.RunNow=Lancer TurboDM maintenant
+french.RunExtHelp=Afficher comment installer l'extension de navigateur
+french.NewerInstalled=Une version plus récente de TurboDM (%1) est déjà installée sur cet ordinateur.%n%nCe fichier d'installation est plus ancien (%2) ; aucune modification n'a été effectuée.
+french.UpToDate=TurboDM est déjà à jour (%1).%n%nLes fichiers installés sont identiques à ce fichier d'installation ; aucune modification n'a été effectuée.
+french.UpgradeTitle=Mise à jour de TurboDM
+french.UpgradeText=TurboDM %1 est installé sur votre ordinateur. Cet assistant va le mettre à jour vers la version %2 (build %3).%n%nVos paramètres, votre liste de téléchargements et vos téléchargements inachevés sont conservés. Si TurboDM est ouvert, il est fermé automatiquement avant la mise à jour.
+french.UpgradeDone=TurboDM a été mis à jour
+french.UnTitle=Désinstaller TurboDM
+french.UnInfo=Les fichiers du programme, les raccourcis, les entrées du registre (association magnet/.torrent, démarrage avec Windows) et la règle de pare-feu sont toujours supprimés.%n%nChoisissez ce qui doit également être supprimé :
+french.UnAppData=Paramètres, liste de téléchargements et données de reprise des torrents
+french.UnPartials=Téléchargements inachevés (parties temporaires, torrents incomplets)
+french.UnDownloads=Fichiers téléchargés terminés (seulement ceux de la liste TurboDM)
+french.UnWarn=La dernière option supprime définitivement les films, programmes, etc. que vous avez téléchargés. Les fichiers et dossiers sans rapport avec TurboDM ne sont jamais touchés.
+french.UnCancel=Annuler
+french.UnRemove=Désinstaller
+
+spanish.AppLang=es
+spanish.ExtHelpFile=BROWSER_EXTENSION.txt
+spanish.GroupIcons=Iconos adicionales:
+spanish.TaskDesktop=Crear un acceso directo en el escritorio
+spanish.GroupWindows=Integración con Windows:
+spanish.TaskAssoc=Abrir enlaces magnet: y archivos .torrent con TurboDM
+spanish.TaskFirewall=Permitir conexiones torrent en el Firewall de Windows (recomendado)
+spanish.TaskAutostart=Iniciar con Windows (en la bandeja del sistema)
+spanish.IconComment=Gestor de descargas de Internet
+spanish.IconExtHelp=Extensión del navegador (ayuda de instalación)
+spanish.IconUninstall=Desinstalar TurboDM
+spanish.StatusFirewall=Añadiendo regla del firewall...
+spanish.StatusAssoc=Configurando asociaciones de archivos...
+spanish.RunNow=Iniciar TurboDM ahora
+spanish.RunExtHelp=Mostrar cómo instalar la extensión del navegador
+spanish.NewerInstalled=Ya hay una versión más reciente de TurboDM (%1) instalada en este equipo.%n%nEste archivo de instalación es más antiguo (%2), por lo que no se ha realizado ningún cambio.
+spanish.UpToDate=TurboDM ya está actualizado (%1).%n%nLos archivos instalados son iguales a este archivo de instalación; no se ha realizado ningún cambio.
+spanish.UpgradeTitle=Actualización de TurboDM
+spanish.UpgradeText=TurboDM %1 está instalado en su equipo. Este asistente lo actualizará a la versión %2 (compilación %3).%n%nSe conservan sus ajustes, su lista de descargas y las descargas sin terminar. Si TurboDM está abierto, se cerrará automáticamente antes de la actualización.
+spanish.UpgradeDone=TurboDM se ha actualizado
+spanish.UnTitle=Desinstalar TurboDM
+spanish.UnInfo=Los archivos del programa, los accesos directos, las entradas del registro (asociación magnet/.torrent, inicio con Windows) y la regla del firewall se eliminan siempre.%n%nSeleccione qué más desea eliminar:
+spanish.UnAppData=Ajustes, lista de descargas y datos de reanudación de torrents
+spanish.UnPartials=Descargas sin terminar (partes temporales, torrents incompletos)
+spanish.UnDownloads=Archivos descargados completados (solo los de la lista de TurboDM)
+spanish.UnWarn=La última opción elimina de forma permanente las películas, programas, etc. que ha descargado. Los archivos y carpetas que no tienen relación con TurboDM nunca se tocan.
+spanish.UnCancel=Cancelar
+spanish.UnRemove=Desinstalar
+
+arabic.AppLang=ar
+arabic.ExtHelpFile=BROWSER_EXTENSION.txt
+arabic.GroupIcons=أيقونات إضافية:
+arabic.TaskDesktop=إنشاء اختصار على سطح المكتب
+arabic.GroupWindows=التكامل مع Windows:
+arabic.TaskAssoc=فتح روابط magnet وملفات torrent باستخدام TurboDM
+arabic.TaskFirewall=السماح باتصالات التورنت في جدار حماية Windows (مستحسن)
+arabic.TaskAutostart=التشغيل مع بدء Windows (في علبة النظام)
+arabic.IconComment=مدير تنزيل الإنترنت
+arabic.IconExtHelp=إضافة المتصفح (مساعدة التثبيت)
+arabic.IconUninstall=إلغاء تثبيت TurboDM
+arabic.StatusFirewall=جارٍ إضافة قاعدة جدار الحماية...
+arabic.StatusAssoc=جارٍ إعداد اقترانات الملفات...
+arabic.RunNow=تشغيل TurboDM الآن
+arabic.RunExtHelp=عرض طريقة تثبيت إضافة المتصفح
+arabic.NewerInstalled=يوجد إصدار أحدث من TurboDM (%1) مثبّت على هذا الجهاز.%n%nملف التثبيت هذا أقدم (%2)، لذا لم يتم إجراء أي تغيير.
+arabic.UpToDate=TurboDM محدّث بالفعل (%1).%n%nالملفات المثبتة مطابقة لملف التثبيت هذا؛ لم يتم إجراء أي تغيير.
+arabic.UpgradeTitle=تحديث TurboDM
+arabic.UpgradeText=الإصدار %1 من TurboDM مثبّت على جهازك. سيقوم هذا المعالج بتحديثه إلى الإصدار %2 (البنية %3).%n%nيتم الاحتفاظ بإعداداتك وقائمة التنزيلات والتنزيلات غير المكتملة. إذا كان TurboDM مفتوحًا فسيتم إغلاقه تلقائيًا قبل التحديث.
+arabic.UpgradeDone=تم تحديث TurboDM
+arabic.UnTitle=إلغاء تثبيت TurboDM
+arabic.UnInfo=تتم دائمًا إزالة ملفات البرنامج والاختصارات وإدخالات السجل (اقتران magnet و torrent، التشغيل مع Windows) وقاعدة جدار الحماية.%n%nاختر ما تريد حذفه أيضًا:
+arabic.UnAppData=الإعدادات وقائمة التنزيلات وبيانات استئناف التورنت
+arabic.UnPartials=التنزيلات غير المكتملة (الأجزاء المؤقتة، ملفات التورنت غير المكتملة)
+arabic.UnDownloads=الملفات التي اكتمل تنزيلها (فقط الموجودة في قائمة TurboDM)
+arabic.UnWarn=الخيار الأخير يحذف نهائيًا الأفلام والبرامج وغيرها مما قمت بتنزيله. لا يتم المساس أبدًا بالملفات والمجلدات التي لا علاقة لها بـ TurboDM.
+arabic.UnCancel=إلغاء
+arabic.UnRemove=إلغاء التثبيت
+
+italian.AppLang=it
+italian.ExtHelpFile=BROWSER_EXTENSION.txt
+italian.GroupIcons=Icone aggiuntive:
+italian.TaskDesktop=Crea un collegamento sul desktop
+italian.GroupWindows=Integrazione con Windows:
+italian.TaskAssoc=Apri i link magnet: e i file .torrent con TurboDM
+italian.TaskFirewall=Consenti le connessioni torrent nel Firewall di Windows (consigliato)
+italian.TaskAutostart=Avvia con Windows (nell'area di notifica)
+italian.IconComment=Gestore di download Internet
+italian.IconExtHelp=Estensione del browser (guida all'installazione)
+italian.IconUninstall=Disinstalla TurboDM
+italian.StatusFirewall=Aggiunta della regola del firewall...
+italian.StatusAssoc=Configurazione delle associazioni dei file...
+italian.RunNow=Avvia TurboDM ora
+italian.RunExtHelp=Mostra come installare l'estensione del browser
+italian.NewerInstalled=Su questo computer è già installata una versione più recente di TurboDM (%1).%n%nQuesto file di installazione è più vecchio (%2), quindi non è stata apportata alcuna modifica.
+italian.UpToDate=TurboDM è già aggiornato (%1).%n%nI file installati sono uguali a questo file di installazione; non è stata apportata alcuna modifica.
+italian.UpgradeTitle=Aggiornamento di TurboDM
+italian.UpgradeText=Sul computer è installato TurboDM %1. Questa procedura lo aggiornerà alla versione %2 (build %3).%n%nLe impostazioni, l'elenco dei download e i download non completati vengono mantenuti. Se TurboDM è aperto, viene chiuso automaticamente prima dell'aggiornamento.
+italian.UpgradeDone=TurboDM è stato aggiornato
+italian.UnTitle=Disinstalla TurboDM
+italian.UnInfo=I file del programma, i collegamenti, le voci del registro (associazione magnet/.torrent, avvio con Windows) e la regola del firewall vengono sempre rimossi.%n%nScegli cos'altro eliminare:
+italian.UnAppData=Impostazioni, elenco dei download e dati di ripresa dei torrent
+italian.UnPartials=Download non completati (parti temporanee, torrent incompleti)
+italian.UnDownloads=File scaricati completati (solo quelli dell'elenco di TurboDM)
+italian.UnWarn=L'ultima opzione elimina definitivamente i film, i programmi ecc. che hai scaricato. I file e le cartelle non collegati a TurboDM non vengono mai toccati.
+italian.UnCancel=Annulla
+italian.UnRemove=Disinstalla
 
 [Tasks]
-Name: "desktopicon"; Description: "Masaüstüne kısayol oluştur"; GroupDescription: "Ek simgeler:"
-Name: "assoc"; Description: "magnet: bağlantılarını ve .torrent dosyalarını TurboDM ile aç"; GroupDescription: "Windows entegrasyonu:"
-Name: "firewall"; Description: "Windows Güvenlik Duvarı'nda torrent bağlantılarına izin ver (önerilir)"; GroupDescription: "Windows entegrasyonu:"
-Name: "autostart"; Description: "Windows açılışında başlat (sistem tepsisinde)"; GroupDescription: "Windows entegrasyonu:"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:TaskDesktop}"; GroupDescription: "{cm:GroupIcons}"
+Name: "assoc"; Description: "{cm:TaskAssoc}"; GroupDescription: "{cm:GroupWindows}"
+Name: "firewall"; Description: "{cm:TaskFirewall}"; GroupDescription: "{cm:GroupWindows}"
+Name: "autostart"; Description: "{cm:TaskAutostart}"; GroupDescription: "{cm:GroupWindows}"; Flags: unchecked
 
 [InstallDelete]
 ; Güncellemede eski sürümün çalışma zamanı dosyalarını temizle (artık kullanılmayan DLL'ler kalmasın)
@@ -116,23 +392,25 @@ Source: "{#Stage}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs crea
 
 [Icons]
 ; AppUserModelID: Windows bildirimlerinde "TurboDM.DownloadManager" yerine "TurboDM" adı ve simgesi görünsün
-Name: "{group}\TurboDM"; Filename: "{app}\{#AppExe}"; Comment: "İnternet indirme yöneticisi"; AppUserModelID: "TurboDM.DownloadManager"
-Name: "{group}\Tarayıcı Eklentisi (kurulum yardımı)"; Filename: "{app}\TARAYICI_EKLENTISI.txt"
-Name: "{group}\TurboDM'i Kaldır"; Filename: "{uninstallexe}"; IconFilename: "{app}\turbodm.ico"
+Name: "{group}\TurboDM"; Filename: "{app}\{#AppExe}"; Comment: "{cm:IconComment}"; AppUserModelID: "TurboDM.DownloadManager"
+Name: "{group}\{cm:IconExtHelp}"; Filename: "{app}\{cm:ExtHelpFile}"
+Name: "{group}\{cm:IconUninstall}"; Filename: "{uninstallexe}"; IconFilename: "{app}\turbodm.ico"
 Name: "{autodesktop}\{#LinkName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon; AppUserModelID: "TurboDM.DownloadManager"
 
 [Run]
 ; Güvenlik duvarı kuralı (önce eskisini sil: yeniden kurulumda çift kural olmasın)
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""TurboDM"""; Flags: runhidden; Tasks: firewall
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""TurboDM"" dir=in action=allow program=""{app}\{#AppExe}"" enable=yes profile=any"; Flags: runhidden; Tasks: firewall; StatusMsg: "Güvenlik duvarı kuralı ekleniyor..."
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""TurboDM"" dir=in action=allow program=""{app}\{#AppExe}"" enable=yes profile=any"; Flags: runhidden; Tasks: firewall; StatusMsg: "{cm:StatusFirewall}"
 ; Kullanıcıya ait ayarlar, kurulumu başlatan kullanıcının hesabında yapılır
-Filename: "{app}\{#AppExe}"; Parameters: "--register-assoc"; Flags: runhidden runasoriginaluser waituntilterminated; Tasks: assoc; StatusMsg: "Dosya ilişkilendirmeleri yapılıyor..."
+Filename: "{app}\{#AppExe}"; Parameters: "--register-assoc"; Flags: runhidden runasoriginaluser waituntilterminated; Tasks: assoc; StatusMsg: "{cm:StatusAssoc}"
+; Kurulumda seçilen dil programın dili olur (güncellemede kullanıcının programdaki seçimine dokunulmaz)
+Filename: "{app}\{#AppExe}"; Parameters: "--set-language {cm:AppLang}"; Flags: runhidden runasoriginaluser waituntilterminated; Check: not IsUpgradeInstall
 Filename: "{app}\{#AppExe}"; Parameters: "--autostart on"; Flags: runhidden runasoriginaluser waituntilterminated; Tasks: autostart
 Filename: "{app}\{#AppExe}"; Parameters: "--autostart off"; Flags: runhidden runasoriginaluser waituntilterminated; Tasks: not autostart
 ; Son sayfa
 Filename: "{app}\{#AppExe}"; Parameters: "--minimized --resume"; Flags: nowait runasoriginaluser; Check: RelaunchAfterUpdate
-Filename: "{app}\{#AppExe}"; Description: "TurboDM'i şimdi başlat"; Flags: nowait postinstall skipifsilent runasoriginaluser; Check: not ClosedForUpdate
-Filename: "{app}\TARAYICI_EKLENTISI.txt"; Description: "Tarayıcı eklentisinin nasıl kurulacağını göster"; Flags: postinstall shellexec skipifsilent unchecked
+Filename: "{app}\{#AppExe}"; Description: "{cm:RunNow}"; Flags: nowait postinstall skipifsilent runasoriginaluser; Check: not ClosedForUpdate
+Filename: "{app}\{cm:ExtHelpFile}"; Description: "{cm:RunExtHelp}"; Flags: postinstall shellexec skipifsilent unchecked
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""TurboDM"""; Flags: runhidden; RunOnceId: "DelFirewallRule"
@@ -212,15 +490,13 @@ begin
     Cmp := 1;
   if Cmp < 0 then
   begin
-    SuppressibleMsgBox('Bu bilgisayarda TurboDM''in daha yeni bir sürümü (' + Ver + ') kurulu.' + #13#10#13#10 +
-      'Bu kurulum dosyası daha eski (' + '{#AppVersion}' + ') olduğu için hiçbir değişiklik yapılmadı.',
+    SuppressibleMsgBox(FmtMessage(CustomMessage('NewerInstalled'), [Ver, '{#AppVersion}']),
       mbInformation, MB_OK, IDOK);
     Result := False;
   end
   else if (Cmp = 0) and (Build = '{#AppBuild}') then
   begin
-    SuppressibleMsgBox('TurboDM zaten en güncel sürüm (' + Ver + ').' + #13#10#13#10 +
-      'Kurulu dosyalar bu kurulum dosyasıyla aynı; hiçbir değişiklik yapılmadı.',
+    SuppressibleMsgBox(FmtMessage(CustomMessage('UpToDate'), [Ver]),
       mbInformation, MB_OK, IDOK);
     Result := False;
   end
@@ -232,14 +508,16 @@ procedure InitializeWizard();
 begin
   if IsUpgrade then
   begin
-    WizardForm.WelcomeLabel1.Caption := 'TurboDM güncellemesi';
+    WizardForm.WelcomeLabel1.Caption := CustomMessage('UpgradeTitle');
     WizardForm.WelcomeLabel2.Caption :=
-      'Bilgisayarınızda TurboDM ' + InstalledVersion + ' kurulu. Bu yardımcı onu ' +
-      '{#AppVersion} sürümüne (derleme {#AppBuild}) güncelleyecek.' + #13#10#13#10 +
-      'Ayarlarınız, indirme listeniz ve yarım kalmış indirmeleriniz korunur. TurboDM açıksa ' +
-      'güncelleme öncesinde otomatik olarak kapatılır.';
-    WizardForm.FinishedHeadingLabel.Caption := 'TurboDM güncellendi';
+      FmtMessage(CustomMessage('UpgradeText'), [InstalledVersion, '{#AppVersion}', '{#AppBuild}']);
+    WizardForm.FinishedHeadingLabel.Caption := CustomMessage('UpgradeDone');
   end;
+end;
+
+function IsUpgradeInstall(): Boolean;
+begin
+  Result := IsUpgrade;
 end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
@@ -285,12 +563,12 @@ var
   BtnOk, BtnCancel: TNewButton;
   W, Y: Integer;
 begin
-  Form := CreateCustomForm(ScaleX(540), ScaleY(310), False, False);
-    Form.ClientWidth := ScaleX(540);   { boyutu açıkça ver: aksi hâlde yüksek DPI'da iki kez ölçeklenir }
+  Form := CreateCustomForm(ScaleX(580), ScaleY(310), False, False);
+    Form.ClientWidth := ScaleX(580);   { boyutu açıkça ver: aksi hâlde yüksek DPI'da iki kez ölçeklenir }
     Form.ClientHeight := ScaleY(310);
     Form.Position := poScreenCenter;
   try
-    Form.Caption := 'TurboDM''i Kaldır';
+    Form.Caption := CustomMessage('UnTitle');
     W := Form.ClientWidth - ScaleX(40);
 
     Info := TNewStaticText.Create(Form);
@@ -299,9 +577,7 @@ begin
     Info.Top := ScaleY(16);
     Info.Width := W;
     Info.WordWrap := True;
-    Info.Caption := 'Program dosyaları, kısayollar, kayıt defteri girdileri (magnet/.torrent ' +
-      'ilişkilendirmesi, Windows açılışında başlatma) ve güvenlik duvarı kuralı her zaman kaldırılır.' + #13#10#13#10 +
-      'Ayrıca silinmesini istediklerinizi seçin:';
+    Info.Caption := CustomMessage('UnInfo');
     Y := Info.Top + Info.Height + ScaleY(14);
 
     CbAppData := TNewCheckBox.Create(Form);
@@ -310,7 +586,7 @@ begin
     CbAppData.Top := Y;
     CbAppData.Width := W;
     CbAppData.Height := ScaleY(22);
-    CbAppData.Caption := 'Ayarlar, indirme listesi ve torrent devam verileri';
+    CbAppData.Caption := CustomMessage('UnAppData');
     CbAppData.Checked := True;
     Y := Y + ScaleY(28);
 
@@ -320,7 +596,7 @@ begin
     CbPartials.Top := Y;
     CbPartials.Width := W;
     CbPartials.Height := ScaleY(22);
-    CbPartials.Caption := 'Yarım kalmış indirmeler (geçici parçalar, bitmemiş torrent dosyaları)';
+    CbPartials.Caption := CustomMessage('UnPartials');
     CbPartials.Checked := True;
     Y := Y + ScaleY(28);
 
@@ -330,7 +606,7 @@ begin
     CbDownloads.Top := Y;
     CbDownloads.Width := W;
     CbDownloads.Height := ScaleY(22);
-    CbDownloads.Caption := 'Tamamlanmış indirilen dosyalar (yalnızca TurboDM listesindekiler)';
+    CbDownloads.Caption := CustomMessage('UnDownloads');
     CbDownloads.Checked := False;
     Y := Y + ScaleY(30);
 
@@ -341,8 +617,9 @@ begin
     Warn.Width := W;
     Warn.WordWrap := True;
     Warn.Font.Color := $7A8CFF;  { koyu temada okunur açık kırmızı (BGR) }
-    Warn.Caption := 'Son seçenek indirdiğiniz filmleri, programları vb. kalıcı olarak siler. ' +
-      'TurboDM ile ilgisi olmayan dosyalarınıza ve klasörlerinize hiçbir durumda dokunulmaz.';
+    Warn.Caption := CustomMessage('UnWarn');
+    { uzun çevirilerde (ör. Almanca) metin kesilmesin: pencere yüksekliği içeriğe göre }
+    Form.ClientHeight := Warn.Top + Warn.Height + ScaleY(60);
 
     BtnCancel := TNewButton.Create(Form);
     BtnCancel.Parent := Form;
@@ -350,7 +627,7 @@ begin
     BtnCancel.Height := ScaleY(26);
     BtnCancel.Left := Form.ClientWidth - BtnCancel.Width - ScaleX(20);
     BtnCancel.Top := Form.ClientHeight - BtnCancel.Height - ScaleY(16);
-    BtnCancel.Caption := 'İptal';
+    BtnCancel.Caption := CustomMessage('UnCancel');
     BtnCancel.ModalResult := mrCancel;
     BtnCancel.Cancel := True;
 
@@ -360,7 +637,7 @@ begin
     BtnOk.Height := ScaleY(26);
     BtnOk.Left := BtnCancel.Left - BtnOk.Width - ScaleX(10);
     BtnOk.Top := BtnCancel.Top;
-    BtnOk.Caption := 'Kaldır';
+    BtnOk.Caption := CustomMessage('UnRemove');
     BtnOk.ModalResult := mrOk;
     BtnOk.Default := True;
 

@@ -1,0 +1,83 @@
+{
+  "extName": {
+    "message": "تكامل TurboDM"
+  },
+  "extDescription": {
+    "message": "يرسل تنزيلات المتصفح ومقاطع الفيديو في الصفحات إلى مدير التنزيل TurboDM."
+  },
+  "ctxDownload": {
+    "message": "التنزيل باستخدام TurboDM"
+  },
+  "labelHls": {
+    "message": "بث فيديو (HLS)"
+  },
+  "labelDash": {
+    "message": "بث فيديو (DASH)"
+  },
+  "labelAudio": {
+    "message": "صوت"
+  },
+  "labelVideo": {
+    "message": "فيديو"
+  },
+  "labelPagePlayer": {
+    "message": "فيديو · مشغل الصفحة"
+  },
+  "appDown": {
+    "message": "TurboDM لا يعمل"
+  },
+  "appDownLong": {
+    "message": "TurboDM لا يعمل. افتح البرنامج وحاول مرة أخرى."
+  },
+  "popupCatch": {
+    "message": "التقاط التنزيلات"
+  },
+  "popupGrabber": {
+    "message": "ملتقط الفيديو"
+  },
+  "popupChecking": {
+    "message": "جارٍ التحقق من الاتصال…"
+  },
+  "popupPage": {
+    "message": "⬇ فتح فيديو هذه الصفحة في TurboDM"
+  },
+  "popupMedia": {
+    "message": "الوسائط في هذه الصفحة"
+  },
+  "popupNone": {
+    "message": "لا شيء. حاول تشغيل الفيديو."
+  },
+  "popupRunning": {
+    "message": "✔ TurboDM يعمل"
+  },
+  "popupClosed": {
+    "message": "✖ TurboDM مغلق"
+  },
+  "pickQuality": {
+    "message": "✔ اختر الجودة في TurboDM"
+  },
+  "download": {
+    "message": "تنزيل"
+  },
+  "btnDownload": {
+    "message": "⬇ تنزيل هذا الفيديو"
+  },
+  "sent": {
+    "message": "✔ تم الإرسال إلى TurboDM"
+  },
+  "pickFolder": {
+    "message": "✔ اختر مكان الحفظ في TurboDM"
+  },
+  "loadingQualities": {
+    "message": "جارٍ جلب الجودات…"
+  },
+  "noVideo": {
+    "message": "لم يتم العثور على فيديو بعد. حاول تشغيل الفيديو."
+  },
+  "moreOptions": {
+    "message": "خيارات أخرى (فتح في TurboDM)…"
+  },
+  "opened": {
+    "message": "✔ تم الفتح في TurboDM"
+  }
+}

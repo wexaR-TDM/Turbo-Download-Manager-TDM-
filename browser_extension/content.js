@@ -7,6 +7,7 @@
 (() => {
   if (window.__tdmLoaded) return;
   window.__tdmLoaded = true;
+  const M = (key) => chrome.i18n.getMessage(key) || key;  // _locales/<dil>/messages.json
   let mediaCount = 0;
   const panels = new WeakMap();
   let lastHref = location.href;
@@ -38,7 +39,7 @@
   function makeButton(video) {
     const btn = document.createElement("div");
     btn.className = "tdm-grab";
-    btn.textContent = "⬇ Bu videoyu indir";
+    btn.textContent = M("btnDownload");
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -88,7 +89,7 @@
       item.addEventListener("click", async () => {
         closeMenus();
         const r = await send({ type: "tdm-download", media: m, title: pageTitle(), pageUrl: location.href });
-        flash(btn, r && r.ok ? "✔ TurboDM'e gönderildi" : "✖ TurboDM çalışmıyor");
+        flash(btn, r && r.ok ? M("sent") : "✖ " + M("appDown"));
       });
     }
   }
@@ -101,11 +102,11 @@
     menu.className = "tdm-menu";
     // oynatıcının tıklamayı (oynat/duraklat) almasını engelle
     ["mousedown", "click", "dblclick"].forEach((ev) => menu.addEventListener(ev, (e) => e.stopPropagation()));
-    menuRow(menu, "tdm-head", "TurboDM ile indir");
+    menuRow(menu, "tdm-head", M("ctxDownload"));
     const qualities = document.createElement("div");
     const streams = document.createElement("div");
     menu.append(qualities, streams);
-    const wait = main ? menuRow(qualities, "tdm-empty", "Kaliteler alınıyor…") : null;
+    const wait = main ? menuRow(qualities, "tdm-empty", M("loadingQualities")) : null;
     placeMenu(menu, btn);
     document.body.appendChild(menu);
 
@@ -125,21 +126,21 @@
           item.addEventListener("click", async () => {
             closeMenus();
             const r = await send({ type: "tdm-page", url, title: data.title || title, choice: c });
-            flash(btn, r && r.ok ? "✔ TurboDM'de kayıt yerini seçin" : "✖ TurboDM çalışmıyor");
+            flash(btn, r && r.ok ? M("pickFolder") : "✖ " + M("appDown"));
           });
         }
       } else {
         appDown = !data || /fetch/i.test(data.error || "");
       }
     }
-    if (appDown) menuRow(menu, "tdm-empty tdm-err", "TurboDM çalışmıyor. Programı açıp tekrar deneyin.");
-    else if (!found) menuRow(menu, "tdm-empty", "Henüz video bulunamadı. Videoyu oynatmayı deneyin.");
+    if (appDown) menuRow(menu, "tdm-empty tdm-err", M("appDownLong"));
+    else if (!found) menuRow(menu, "tdm-empty", M("noVideo"));
     if (main) {
-      const more = menuRow(menu, "tdm-item tdm-more", "Diğer seçenekler (TurboDM'de aç)…");
+      const more = menuRow(menu, "tdm-item tdm-more", M("moreOptions"));
       more.addEventListener("click", async () => {
         closeMenus();
         const r = await send({ type: "tdm-page", url, title });
-        flash(btn, r && r.ok ? "✔ TurboDM'de açıldı" : "✖ TurboDM çalışmıyor");
+        flash(btn, r && r.ok ? M("opened") : "✖ " + M("appDown"));
       });
     }
     placeMenu(menu, btn);

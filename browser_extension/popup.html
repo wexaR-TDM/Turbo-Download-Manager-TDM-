@@ -16,12 +16,12 @@
 </head>
 <body>
   <h3>TurboDM</h3>
-  <label><input type="checkbox" id="en"> İndirmeleri yakala</label>
-  <label><input type="checkbox" id="gr"> Video yakalayıcı</label>
-  <div id="st">Bağlantı denetleniyor…</div>
-  <button id="page" style="display:none; width:100%; padding:8px">⬇ Bu sayfadaki videoyu TurboDM'de aç</button>
-  <h4>Bu sayfadaki medyalar</h4>
-  <div id="list" class="empty">Yok. Videoyu oynatmayı deneyin.</div>
+  <label><input type="checkbox" id="en"> <span data-i18n="popupCatch"></span></label>
+  <label><input type="checkbox" id="gr"> <span data-i18n="popupGrabber"></span></label>
+  <div id="st" data-i18n="popupChecking"></div>
+  <button id="page" data-i18n="popupPage" style="display:none; width:100%; padding:8px"></button>
+  <h4 data-i18n="popupMedia"></h4>
+  <div id="list" class="empty" data-i18n="popupNone"></div>
   <script src="popup.js"></script>
 </body>
 </html>

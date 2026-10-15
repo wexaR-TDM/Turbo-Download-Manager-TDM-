@@ -2,10 +2,16 @@
 
 Her sürümde nelerin değiştiği, en yeni sürüm en üstte. Son sürümü indirmek için:
 **[github.com/wexaR-TDM/TurboDM/releases/latest](https://github.com/wexaR-TDM/TurboDM/releases/latest)**
-Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*.
+Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [English release notes](RELEASE_NOTES.md)
 
-<!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir. "Güncellemeleri denetle"
+<!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
+
+## 1.7.0
+• Dil desteği: Türkçe, English, Deutsch, Français, Español, العربية (sağdan sola düzen), Italiano — Seçenekler → Genel → Dil; varsayılan Windows'un dili
+• Kurulum programı en başta dil sorar; seçilen dil programın dili olur. Kurulum ve kaldırma pencereleri de seçilen dilde
+• Tarayıcı eklentisi 1.5.0: 7 dil (tarayıcının diline göre)
+• Güncelleme penceresindeki sürüm notları programın diline göre (Türkçe ya da İngilizce); GitHub sayfası ve sürüm notları İngilizce olarak da var
 
 ## 1.6.4
 • Güncelleme penceresi, güncellemede ne olacağını açıklar: program kısa süre kapanır, kurulum bitince görev çubuğunda kendiliğinden açılır, inmekte olan indirmeler kaldığı yerden sürer

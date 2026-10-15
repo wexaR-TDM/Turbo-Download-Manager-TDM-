@@ -21,6 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from email.message import Message
+from .i18n import _t
 
 CHUNK = 64 * 1024            # tek okumada alınan veri
 MIN_SPLIT = 512 * 1024       # bundan küçük kalan parça bölünmez
@@ -248,9 +249,7 @@ def probe(url, headers=None):
 
 
 TORRENT_MAX = 20 * 1024 * 1024
-NOT_TORRENT = ("Site torrent dosyası yerine bir web sayfası gönderdi (indirme sayfası, giriş isteyen ya da "
-               "süresi dolmuş bağlantı). Torrent'i sitedeki indirme düğmesiyle tarayıcıdan indirin: "
-               "TurboDM eklentisi inen .torrent dosyasını otomatik olarak TurboDM'de açar.")
+NOT_TORRENT = (_t("Site torrent dosyası yerine bir web sayfası gönderdi (indirme sayfası, giriş isteyen ya da süresi dolmuş bağlantı). Torrent'i sitedeki indirme düğmesiyle tarayıcıdan indirin: TurboDM eklentisi inen .torrent dosyasını otomatik olarak TurboDM'de açar."))
 
 
 def looks_like_torrent(url, info=None):
@@ -269,7 +268,7 @@ def fetch_torrent(url, headers=None):
     finally:
         resp.close()
     if len(data) > TORRENT_MAX:
-        raise ValueError("Torrent dosyası beklenenden çok büyük")
+        raise ValueError(_t("Torrent dosyası beklenenden çok büyük"))
     if not (data.startswith(b"d") and b"4:info" in data):
         raise ValueError(NOT_TORRENT)
     return data
@@ -431,7 +430,7 @@ class HttpTask:
                 self._finalize()
             else:
                 self.state = "error"
-                self.error = self.error or "Bazı parçalar tamamlanamadı"
+                self.error = self.error or _t("Bazı parçalar tamamlanamadı")
         except Exception as e:  # noqa: BLE001
             if self._failed:
                 self.state = "error"
@@ -453,8 +452,7 @@ class HttpTask:
             done = sum(s[2] - s[0] for s in self.item.segments) if self.item.segments else 0
         need = self.item.size - done
         if need > free:
-            raise OSError(28, f"Diskte yeterli boş alan yok: {need / 1073741824:.2f} GB gerekli, "
-                              f"{free / 1073741824:.2f} GB boş")
+            raise OSError(28, _t("Diskte yeterli boş alan yok: {0:.2f} GB gerekli, {1:.2f} GB boş").format(need / 1073741824, free / 1073741824))
 
     @staticmethod
     def _initial_segments(size, n):
@@ -567,12 +565,12 @@ class HttpTask:
             # Bu istekte istenecek son bayt (max_request varsa segmenti kısa isteklere böl)
             req_end = min(end, start + self.max_request - 1) if self.max_request else end
             try:
-                self.conn_info[key] = "Bağlanıyor…"
+                self.conn_info[key] = _t("Bağlanıyor…")
                 resp = open_url(self.item.url, self.item.headers, start, req_end)
                 if resp.status != 206:
                     resp.close()
-                    raise IOError("Sunucu parça (Range) isteğini reddetti")
-                self.conn_info[key] = "Veri alınıyor"
+                    raise IOError(_t("Sunucu parça (Range) isteğini reddetti"))
+                self.conn_info[key] = _t("Veri alınıyor")
                 with self.lock:
                     self.receiving += 1
                     self.peak_receiving = max(self.peak_receiving, self.receiving)
@@ -587,7 +585,7 @@ class HttpTask:
                                 break
                             data = resp.read(min(CHUNK, remaining))
                             if not data:
-                                raise IOError("Bağlantı erken kapandı")
+                                raise IOError(_t("Bağlantı erken kapandı"))
                             self.limiter.consume(len(data))
                             with self.lock:
                                 allowed = min(seg[1], req_end) - seg[2] + 1  # başka bağlantı bölmüş olabilir
@@ -618,7 +616,7 @@ class HttpTask:
                 if retries > MAX_RETRIES:
                     self._fail(e)
                     return
-                self.conn_info[key] = f"Yeniden deneniyor ({retries}/{MAX_RETRIES}): {_err_text(e)}"
+                self.conn_info[key] = _t("Yeniden deneniyor ({0}/{1}): {2}").format(retries, MAX_RETRIES, _err_text(e))
                 self.stop_event.wait(_retry_delay(e, retries))
 
     def _single_stream(self):
@@ -629,7 +627,7 @@ class HttpTask:
             it.segments = [[0, (it.size or 1 << 62) - 1, 0]]
             seg = it.segments[0]
             self.active = {id(seg)}
-            self.conn_info[id(seg)] = "Veri alınıyor (tek bağlantı)"
+            self.conn_info[id(seg)] = _t("Veri alınıyor (tek bağlantı)")
             self.state = "downloading"
             try:
                 with open_url(it.url, it.headers) as resp, open(self.part_path, "wb") as f:
@@ -650,7 +648,7 @@ class HttpTask:
                     it.segments = []  # devam edilemez
                     return
                 if expected and seg[2] < expected:
-                    raise IOError(f"Bağlantı erken kapandı ({seg[2]}/{expected} bayt)")
+                    raise IOError(_t("Bağlantı erken kapandı ({0}/{1} bayt)").format(seg[2], expected))
                 it.size = seg[2]
                 seg[1] = seg[2] - 1
                 self._finalize()
@@ -702,13 +700,13 @@ def disk_error(e):
         return None
     win = getattr(e, "winerror", None)
     if e.errno == 28 or win in (39, 112):
-        return "Diskte yeterli boş alan yok"
+        return _t("Diskte yeterli boş alan yok")
     if e.errno in (13, 30) or win in (5, 19, 32):
-        return f"Klasöre yazılamıyor (izin yok ya da dosya kullanımda): {getattr(e, 'filename', '') or ''}".strip(": ")
+        return _t("Klasöre yazılamıyor (izin yok ya da dosya kullanımda): {0}").format(getattr(e, 'filename', '') or '').strip(": ")
     if win in (3, 15, 21) or e.errno == 2 and getattr(e, "filename", None):
-        return f"Kayıt klasörüne ulaşılamıyor (sürücü çıkarılmış olabilir): {e.filename}"
+        return _t("Kayıt klasörüne ulaşılamıyor (sürücü çıkarılmış olabilir): {0}").format(e.filename)
     if win == 206 or e.errno == 36:
-        return "Dosya yolu çok uzun; daha kısa bir klasör seçin"
+        return _t("Dosya yolu çok uzun; daha kısa bir klasör seçin")
     return None
 
 
@@ -716,9 +714,9 @@ def _err_text(e):
     if isinstance(e, urllib.error.HTTPError):
         return f"HTTP {e.code} {e.reason}"
     if isinstance(e, urllib.error.URLError):
-        return f"Bağlantı hatası: {e.reason}"
+        return _t("Bağlantı hatası: {0}").format(e.reason)
     if isinstance(e, TimeoutError) or "timed out" in str(e):
-        return "Sunucu yanıt vermiyor (zaman aşımı)"
+        return _t("Sunucu yanıt vermiyor (zaman aşımı)")
     if isinstance(e, ConnectionError):
-        return "Bağlantı koptu"
+        return _t("Bağlantı koptu")
     return disk_error(e) or str(e) or e.__class__.__name__

@@ -11,6 +11,7 @@ Kurulum/kaldırma araçları (kurulum programı kullanır):
     --quit                               → çalışan TurboDM'i düzgünce kapat
     --register-assoc / --unregister-assoc → magnet: ve .torrent ilişkilendirmesi
     --autostart on|off                   → Windows açılışında başlatma
+    --set-language tr|en|de|fr|es|ar|it  → kurulumda seçilen dili ayarlara yaz
     --cleanup [--partials] [--downloads] [--appdata]  → kaldırma temizliği (kayıt defteri hep temizlenir)
     --selftest <rapor.json>              → bileşen denetimi (başka bilgisayarda sorun tespiti için)
 """
@@ -22,6 +23,7 @@ import urllib.request
 
 from turbodm.appinfo import APP_USER_MODEL_ID, MUTEX_NAME
 from turbodm.manager import APP_DIR, DEFAULT_SETTINGS
+from turbodm.i18n import _t
 
 
 def _port():
@@ -113,7 +115,7 @@ def _selftest(out_path):
         from turbodm.hls import find_ffmpeg
         p = find_ffmpeg()
         if not p:
-            raise RuntimeError("ffmpeg bulunamadı")
+            raise RuntimeError(_t("ffmpeg bulunamadı"))
         r = subprocess.run([p, "-hide_banner", "-version"], capture_output=True,
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         return p + " | " + r.stdout.decode(errors="replace").splitlines()[0]
@@ -121,7 +123,7 @@ def _selftest(out_path):
     def https():
         import ssl
         ctx = ssl.create_default_context()
-        return f"{len(ctx.get_ca_certs())} kök sertifika (Windows deposu) yüklü, {ssl.OPENSSL_VERSION}"
+        return _t("{0} kök sertifika (Windows deposu) yüklü, {1}").format(len(ctx.get_ca_certs()), ssl.OPENSSL_VERSION)
 
     def engine():
         import tempfile
@@ -165,16 +167,16 @@ def _selftest(out_path):
         shutil.rmtree(os.path.dirname(it.path), ignore_errors=True)
         if not ok:
             raise RuntimeError(f"dosya bozuk ({t.state} {t.error})")
-        return "8 bağlantılı 3 MB indirme birebir doğru"
+        return _t("8 bağlantılı 3 MB indirme birebir doğru")
 
     def youtube():
         import subprocess
         from turbodm import ytdlp
         if not ytdlp.ytdlp_path():
-            raise RuntimeError("yt-dlp bulunamadı")
+            raise RuntimeError(_t("yt-dlp bulunamadı"))
         d = ytdlp.deno_path()
         if not d:
-            raise RuntimeError("deno (JavaScript motoru) bulunamadı")
+            raise RuntimeError(_t("deno (JavaScript motoru) bulunamadı"))
         r = subprocess.run([d, "--version"], capture_output=True, text=True,
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         return f"yt-dlp {ytdlp.version()} ({ytdlp.ytdlp_path()}) | {r.stdout.splitlines()[0]}"
@@ -202,6 +204,10 @@ def _tool_mode(args):
     if "--unregister-assoc" in args:
         winassoc.unregister()
         return 0
+    if "--set-language" in args:  # kurulumda seçilen dil
+        from turbodm import i18n
+        i = args.index("--set-language")
+        return 0 if i + 1 < len(args) and i18n.save_language_setting(args[i + 1]) else 1
     if "--autostart" in args:
         i = args.index("--autostart")
         winassoc.set_autostart(i + 1 < len(args) and args[i + 1] == "on")
@@ -230,6 +236,15 @@ def main():
     elif _send_to_running(arg):
         return
 
+    if sys.platform == "win32" and "--restart" in sys.argv[1:]:
+        # dil değişikliği sonrası yeniden başlatma: eski kopya tamamen kapanana kadar bekle
+        import ctypes
+        for _ in range(60):
+            h = ctypes.windll.kernel32.OpenMutexW(0x00100000, False, MUTEX_NAME)  # SYNCHRONIZE
+            if not h:
+                break
+            ctypes.windll.kernel32.CloseHandle(h)
+            time.sleep(0.25)
     if sys.platform == "win32":
         import ctypes
         # Görev çubuğunda Python simgesi yerine TurboDM simgesi görünsün
@@ -254,6 +269,8 @@ def main():
     app.setApplicationName("TurboDM")
     app.setQuitOnLastWindowClosed(False)
     app.setStyle("Fusion")
+    from turbodm import i18n
+    i18n.apply_to_app(app)  # Qt'nin kendi düğme metinleri ve Arapça için sağdan sola düzen
     from turbodm.gui import apply_theme
     apply_theme(app)
     mgr = Manager()

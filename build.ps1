@@ -62,7 +62,7 @@ foreach ($f in "vendor\ffmpeg\ffmpeg.exe", "vendor\ffmpeg\LICENSE.txt", "vendor\
 Copy-Item (Join-Path $root "vendor\ytdlp\yt-dlp.exe"), (Join-Path $root "vendor\deno\deno.exe") (Join-Path $stage "tools")
 Copy-Item (Join-Path $root "installer\turbodm.ico") $stage
 Copy-Item (Join-Path $root "browser_extension") (Join-Path $stage "browser_extension") -Recurse
-Copy-Item (Join-Path $root "installer\TARAYICI_EKLENTISI.txt") $stage
+Copy-Item (Join-Path $root "installer\TARAYICI_EKLENTISI.txt"), (Join-Path $root "installer\BROWSER_EXTENSION.txt") $stage
 Copy-Item (Join-Path $root "installer\LISANSLAR.txt") $stage
 Copy-Item (Join-Path $root "LICENSE") (Join-Path $stage "LICENSE.txt")  # GPL: lisans metni programla birlikte
 
@@ -89,6 +89,11 @@ Write-Host "5/5 Güncelleme bildirimi (dist\latest.json)" -ForegroundColor Cyan
 $notesAll = Get-Content (Join-Path $root "SURUM_NOTLARI.md") -Raw -Encoding UTF8
 $m = [regex]::Match($notesAll, '(?ms)^##\s*' + [regex]::Escape($version) + '\s*$(.*?)(?=^##\s|\z)')
 $notes = if ($m.Success) { $m.Groups[1].Value.Trim() } else { "" }
+# İngilizce notlar (programın dili Türkçe değilse güncelleme penceresinde bunlar gösterilir)
+$notesEnAll = Get-Content (Join-Path $root "RELEASE_NOTES.md") -Raw -Encoding UTF8
+$me = [regex]::Match($notesEnAll, '(?ms)^##\s*' + [regex]::Escape($version) + '\s*$(.*?)(?=^##\s|\z)')
+$notesEn = if ($me.Success) { $me.Groups[1].Value.Trim() } else { "" }
+if (-not $notesEn) { Write-Warning "RELEASE_NOTES.md içinde '## $version' bölümü yok (İngilizce sürüm notu)" }
 if (-not $notes) { Write-Warning "SURUM_NOTLARI.md içinde '## $version' bölümü yok" }
 # İndirme adresi deponun eski adıyla yazılır (GitHub yönlendirir): 1.5.7 yalnızca o adresi kabul ediyor
 $legacy = [regex]::Match($appinfo, 'LEGACY_REPO\s*=\s*"([^"]*)"').Groups[1].Value
@@ -102,6 +107,7 @@ $manifest = [ordered]@{
     size      = $setup.Length
     published = (Get-Date -Format "yyyy-MM-dd")
     notes     = $notes
+    notes_en  = $notesEn
 }
 [IO.File]::WriteAllText((Join-Path $root "dist\latest.json"), ($manifest | ConvertTo-Json), (New-Object Text.UTF8Encoding $false))
 # İmza: kurulu TurboDM'ler yalnızca bu bilgisayardaki özel anahtarla imzalanmış güncellemeyi kurar

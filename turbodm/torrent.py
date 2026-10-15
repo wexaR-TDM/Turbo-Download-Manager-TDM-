@@ -1,5 +1,6 @@
 """libtorrent tabanlı BitTorrent motoru (magnet bağlantıları ve .torrent dosyaları)."""
 import os
+from .i18n import _t
 
 try:
     import libtorrent as lt
@@ -9,12 +10,12 @@ except ImportError:  # torrent desteği isteğe bağlı
 AVAILABLE = lt is not None
 
 STATE_TEXT = {
-    "checking_files": "Dosyalar denetleniyor",
-    "downloading_metadata": "Meta veri alınıyor",
-    "downloading": "İndiriliyor",
-    "finished": "Tamamlandı",
-    "seeding": "Paylaşılıyor (seed)",
-    "checking_resume_data": "Devam verisi denetleniyor",
+    "checking_files": _t("Dosyalar denetleniyor"),
+    "downloading_metadata": _t("Meta veri alınıyor"),
+    "downloading": _t("İndiriliyor"),
+    "finished": _t("Tamamlandı"),
+    "seeding": _t("Paylaşılıyor (seed)"),
+    "checking_resume_data": _t("Devam verisi denetleniyor"),
 }
 
 
@@ -51,7 +52,7 @@ def performance_settings():
 class TorrentEngine:
     def __init__(self, port=6881, dl_limit=0, ul_limit=0):
         if not AVAILABLE:
-            raise RuntimeError("libtorrent yüklü değil (pip install libtorrent)")
+            raise RuntimeError(_t("libtorrent yüklü değil (pip install libtorrent)"))
         settings = {
             "listen_interfaces": f"0.0.0.0:{port},[::]:{port}",
             "alert_mask": (lt.alert_category.error | lt.alert_category.status
@@ -81,7 +82,7 @@ class TorrentEngine:
         atp.flags &= ~lt.torrent_flags.auto_managed
         atp.flags &= ~lt.torrent_flags.paused
         if self.ses.find_torrent(atp.info_hashes.get_best()).is_valid():
-            raise RuntimeError("Bu torrent zaten listede")
+            raise RuntimeError(_t("Bu torrent zaten listede"))
         key = "probe-" + str(atp.info_hashes.get_best())
         self.probes[key] = self.ses.add_torrent(atp)
         return key
@@ -146,7 +147,7 @@ class TorrentEngine:
             atp.file_priorities = list(priorities)
         if self.ses.find_torrent(atp.info_hashes.get_best() if atp.ti is None
                                  else atp.ti.info_hashes().get_best()).is_valid():
-            raise RuntimeError("Bu torrent zaten listede")
+            raise RuntimeError(_t("Bu torrent zaten listede"))
         if paused:
             atp.flags |= lt.torrent_flags.paused
             atp.flags &= ~lt.torrent_flags.auto_managed

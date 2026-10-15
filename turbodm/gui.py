@@ -29,24 +29,31 @@ from . import torrent as tmod
 from . import winassoc
 from .engine import fetch_torrent, filename_from_url, looks_like_torrent, probe, sanitize_filename
 from .manager import CATCH_EXTS, CATEGORIES, TORRENT_DIR, Manager, category_for
+from . import i18n
+from .i18n import _t
 
 APP_NAME = "TurboDM"
 
 STATUS_TEXT = {
-    "stopped": "Durduruldu", "queued": "Kuyrukta", "connecting": "Bağlanıyor…",
-    "downloading": "İndiriliyor", "completed": "Tamamlandı", "error": "Hata",
-    "seeding": "Paylaşılıyor", "converting": "Dönüştürülüyor…",
+    "stopped": _t("Durduruldu"), "queued": _t("Kuyrukta"), "connecting": _t("Bağlanıyor…"),
+    "downloading": _t("İndiriliyor"), "completed": _t("Tamamlandı"), "error": _t("Hata"),
+    "seeding": _t("Paylaşılıyor"), "converting": _t("Dönüştürülüyor…"),
 }
 
 
 # ------------------------------------------------------------------ biçimlendirme
 def fmt_size(n):
     if n is None:
-        return "Bilinmiyor"
+        return _t("Bilinmiyor")
     for unit in ("B", "KB", "MB", "GB", "TB"):
         if n < 1024 or unit == "TB":
             return f"{n:.0f} {unit}" if unit == "B" else f"{n:.2f} {unit}"
         n /= 1024
+
+
+def fmt_pct(value, decimals=1):
+    """Yüzde: Türkçede "%62", diğer dillerde "62%" (kalıp çeviriden gelir)."""
+    return _t("%{0}").format(f"{value:.{decimals}f}")
 
 
 def fmt_speed(b):
@@ -58,12 +65,12 @@ def fmt_time(s):
         return ""
     s = int(s)
     if s >= 86400:
-        return f"{s // 86400}g {s % 86400 // 3600}sa"
+        return _t("{0}g {1}sa").format(s // 86400, s % 86400 // 3600)
     if s >= 3600:
-        return f"{s // 3600}sa {s % 3600 // 60}dk"
+        return _t("{0}sa {1}dk").format(s // 3600, s % 3600 // 60)
     if s >= 60:
-        return f"{s // 60}dk {s % 60}sn"
-    return f"{s}sn"
+        return _t("{0}dk {1}sn").format(s // 60, s % 60)
+    return _t("{0}sn").format(s)
 
 
 def make_icon(color="#1e6fd9"):
@@ -226,7 +233,7 @@ class TorrentFilesTree(QTreeWidget):
 
     def __init__(self, with_progress=False, parent=None):
         super().__init__(parent)
-        self.setHeaderLabels(["Dosya", "Boyut"] + (["İlerleme"] if with_progress else []))
+        self.setHeaderLabels([_t("Dosya"), _t("Boyut")] + ([_t("İlerleme")] if with_progress else []))
         self.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.header().setStretchLastSection(False)
         self.leaves = []
@@ -284,7 +291,7 @@ class TorrentFilesTree(QTreeWidget):
     def set_progress(self, done_list):
         done_list = [d for d, pad in zip(done_list, self.pads) if not pad]
         for (leaf, size), done in zip(self.leaves, done_list):
-            txt = f"%{(done / size * 100) if size else 100:.1f}"
+            txt = fmt_pct((done / size * 100) if size else 100, 1)
             if leaf.text(2) != txt:
                 leaf.setText(2, txt)
 
@@ -303,7 +310,7 @@ class FileInfoDialog(QDialog):
         self.video_info = None           # yt-dlp ile bulunan site videosu
         self.info = {"size": None, "resumable": True}
         self.user_edited = False
-        self.setWindowTitle("İndirme Dosyası Bilgisi")
+        self.setWindowTitle(_t("İndirme Dosyası Bilgisi"))
         self.setMinimumWidth(560)
         self.setAttribute(Qt.WA_DeleteOnClose)
 
@@ -321,7 +328,7 @@ class FileInfoDialog(QDialog):
         prow.addWidget(self.path_edit)
         prow.addWidget(browse)
         self.desc = QLineEdit()
-        self.size_lbl = QLabel("Sorgulanıyor…")
+        self.size_lbl = QLabel(_t("Sorgulanıyor…"))
         self.size_lbl.setWordWrap(True)
         self.quality = QComboBox()   # yalnızca HLS videolarda görünür
         self.hls_info = None
@@ -331,20 +338,20 @@ class FileInfoDialog(QDialog):
 
         form = QFormLayout()
         self.form = form
-        form.addRow("Adres (URL):", self.url_edit)
-        form.addRow("Kalite:", self.quality)
-        form.addRow("Biçim:", self.fmt)
-        form.addRow("Kategori:", self.cat)
-        form.addRow("Kayıt klasörü:", prow)
-        form.addRow("Açıklama:", self.desc)
-        form.addRow("Boyut:", self.size_lbl)
+        form.addRow(_t("Adres (URL):"), self.url_edit)
+        form.addRow(_t("Kalite:"), self.quality)
+        form.addRow(_t("Biçim:"), self.fmt)
+        form.addRow(_t("Kategori:"), self.cat)
+        form.addRow(_t("Kayıt klasörü:"), prow)
+        form.addRow(_t("Açıklama:"), self.desc)
+        form.addRow(_t("Boyut:"), self.size_lbl)
         form.setRowVisible(self.quality, False)
         form.setRowVisible(self.fmt, False)
 
-        b_start = QPushButton("İndirmeyi Başlat")
+        b_start = QPushButton(_t("İndirmeyi Başlat"))
         b_start.setDefault(True)
-        b_later = QPushButton("Sonra İndir (kuyruğa ekle)")
-        b_cancel = QPushButton("İptal")
+        b_later = QPushButton(_t("Sonra İndir (kuyruğa ekle)"))
+        b_cancel = QPushButton(_t("İptal"))
         b_start.clicked.connect(lambda: self._go(True))
         b_later.clicked.connect(lambda: self._go(False))
         b_cancel.clicked.connect(self.reject)
@@ -386,11 +393,11 @@ class FileInfoDialog(QDialog):
     # ---- Site videosu (YouTube vb.) — yt-dlp
     def _start_video(self, fallback_info=None):
         if not ytdlp.available():
-            self.size_lbl.setText("Site videoları için gereken yt-dlp bulunamadı.")
+            self.size_lbl.setText(_t("Site videoları için gereken yt-dlp bulunamadı."))
             return
         self._fallback = fallback_info
-        self.size_lbl.setText("Video inceleniyor…" if ytdlp.is_youtube(self.url)
-                              else "Sayfadaki video aranıyor…")
+        self.size_lbl.setText(_t("Video inceleniyor…") if ytdlp.is_youtube(self.url)
+                              else _t("Sayfadaki video aranıyor…"))
 
         def work():
             try:
@@ -405,7 +412,7 @@ class FileInfoDialog(QDialog):
             if fb:  # video yok: normal sayfa/dosya olarak indir
                 self._apply_probe(fb)
             else:
-                self.size_lbl.setText(f"Video bilgisi alınamadı: {err or 'indirilebilir biçim yok'}")
+                self.size_lbl.setText(_t("Video bilgisi alınamadı: {0}").format(err or _t('indirilebilir biçim yok')))
             return
         self.video_info = info
         self._update_format_row()
@@ -428,9 +435,9 @@ class FileInfoDialog(QDialog):
         if not self.video_info:
             return
         c = self.quality.currentData()
-        text = f"Video  ·  {self.video_info['title']}"
+        text = _t("Video  ·  {0}").format(self.video_info['title'])
         if self.video_info.get("duration"):
-            text += f"  ·  süre {fmt_time(self.video_info['duration'])}"
+            text += _t("  ·  süre {0}").format(fmt_time(self.video_info['duration']))
         if c.get("size"):
             text += f"  ·  ≈ {fmt_size(c['size'])}"
         self.size_lbl.setText(text)
@@ -438,7 +445,7 @@ class FileInfoDialog(QDialog):
 
     # ---- HLS (m3u8) video akışı
     def _start_hls(self):
-        self.size_lbl.setText("Video akışı inceleniyor…")
+        self.size_lbl.setText(_t("Video akışı inceleniyor…"))
 
         def work():
             try:
@@ -449,10 +456,10 @@ class FileInfoDialog(QDialog):
 
     def _on_hls(self, info, err):
         if err:
-            self.size_lbl.setText(f"Video akışı okunamadı: {err}")
+            self.size_lbl.setText(_t("Video akışı okunamadı: {0}").format(err))
             return
         if info.get("live"):
-            self.size_lbl.setText("Bu bir canlı yayın; canlı yayınlar desteklenmiyor.")
+            self.size_lbl.setText(_t("Bu bir canlı yayın; canlı yayınlar desteklenmiyor."))
             return
         self.hls_info = info
         self._update_format_row()
@@ -460,11 +467,11 @@ class FileInfoDialog(QDialog):
         for v in info["variants"]:
             self.quality.addItem(hls.variant_label(v), v)
         self.form.setRowVisible(self.quality, len(info["variants"]) > 1)
-        text = "HLS video akışı"
+        text = _t("HLS video akışı")
         if info.get("duration"):
-            text += f"  ·  süre {fmt_time(info['duration'])}"
+            text += _t("  ·  süre {0}").format(fmt_time(info['duration']))
         if not self.mgr.ffmpeg():
-            text += "  ·  ffmpeg bulunamadı: .ts olarak kaydedilir (Seçenekler → Video)"
+            text += _t("  ·  ffmpeg bulunamadı: .ts olarak kaydedilir (Seçenekler → Video)")
         self.size_lbl.setText(text)
         stem = os.path.splitext(getattr(self, "name", "") or "")[0]
         if not stem or stem.lower() in ("index", "master", "playlist", "chunklist", "download"):
@@ -495,7 +502,7 @@ class FileInfoDialog(QDialog):
         self.user_edited = False
 
     def _browse(self):
-        d = QFileDialog.getExistingDirectory(self, "Kayıt klasörü", self.path_edit.text())
+        d = QFileDialog.getExistingDirectory(self, _t("Kayıt klasörü"), self.path_edit.text())
         if d:
             self.path_edit.setText(os.path.normpath(d))
             self.user_edited = True
@@ -508,7 +515,7 @@ class FileInfoDialog(QDialog):
 
     def _on_probe(self, info, err):
         if err:
-            self.size_lbl.setText(f"Sorgulanamadı: {err}")
+            self.size_lbl.setText(_t("Sorgulanamadı: {0}").format(err))
             return
         if looks_like_torrent(self.url, info):
             self._start_torrent(info["final_url"])
@@ -529,7 +536,7 @@ class FileInfoDialog(QDialog):
 
     # ---- .torrent bağlantısı: dosya olarak kaydetmek yerine torrent olarak aç (dosya seçimi penceresi)
     def _start_torrent(self, url):
-        self.size_lbl.setText("Torrent dosyası alınıyor…")
+        self.size_lbl.setText(_t("Torrent dosyası alınıyor…"))
         for b in self.go_buttons:
             b.setEnabled(False)
         self.bridge.done.connect(self._on_torrent)
@@ -557,8 +564,8 @@ class FileInfoDialog(QDialog):
 
     def _apply_probe(self, info):
         self.info = info
-        res = "Evet" if info["resumable"] else "Hayır"
-        self.size_lbl.setText(f"{fmt_size(info['size'])}   ·   Devam ettirme desteği: {res}")
+        res = _t("Evet") if info["resumable"] else _t("Hayır")
+        self.size_lbl.setText(_t("{0}   ·   Devam ettirme desteği: {1}").format(fmt_size(info['size']), res))
         self._set_name(info["filename"])
 
     def _go(self, start):
@@ -598,18 +605,18 @@ class TorrentAddDialog(QDialog):
         super().__init__(win)
         self.win, self.mgr, self.source = win, win.mgr, source
         self.ti, self.probe_key = None, None
-        self.setWindowTitle("Torrent Ekle")
+        self.setWindowTitle(_t("Torrent Ekle"))
         self.resize(640, 520)
         self.setAttribute(Qt.WA_DeleteOnClose)
 
         form = QFormLayout()
         src = QLabel(source if len(source) < 90 else source[:87] + "…")
         src.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        form.addRow("Kaynak:", src)
+        form.addRow(_t("Kaynak:"), src)
         self.name_lbl = QLabel()
         self.size_lbl = QLabel()
-        form.addRow("Ad:", self.name_lbl)
-        form.addRow("Seçilen boyut:", self.size_lbl)
+        form.addRow(_t("Ad:"), self.name_lbl)
+        form.addRow(_t("Seçilen boyut:"), self.size_lbl)
         self.dir_edit = QLineEdit(self.mgr.category_dir("torrent"))
         browse = QPushButton("…")
         browse.setObjectName("browse")
@@ -618,14 +625,14 @@ class TorrentAddDialog(QDialog):
         row = QHBoxLayout()
         row.addWidget(self.dir_edit)
         row.addWidget(browse)
-        form.addRow("Kayıt klasörü:", row)
+        form.addRow(_t("Kayıt klasörü:"), row)
         self.desc = QLineEdit()
-        form.addRow("Açıklama:", self.desc)
+        form.addRow(_t("Açıklama:"), self.desc)
 
         self.files = TorrentFilesTree()
         self.files.changed.connect(self._update_size)
         sel = QHBoxLayout()
-        for text, on in (("Tümünü seç", True), ("Hiçbirini seçme", False)):
+        for text, on in ((_t("Tümünü seç"), True), (_t("Hiçbirini seçme"), False)):
             b = QPushButton(text)
             b.clicked.connect(lambda _=False, v=on: self.files.set_all(v))
             sel.addWidget(b)
@@ -634,30 +641,30 @@ class TorrentAddDialog(QDialog):
         brow = QHBoxLayout()
         brow.addStretch()
         self.buttons = []
-        for text, start in (("Sonra İndir", False), ("İndirmeyi Başlat", True)):
+        for text, start in ((_t("Sonra İndir"), False), (_t("İndirmeyi Başlat"), True)):
             b = QPushButton(text)
             b.clicked.connect(lambda _=False, s=start: self._go(s))
             brow.addWidget(b)
             self.buttons.append(b)
         self.buttons[1].setDefault(True)
-        c = QPushButton("İptal")
+        c = QPushButton(_t("İptal"))
         c.clicked.connect(self.reject)
         brow.addWidget(c)
 
         lay = QVBoxLayout(self)
         lay.addLayout(form)
-        lay.addWidget(QLabel("İndirilecek dosyalar:"))
+        lay.addWidget(QLabel(_t("İndirilecek dosyalar:")))
         lay.addWidget(self.files, 1)
         lay.addLayout(sel)
         lay.addLayout(brow)
 
         if is_magnet(source):
             dn = urllib.parse.parse_qs(urllib.parse.urlparse(source).query).get("dn")
-            self.name_lbl.setText((dn[0] + " — " if dn else "") + "dosya listesi eşlerden alınıyor…")
+            self.name_lbl.setText((dn[0] + " — " if dn else "") + _t("dosya listesi eşlerden alınıyor…"))
             try:
                 self.probe_key = self.mgr.torrents.probe_start(source, self.dir_edit.text())
             except Exception as e:  # noqa: BLE001
-                self.name_lbl.setText(f"Hata: {e}")
+                self.name_lbl.setText(_t("Hata: {0}").format(e))
                 for b in self.buttons:
                     b.setEnabled(False)
                 return
@@ -667,7 +674,7 @@ class TorrentAddDialog(QDialog):
             try:
                 self._set_ti(tmod.lt.torrent_info(source))
             except Exception as e:  # noqa: BLE001
-                self.name_lbl.setText(f"Torrent dosyası okunamadı: {e}")
+                self.name_lbl.setText(_t("Torrent dosyası okunamadı: {0}").format(e))
                 for b in self.buttons:
                     b.setEnabled(False)
 
@@ -680,7 +687,7 @@ class TorrentAddDialog(QDialog):
     def _set_ti(self, ti):
         self.ti = ti
         files = tmod.file_list(ti)
-        self.name_lbl.setText(f"{ti.name()}   ({sum(1 for f in files if not f[2])} dosya)")
+        self.name_lbl.setText(_t("{0}   ({1} dosya)").format(ti.name(), sum(1 for f in files if not f[2])))
         self.files.populate(files)
         self._update_size()
 
@@ -689,14 +696,14 @@ class TorrentAddDialog(QDialog):
             self.size_lbl.setText(f"{fmt_size(self.files.selected_size())} / {fmt_size(self.ti.total_size())}")
 
     def _browse(self):
-        d = QFileDialog.getExistingDirectory(self, "Kayıt klasörü", self.dir_edit.text())
+        d = QFileDialog.getExistingDirectory(self, _t("Kayıt klasörü"), self.dir_edit.text())
         if d:
             self.dir_edit.setText(os.path.normpath(d))
 
     def _go(self, start):
         pr = self.files.priorities() if self.ti else None
         if pr is not None and not self.files.any_selected():
-            QMessageBox.warning(self, APP_NAME, "En az bir dosya seçmelisiniz.")
+            QMessageBox.warning(self, APP_NAME, _t("En az bir dosya seçmelisiniz."))
             return
         if pr is not None and all(leaf.checkState(0) == Qt.Checked for leaf, _ in self.files.leaves):
             pr = None
@@ -706,7 +713,7 @@ class TorrentAddDialog(QDialog):
                                       priorities=pr, probe_key=self.probe_key)
             self.probe_key = None  # oturum indirmeye devredildi
         except Exception as e:  # noqa: BLE001
-            QMessageBox.critical(self, APP_NAME, f"Torrent eklenemedi:\n{e}")
+            QMessageBox.critical(self, APP_NAME, _t("Torrent eklenemedi:\n{0}").format(e))
             return
         if start:
             self.win.show_progress(it.id)
@@ -726,11 +733,11 @@ class ProgressDialog(QDialog):
     üstte sekmeler (İndirme durumu · Hız sınırlayıcı · Bitince yapılacaklar), ortada düğmeler,
     altta (ayrıntılar) bağlantıların başlangıç noktaları ve ilerlemesi + bağlantı tablosu."""
 
-    ON_COMPLETE_KEYS = (("show_dialog", "İndirme bitince 'Tamamlandı' penceresini göster"),
-                        ("exit", "İndirme bitince TurboDM'den çık"),
-                        ("sleep", "İndirme bitince bilgisayarı uyku moduna al"),
-                        ("shutdown", "İndirme bitince bilgisayarı kapat"),
-                        ("force", "Kapatırken açık programları zorla kapat"))
+    ON_COMPLETE_KEYS = (("show_dialog", _t("İndirme bitince 'Tamamlandı' penceresini göster")),
+                        ("exit", _t("İndirme bitince TurboDM'den çık")),
+                        ("sleep", _t("İndirme bitince bilgisayarı uyku moduna al")),
+                        ("shutdown", _t("İndirme bitince bilgisayarı kapat")),
+                        ("force", _t("Kapatırken açık programları zorla kapat")))
 
     def __init__(self, win, iid):
         # Sahipsiz (bağımsız) pencere: Windows'ta sahibi olan pencere, ana pencere simge durumuna
@@ -750,14 +757,14 @@ class ProgressDialog(QDialog):
         grid = QGridLayout()
         grid.setHorizontalSpacing(14)
         self.lbl = {}
-        rows = [("url", "Adres"), ("status", "Durum"), ("size", "Dosya boyutu"),
-                ("done", "İndirilen"), ("speed", "Aktarım hızı"), ("eta", "Kalan süre")]
+        rows = [("url", _t("Adres")), ("status", _t("Durum")), ("size", _t("Dosya boyutu")),
+                ("done", _t("İndirilen")), ("speed", _t("Aktarım hızı")), ("eta", _t("Kalan süre"))]
         if self.is_torrent:
-            rows += [("peers", "Eşler / Seed"), ("upload", "Yükleme")]
+            rows += [("peers", _t("Eşler / Seed")), ("upload", _t("Yükleme"))]
         elif it.kind == "hls":
-            rows += [("parts", "Video parçaları")]
+            rows += [("parts", _t("Video parçaları"))]
         else:
-            rows += [("resume", "Devam ettirme")]
+            rows += [("resume", _t("Devam ettirme"))]
         for r, (k, t) in enumerate(rows):
             grid.addWidget(QLabel(t), r, 0)
             self.lbl[k] = QLabel()
@@ -777,13 +784,13 @@ class ProgressDialog(QDialog):
         t2 = QWidget()
         f2 = QFormLayout(t2)
         cur = int(it.extra.get("speed_limit_kb") or 0)
-        self.lim_on = QCheckBox("Bu indirme için hız sınırı kullan")
+        self.lim_on = QCheckBox(_t("Bu indirme için hız sınırı kullan"))
         self.lim_on.setChecked(cur > 0)
         self.lim_kb = QSpinBox(minimum=1, maximum=10_000_000, value=cur or 1024, suffix=" KB/s")
         self.lim_kb.setEnabled(cur > 0)
         f2.addRow(self.lim_on)
-        f2.addRow("En fazla:", self.lim_kb)
-        note = QLabel("Genel hız sınırı (Seçenekler → Bağlantı) bundan bağımsız olarak tüm indirmelere uygulanır.")
+        f2.addRow(_t("En fazla:"), self.lim_kb)
+        note = QLabel(_t("Genel hız sınırı (Seçenekler → Bağlantı) bundan bağımsız olarak tüm indirmelere uygulanır."))
         note.setWordWrap(True)
         note.setStyleSheet("color: palette(mid);")
         f2.addRow(note)
@@ -804,20 +811,20 @@ class ProgressDialog(QDialog):
         l3.addStretch()
 
         tabs = QTabWidget()
-        tabs.addTab(t1, "İndirme durumu")
+        tabs.addTab(t1, _t("İndirme durumu"))
         if not self.is_torrent:
-            tabs.addTab(t2, "Hız sınırlayıcı")
-        tabs.addTab(t3, "Bitince yapılacaklar")
+            tabs.addTab(t2, _t("Hız sınırlayıcı"))
+        tabs.addTab(t3, _t("Bitince yapılacaklar"))
 
         # ---- düğmeler
-        self.btn_details = QPushButton("<< Ayrıntıları gizle")
+        self.btn_details = QPushButton(_t("<< Ayrıntıları gizle"))
         self.btn_details.setAutoDefault(False)  # birincil (mavi) düğme Devam/Duraklat olsun
         self.btn_details.clicked.connect(self._toggle_details)
         self.btn_toggle = QPushButton()
         self.btn_toggle.setMinimumWidth(110)
         self.btn_toggle.setDefault(True)
         self.btn_toggle.clicked.connect(self._toggle)
-        b_cancel = QPushButton("İptal")
+        b_cancel = QPushButton(_t("İptal"))
         b_cancel.setAutoDefault(False)
         b_cancel.clicked.connect(self._cancel)
         brow = QHBoxLayout()
@@ -830,8 +837,8 @@ class ProgressDialog(QDialog):
         self.details = QWidget()
         ld = QVBoxLayout(self.details)
         ld.setContentsMargins(0, 4, 0, 0)
-        cap = QLabel("Dosyalar ve indirme ilerlemesi" if self.is_torrent
-                     else "Bağlantılara göre başlangıç noktaları ve indirme ilerlemesi")
+        cap = QLabel(_t("Dosyalar ve indirme ilerlemesi") if self.is_torrent
+                     else _t("Bağlantılara göre başlangıç noktaları ve indirme ilerlemesi"))
         cap.setStyleSheet("font-weight: 600;")
         ld.addWidget(cap)
         self.bar = SegmentBar()
@@ -843,7 +850,7 @@ class ProgressDialog(QDialog):
             self._files_built = False
         else:
             self.table = QTableWidget(0, 3)
-            self.table.setHorizontalHeaderLabels(["N.", "İndirilen", "Bilgi"])
+            self.table.setHorizontalHeaderLabels([_t("N."), _t("İndirilen"), _t("Bilgi")])
             hh = self.table.horizontalHeader()
             hh.setSectionResizeMode(0, QHeaderView.ResizeToContents)
             hh.setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -871,7 +878,7 @@ class ProgressDialog(QDialog):
     def _toggle_details(self):
         show = not self.details.isVisible()
         self.details.setVisible(show)
-        self.btn_details.setText("<< Ayrıntıları gizle" if show else "Ayrıntıları göster >>")
+        self.btn_details.setText(_t("<< Ayrıntıları gizle") if show else _t("Ayrıntıları göster >>"))
         self.adjustSize()
 
     def _limit_changed(self):
@@ -914,7 +921,7 @@ class ProgressDialog(QDialog):
             self.close()
             return
         pct = min(100.0, (it.done_bytes / it.size * 100) if it.size else 0)
-        self.setWindowTitle(f"%{pct:.0f} {it.filename}")
+        self.setWindowTitle(f"{fmt_pct(pct, 0)} {it.filename}")
         self.lbl["url"].setText(it.url if len(it.url) < 80 else it.url[:77] + "…")
         st = STATUS_TEXT.get(it.status, it.status)
         if it.error:
@@ -922,13 +929,13 @@ class ProgressDialog(QDialog):
         self.lbl["status"].setText(st)
         approx = "≈ " if it.kind in ("hls", "ytdlp") and it.status != "completed" and it.size else ""
         self.lbl["size"].setText(approx + fmt_size(it.size))
-        self.lbl["done"].setText(f"{fmt_size(it.done_bytes)}  (%{pct:.2f})")
+        self.lbl["done"].setText(f"{fmt_size(it.done_bytes)}  ({fmt_pct(pct, 2)})")
         self.lbl["speed"].setText(fmt_speed(it.speed) or "—")
         self.lbl["eta"].setText(fmt_time(it.eta()) or "—")
         self.pbar.setValue(int(pct * 10))
-        self.pbar.setFormat(f"%{pct:.1f}")
+        self.pbar.setFormat(fmt_pct(pct, 1))
         running = it.status in ("downloading", "connecting", "seeding")
-        self.btn_toggle.setText("Duraklat" if running else "Devam Et")
+        self.btn_toggle.setText(_t("Duraklat") if running else _t("Devam Et"))
 
         if self.is_torrent:
             self.lbl["peers"].setText(f"{it.peers} / {it.seeds}")
@@ -955,10 +962,10 @@ class ProgressDialog(QDialog):
             n_done, n_total = len(it.extra.get("done", [])), it.extra.get("total")
             self.lbl["parts"].setText(f"{n_done} / {n_total}" if n_total else "—")
         else:
-            txt = "Evet" if it.resumable else "Hayır"
+            txt = _t("Evet") if it.resumable else _t("Hayır")
             lim = it.extra.get("server_conn_limit") if isinstance(it.extra, dict) else None
             if lim and lim < it.connections:
-                txt += f"   ·   Sunucu en fazla {lim} bağlantıya izin veriyor"
+                txt += _t("   ·   Sunucu en fazla {0} bağlantıya izin veriyor").format(lim)
             self.lbl["resume"].setText(txt)
         conns = it.task.connections_snapshot() if it.task else []
         self.table.setRowCount(len(conns))
@@ -971,22 +978,23 @@ class ProgressDialog(QDialog):
                     self.table.setItem(r, c, cell)
                 if cell.text() != v:
                     cell.setText(v)
-            color = (QColor(theme.T["ok"]) if "alınıyor" in info else QColor(theme.T["bad"]) if "Hata" in info
-                     else QColor())
+            ok = info.startswith(_t("Veri alınıyor"))  # dil ne olursa olsun (çevrilmiş kalıbın başı)
+            bad = info.startswith(_t("Yeniden deneniyor ({0}/{1}): {2}").split("{")[0]) or                 info.startswith(_t("Hata: {0}").split("{")[0])
+            color = QColor(theme.T["ok"]) if ok else QColor(theme.T["bad"]) if bad else QColor()
             self.table.item(r, 2).setForeground(color if color.isValid() else self.palette().text().color())
         if it.status == "completed":
             self.close()
 
 
 # ------------------------------------------------------------------ bitince yapılacaklar
-POWER_ACTIONS = {"shutdown": "Bilgisayar kapatılacak", "sleep": "Bilgisayar uyku moduna alınacak",
-                 "exit": "TurboDM kapatılacak"}
+POWER_ACTIONS = {"shutdown": _t("Bilgisayar kapatılacak"), "sleep": _t("Bilgisayar uyku moduna alınacak"),
+                 "exit": _t("TurboDM kapatılacak")}
 
 
 class PowerActionDialog(QDialog):
     """İndirme / kuyruk bitince yapılacak işlem: geri sayım, 'Şimdi' ve 'İptal' (IDM gibi)."""
 
-    def __init__(self, win, action, force=False, seconds=30, reason="İndirme tamamlandı."):
+    def __init__(self, win, action, force=False, seconds=30, reason=_t("İndirme tamamlandı.")):
         super().__init__(win)
         self.win, self.action, self.force, self.left = win, action, force, seconds
         self.setWindowTitle(APP_NAME)
@@ -995,9 +1003,9 @@ class PowerActionDialog(QDialog):
         self.msg = QLabel()
         self.msg.setWordWrap(True)
         self.reason = reason
-        b_now = QPushButton("Şimdi")
+        b_now = QPushButton(_t("Şimdi"))
         b_now.clicked.connect(self._do)
-        b_cancel = QPushButton("İptal")
+        b_cancel = QPushButton(_t("İptal"))
         b_cancel.setDefault(True)
         b_cancel.clicked.connect(self.reject)
         row = QHBoxLayout()
@@ -1017,8 +1025,7 @@ class PowerActionDialog(QDialog):
         if self.left <= 0:
             self._do()
             return
-        self.msg.setText(f"<b>{self.reason}</b><br><br>{POWER_ACTIONS[self.action]}: "
-                         f"<b>{self.left}</b> saniye.<br>Vazgeçmek için İptal'e basın.")
+        self.msg.setText(_t("<b>{0}</b><br><br>{1}: <b>{2}</b> saniye.<br>Vazgeçmek için İptal'e basın.").format(self.reason, POWER_ACTIONS[self.action], self.left))
 
     def _do(self):
         self.timer.stop()
@@ -1032,7 +1039,7 @@ class OptionsDialog(QDialog):
         super().__init__(win)
         self.mgr = win.mgr
         s = self.mgr.settings
-        self.setWindowTitle("Seçenekler")
+        self.setWindowTitle(_t("Seçenekler"))
         self.setMinimumWidth(560)
         tabs = QTabWidget()
 
@@ -1040,94 +1047,99 @@ class OptionsDialog(QDialog):
         f = QFormLayout(g)
         self.root = QLineEdit(s["download_root"])
         row = self._with_browse(self.root, lambda: QFileDialog.getExistingDirectory(
-            self, "Ana indirme klasörü", self.root.text()))
-        f.addRow("Ana indirme klasörü:", row)
-        self.clip = QCheckBox("Panoya kopyalanan indirme adreslerini yakala")
+            self, _t("Ana indirme klasörü"), self.root.text()))
+        f.addRow(_t("Ana indirme klasörü:"), row)
+        self.clip = QCheckBox(_t("Panoya kopyalanan indirme adreslerini yakala"))
         self.clip.setChecked(s["clipboard_monitor"])
         f.addRow(self.clip)
-        self.complete = QCheckBox("İndirme bitince 'Tamamlandı' penceresini göster")
+        self.complete = QCheckBox(_t("İndirme bitince 'Tamamlandı' penceresini göster"))
         self.complete.setChecked(s["show_complete_dialog"])
         f.addRow(self.complete)
-        self.autostart = QCheckBox("Windows açılışında başlat (sistem tepsisinde)")
+        self.autostart = QCheckBox(_t("Windows açılışında başlat (sistem tepsisinde)"))
         self.autostart.setChecked(winassoc.autostart_enabled())
         f.addRow(self.autostart)
-        self.autoupd = QCheckBox("Açılışta güncellemeleri denetle (günde bir kez)")
+        self.autoupd = QCheckBox(_t("Açılışta güncellemeleri denetle (günde bir kez)"))
         self.autoupd.setChecked(s.get("auto_update_check", True))
         f.addRow(self.autoupd)
         self.theme = QComboBox()
-        for text, key in (("Windows ile aynı (otomatik)", "auto"), ("Açık", "light"), ("Koyu", "dark")):
+        for text, key in ((_t("Windows ile aynı (otomatik)"), "auto"), (_t("Açık"), "light"), (_t("Koyu"), "dark")):
             self.theme.addItem(text, key)
         self.theme.setCurrentIndex(max(0, self.theme.findData(s.get("theme", "auto"))))
         self.theme.currentIndexChanged.connect(  # seçince hemen önizleme
             lambda: theme.apply(QApplication.instance(), self.theme.currentData()))
         self._theme_before = s.get("theme", "auto")
         self.rejected.connect(lambda: theme.apply(QApplication.instance(), self._theme_before))
-        f.addRow("Tema:", self.theme)
+        f.addRow(_t("Tema:"), self.theme)
+        self.lang = QComboBox()
+        self.lang.addItem(_t("Sistem dili (otomatik)"), "auto")
+        for code, name in i18n.LANGUAGES.items():
+            self.lang.addItem(name, code)
+        self.lang.setCurrentIndex(max(0, self.lang.findData(s.get("language", "auto"))))
+        f.addRow(_t("Dil / Language:"), self.lang)
         self.port = QSpinBox(maximum=65535, minimum=1024, value=s["server_port"])
-        f.addRow("Tarayıcı entegrasyon portu:", self.port)
-        tabs.addTab(g, "Genel")
+        f.addRow(_t("Tarayıcı entegrasyon portu:"), self.port)
+        tabs.addTab(g, _t("Genel"))
 
         c = QWidget()
         f = QFormLayout(c)
         self.conns = QSpinBox(minimum=1, maximum=32, value=s["connections"])
-        f.addRow("İndirme başına bağlantı:", self.conns)
+        f.addRow(_t("İndirme başına bağlantı:"), self.conns)
         self.maxc = QSpinBox(minimum=1, maximum=20, value=s["max_concurrent"])
-        f.addRow("Kuyrukta aynı anda indirme:", self.maxc)
+        f.addRow(_t("Kuyrukta aynı anda indirme:"), self.maxc)
         self.limit = QSpinBox(minimum=0, maximum=10_000_000, value=s["speed_limit_kb"], suffix=" KB/s")
-        self.limit.setSpecialValueText("Sınırsız")
-        f.addRow("Hız sınırı (toplam):", self.limit)
-        tabs.addTab(c, "Bağlantı")
+        self.limit.setSpecialValueText(_t("Sınırsız"))
+        f.addRow(_t("Hız sınırı (toplam):"), self.limit)
+        tabs.addTab(c, _t("Bağlantı"))
 
         v = QWidget()
         f = QFormLayout(v)
         self.ffmpeg = QLineEdit(s.get("ffmpeg_path", ""))
-        self.ffmpeg.setPlaceholderText("Boş bırakılırsa PATH'te aranır")
-        f.addRow("ffmpeg.exe:", self._with_browse(self.ffmpeg, lambda: QFileDialog.getOpenFileName(
-            self, "ffmpeg.exe", "", "ffmpeg (ffmpeg.exe)")[0]))
+        self.ffmpeg.setPlaceholderText(_t("Boş bırakılırsa PATH'te aranır"))
+        f.addRow(_t("ffmpeg.exe:"), self._with_browse(self.ffmpeg, lambda: QFileDialog.getOpenFileName(
+            self, "ffmpeg.exe", "", _t("ffmpeg (ffmpeg.exe)"))[0]))
         self.ff_status = QLabel()
         self.ff_status.setWordWrap(True)
         f.addRow(self.ff_status)
         self.ffmpeg.textChanged.connect(self._ff_status)
         self._ff_status()
-        yt = QLabel("Video motoru: " + ("hazır" if ytdlp.version() else "bulunamadı")
-                    + ("" if ytdlp.deno_path() else "  ·  ⚠ bazı sitelerde kısıtlı çalışır"))
+        yt = QLabel(_t("Video motoru: ") + (_t("hazır") if ytdlp.version() else _t("bulunamadı"))
+                    + ("" if ytdlp.deno_path() else _t("  ·  ⚠ bazı sitelerde kısıtlı çalışır")))
         yt.setWordWrap(True)
         f.addRow(yt)
-        b = QPushButton("Video motorunu güncelle…")
+        b = QPushButton(_t("Video motorunu güncelle…"))
         b.clicked.connect(lambda: (self.accept(), self.parent().check_updates()))
         f.addRow(b)
-        tabs.addTab(v, "Video")
+        tabs.addTab(v, _t("Video"))
 
         t = QWidget()
         f = QFormLayout(t)
         self.tport = QSpinBox(minimum=1024, maximum=65535, value=s["torrent_port"])
-        f.addRow("Dinleme portu:", self.tport)
+        f.addRow(_t("Dinleme portu:"), self.tport)
         self.ul = QSpinBox(minimum=0, maximum=10_000_000, value=s["torrent_upload_kb"], suffix=" KB/s")
-        self.ul.setSpecialValueText("Sınırsız / otomatik")
-        f.addRow("Yükleme sınırı:", self.ul)
-        self.ulauto = QCheckBox("İndirirken yükleme hızını otomatik sınırla (önerilen: indirme hızlanır)")
-        self.ulauto.setToolTip("Yükleme hattı dolunca indirme de yavaşlar. Açıkken, torrent inerken yükleme hızı\n"
-                               "indirme hızına göre ayarlanır (150 KB/s – 2 MB/s). Elle bir sınır girerseniz o geçerlidir.")
+        self.ul.setSpecialValueText(_t("Sınırsız / otomatik"))
+        f.addRow(_t("Yükleme sınırı:"), self.ul)
+        self.ulauto = QCheckBox(_t("İndirirken yükleme hızını otomatik sınırla (önerilen: indirme hızlanır)"))
+        self.ulauto.setToolTip(_t("Yükleme hattı dolunca indirme de yavaşlar. Açıkken, torrent inerken yükleme hızı\nindirme hızına göre ayarlanır (150 KB/s – 2 MB/s). Elle bir sınır girerseniz o geçerlidir."))
         self.ulauto.setChecked(s["torrent_upload_auto"])
         f.addRow(self.ulauto)
-        self.seed = QCheckBox("İndirme bitince paylaşmaya (seed) devam et")
+        self.seed = QCheckBox(_t("İndirme bitince paylaşmaya (seed) devam et"))
         self.seed.setChecked(s["seed_after_complete"])
         f.addRow(self.seed)
-        f.addRow(QLabel("Torrent motoru: " + ("hazır (libtorrent " + tmod.lt.__version__ + ")"
-                                              if self.mgr.torrents else f"yok — {self.mgr.torrent_error}")))
+        f.addRow(QLabel(_t("Torrent motoru: ") + (_t("hazır (libtorrent ") + tmod.lt.__version__ + ")"
+                                              if self.mgr.torrents else _t("yok — {0}").format(self.mgr.torrent_error))))
         self.assoc_lbl = QLabel()
         self.assoc_lbl.setWordWrap(True)
         f.addRow(self.assoc_lbl)
         arow = QHBoxLayout()
-        for text, fn in (("Magnet ve .torrent'i TurboDM ile aç", self._register),
-                         ("İlişkilendirmeyi kaldır", self._unregister),
-                         ("Varsayılan uygulamalar…", winassoc.open_default_apps)):
+        for text, fn in ((_t("Magnet ve .torrent'i TurboDM ile aç"), self._register),
+                         (_t("İlişkilendirmeyi kaldır"), self._unregister),
+                         (_t("Varsayılan uygulamalar…"), winassoc.open_default_apps)):
             b = QPushButton(text)
             b.clicked.connect(fn)
             arow.addWidget(b)
         f.addRow(arow)
         self._assoc_status()
-        tabs.addTab(t, "Torrent")
+        tabs.addTab(t, _t("Torrent"))
 
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.accepted.connect(self._save)
@@ -1154,26 +1166,24 @@ class OptionsDialog(QDialog):
     def _ff_status(self):
         ff = hls.find_ffmpeg(self.ffmpeg.text().strip())
         self.ff_status.setText(
-            f"✔ ffmpeg bulundu: {ff}\nHLS videoları .mp4 olarak kaydedilir, ayrı ses kanalı birleştirilir." if ff else
-            "✖ ffmpeg bulunamadı. HLS videoları yine iner ama .ts olarak kaydedilir; ayrı ses kanalı "
-            "varsa ayrı dosyaya yazılır.\nKurmak için: winget install Gyan.FFmpeg")
+            _t("✔ ffmpeg bulundu: {0}\nHLS videoları .mp4 olarak kaydedilir, ayrı ses kanalı birleştirilir.").format(ff) if ff else
+            _t("✖ ffmpeg bulunamadı. HLS videoları yine iner ama .ts olarak kaydedilir; ayrı ses kanalı varsa ayrı dosyaya yazılır.\nKurmak için: winget install Gyan.FFmpeg"))
 
     def _assoc_status(self):
         if winassoc.is_registered():
-            txt = "✔ magnet bağlantıları ve .torrent dosyaları TurboDM ile açılıyor."
+            txt = _t("✔ magnet bağlantıları ve .torrent dosyaları TurboDM ile açılıyor.")
             other = winassoc.user_choice_overrides()
             if other:
-                txt = (f"⚠ Kayıt yapıldı ama Windows'ta varsayılan magnet uygulaması hâlâ '{other}'. "
-                       "'Varsayılan uygulamalar…' ile TurboDM'i seçin.")
+                txt = (_t("⚠ Kayıt yapıldı ama Windows'ta varsayılan magnet uygulaması hâlâ '{0}'. 'Varsayılan uygulamalar…' ile TurboDM'i seçin.").format(other))
         else:
-            txt = "magnet bağlantıları ve .torrent dosyaları henüz TurboDM ile ilişkilendirilmedi."
+            txt = _t("magnet bağlantıları ve .torrent dosyaları henüz TurboDM ile ilişkilendirilmedi.")
         self.assoc_lbl.setText(txt)
 
     def _register(self):
         try:
             winassoc.register()
         except OSError as e:
-            QMessageBox.critical(self, APP_NAME, f"Kayıt yapılamadı: {e}")
+            QMessageBox.critical(self, APP_NAME, _t("Kayıt yapılamadı: {0}").format(e))
         self._assoc_status()
 
     def _unregister(self):
@@ -1190,12 +1200,20 @@ class OptionsDialog(QDialog):
                  torrent_upload_kb=self.ul.value(), seed_after_complete=self.seed.isChecked(),
                  torrent_upload_auto=self.ulauto.isChecked(), theme=self.theme.currentData(),
                  ffmpeg_path=self.ffmpeg.text().strip(), auto_update_check=self.autoupd.isChecked())
+        lang_changed = s.get("language", "auto") != self.lang.currentData()
+        s["language"] = self.lang.currentData()
         self.mgr.apply_settings()
         if self.autostart.isChecked() != winassoc.autostart_enabled():
             winassoc.set_autostart(self.autostart.isChecked())
         if restart:
-            QMessageBox.information(self, APP_NAME, "Port değişiklikleri program yeniden başlatılınca geçerli olur.")
+            QMessageBox.information(self, APP_NAME, _t("Port değişiklikleri program yeniden başlatılınca geçerli olur."))
         self.accept()
+        if lang_changed and i18n.resolve(s["language"]) != i18n.language():
+            q = QMessageBox.question(self.parent(), APP_NAME, _t(
+                "Dil değişikliği program yeniden başlatılınca uygulanır. Şimdi yeniden başlatılsın mı?\n"
+                "(İnmekte olan indirmeler kaldığı yerden devam eder.)"))
+            if q == QMessageBox.Yes:
+                self.parent().restart_app()
 
 
 class SchedulerDialog(QDialog):
@@ -1203,31 +1221,31 @@ class SchedulerDialog(QDialog):
         super().__init__(win)
         self.mgr = win.mgr
         s = self.mgr.settings
-        self.setWindowTitle("Zamanlayıcı")
+        self.setWindowTitle(_t("Zamanlayıcı"))
         f = QFormLayout()
-        self.enabled = QCheckBox("Kuyruğu belirtilen saatte otomatik başlat/durdur")
+        self.enabled = QCheckBox(_t("Kuyruğu belirtilen saatte otomatik başlat/durdur"))
         self.enabled.setChecked(s["schedule_enabled"])
         f.addRow(self.enabled)
         self.start = QTimeEdit(QTime.fromString(s["schedule_start"], "HH:mm"))
         self.stop = QTimeEdit(QTime.fromString(s["schedule_stop"], "HH:mm"))
         for w in (self.start, self.stop):
             w.setDisplayFormat("HH:mm")
-        f.addRow("Başlama saati:", self.start)
-        f.addRow("Durma saati:", self.stop)
+        f.addRow(_t("Başlama saati:"), self.start)
+        f.addRow(_t("Durma saati:"), self.stop)
         self.maxc = QSpinBox(minimum=1, maximum=20, value=s["max_concurrent"])
-        f.addRow("Aynı anda indirme:", self.maxc)
+        f.addRow(_t("Aynı anda indirme:"), self.maxc)
         self.qdone = QComboBox()
-        for key, text in (("none", "Hiçbir şey yapma"), ("shutdown", "Bilgisayarı kapat"),
-                          ("sleep", "Bilgisayarı uyku moduna al"), ("exit", "TurboDM'den çık")):
+        for key, text in (("none", _t("Hiçbir şey yapma")), ("shutdown", _t("Bilgisayarı kapat")),
+                          ("sleep", _t("Bilgisayarı uyku moduna al")), ("exit", _t("TurboDM'den çık"))):
             self.qdone.addItem(text, key)
         self.qdone.setCurrentIndex(max(0, self.qdone.findData(s.get("queue_done_action", "none"))))
-        f.addRow("Kuyruk bitince:", self.qdone)
-        self.qforce = QCheckBox("Kapatırken açık programları zorla kapat")
+        f.addRow(_t("Kuyruk bitince:"), self.qdone)
+        self.qforce = QCheckBox(_t("Kapatırken açık programları zorla kapat"))
         self.qforce.setChecked(s.get("queue_done_force", False))
         f.addRow(self.qforce)
         n = sum(1 for i in self.mgr.items.values() if i.in_queue)
-        f.addRow(QLabel(f"Kuyruktaki dosya sayısı: {n}"))
-        b_now = QPushButton("Kuyruğu Şimdi Başlat")
+        f.addRow(QLabel(_t("Kuyruktaki dosya sayısı: {0}").format(n)))
+        b_now = QPushButton(_t("Kuyruğu Şimdi Başlat"))
         b_now.clicked.connect(lambda: (self._save(), self.mgr.start_queue(), self.accept()))
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.accepted.connect(lambda: (self._save(), self.accept()))
@@ -1251,9 +1269,7 @@ class SchedulerDialog(QDialog):
 
 
 # ------------------------------------------------------------------ güncellemeler
-UPDATE_NOTE = ("ℹ TurboDM sık güncelleniyor. Güncelleme sırasında program kısa süre kapanır; kurulum bitince "
-               "görev çubuğunda kendiliğinden yeniden açılır ve inmekte olan indirmeleriniz kaldığı yerden devam eder. "
-               "Bir şey yapmanıza gerek yok.")
+UPDATE_NOTE = (_t("ℹ TurboDM sık güncelleniyor. Güncelleme sırasında program kısa süre kapanır; kurulum bitince görev çubuğunda kendiliğinden yeniden açılır ve inmekte olan indirmeleriniz kaldığı yerden devam eder. Bir şey yapmanıza gerek yok."))
 
 
 class UpdateDialog(QDialog):
@@ -1264,12 +1280,12 @@ class UpdateDialog(QDialog):
         self.win, self.mgr = win, win.mgr
         self.info = None
         self._cancel = False
-        self.setWindowTitle("Güncellemeleri Denetle")
+        self.setWindowTitle(_t("Güncellemeleri Denetle"))
         self.setMinimumWidth(540)
         self.setAttribute(Qt.WA_DeleteOnClose)
 
         # --- TurboDM
-        self.app_lbl = QLabel("TurboDM sürümü denetleniyor…")
+        self.app_lbl = QLabel(_t("TurboDM sürümü denetleniyor…"))
         self.app_lbl.setWordWrap(True)
         self.notes = QTextBrowser()
         self.notes.setMaximumHeight(150)
@@ -1281,10 +1297,10 @@ class UpdateDialog(QDialog):
         self.app_note.setWordWrap(True)
         self.app_note.setStyleSheet(f"color: {theme.T['muted']};")
         self.app_note.hide()
-        self.app_btn = QPushButton("İndir ve Kur")
+        self.app_btn = QPushButton(_t("İndir ve Kur"))
         self.app_btn.hide()
         self.app_btn.clicked.connect(self._install)
-        g1 = QGroupBox(f"TurboDM  (kurulu: {VERSION})")
+        g1 = QGroupBox(_t("TurboDM  (kurulu: {0})").format(VERSION))
         l1 = QVBoxLayout(g1)
         l1.addWidget(self.app_lbl)
         l1.addWidget(self.notes)
@@ -1296,12 +1312,12 @@ class UpdateDialog(QDialog):
         l1.addLayout(r1)
 
         # --- yt-dlp
-        self.yt_lbl = QLabel("Video motoru denetleniyor…")
+        self.yt_lbl = QLabel(_t("Video motoru denetleniyor…"))
         self.yt_lbl.setWordWrap(True)
-        self.yt_btn = QPushButton("Video motorunu güncelle")
+        self.yt_btn = QPushButton(_t("Video motorunu güncelle"))
         self.yt_btn.hide()
         self.yt_btn.clicked.connect(self._update_ytdlp)
-        g2 = QGroupBox("Video motoru")
+        g2 = QGroupBox(_t("Video motoru"))
         l2 = QVBoxLayout(g2)
         l2.addWidget(self.yt_lbl)
         r2 = QHBoxLayout()
@@ -1309,7 +1325,7 @@ class UpdateDialog(QDialog):
         r2.addWidget(self.yt_btn)
         l2.addLayout(r2)
 
-        close = QPushButton("Kapat")
+        close = QPushButton(_t("Kapat"))
         close.clicked.connect(self.close)
         lay = QVBoxLayout(self)
         lay.addWidget(g1)
@@ -1341,7 +1357,7 @@ class UpdateDialog(QDialog):
     def _check_app(self):
         url = updater.manifest_url(self.mgr.settings.get("update_repo") or None)
         if not url:
-            raise RuntimeError("Güncelleme sunucusu ayarlanmamış.")
+            raise RuntimeError(_t("Güncelleme sunucusu ayarlanmamış."))
         return updater.check(url)
 
     # ---- TurboDM
@@ -1350,29 +1366,30 @@ class UpdateDialog(QDialog):
             if self.app_bar.isVisible():  # indirme sırasında
                 self.app_bar.hide()
                 self.app_btn.setEnabled(True)
-                self.app_lbl.setText(f"Güncelleme başarısız: {err}")
+                self.app_lbl.setText(_t("Güncelleme başarısız: {0}").format(err))
             else:
-                self.app_lbl.setText(f"Denetlenemedi: {err}")
+                self.app_lbl.setText(_t("Denetlenemedi: {0}").format(err))
             return
         if isinstance(info, str):  # indirme bitti → kurulum dosyasının yolu
-            self.app_lbl.setText("Kurulum başlatılıyor… TurboDM kısa süre kapanacak, kurulum bitince görev "
-                                 "çubuğunda kendiliğinden açılacak; inmekte olan indirmeler kaldığı yerden sürecek.")
+            self.app_lbl.setText(_t("Kurulum başlatılıyor… TurboDM kısa süre kapanacak, kurulum bitince görev çubuğunda kendiliğinden açılacak; inmekte olan indirmeler kaldığı yerden sürecek."))
             try:
                 updater.run_installer(info)
             except OSError as e:
-                self.app_lbl.setText(f"Kurulum başlatılamadı: {e}")
+                self.app_lbl.setText(_t("Kurulum başlatılamadı: {0}").format(e))
                 self.app_btn.setEnabled(True)
             return
         self.info = info
         if not info["available"]:
-            self.app_lbl.setText(f"✔ TurboDM güncel (sürüm {info['current']}).")
+            self.app_lbl.setText(_t("✔ TurboDM güncel (sürüm {0}).").format(info['current']))
             return
-        what = "aynı sürümün yeni bir derlemesi" if info["same_version"] else f"yeni sürüm {info['latest']}"
+        what = _t("aynı sürümün yeni bir derlemesi") if info["same_version"] else _t("yeni sürüm {0}").format(info['latest'])
         when = f" · {info['published']}" if info.get("published") else ""
         size = f" · {fmt_size(info['size'])}" if info.get("size") else ""
-        self.app_lbl.setText(f"<b>Güncelleme var:</b> {what}{when}{size}")
-        if info.get("notes"):
-            self.notes.setPlainText(info["notes"])
+        self.app_lbl.setText(_t("<b>Güncelleme var:</b> {0}{1}{2}").format(what, when, size))
+        # sürüm notları programın dilinde: Türkçe ya da (diğer diller için) İngilizce
+        notes = info.get("notes") if i18n.language() == "tr" else (info.get("notes_en") or info.get("notes"))
+        if notes:
+            self.notes.setPlainText(notes)
             self.notes.show()
         self.app_note.show()
         self.app_btn.show()
@@ -1381,7 +1398,7 @@ class UpdateDialog(QDialog):
         self.app_btn.setEnabled(False)
         self.app_bar.show()
         self.app_bar.setRange(0, 0)
-        self.app_lbl.setText("Kurulum dosyası indiriliyor ve doğrulanıyor…")
+        self.app_lbl.setText(_t("Kurulum dosyası indiriliyor ve doğrulanıyor…"))
         self._run(self.b_app, updater.download, self.info,
                   lambda got, total: self.b_app.progress.emit(got, total), lambda: self._cancel)
 
@@ -1394,23 +1411,22 @@ class UpdateDialog(QDialog):
     # ---- yt-dlp
     def _on_yt(self, res, err):
         if err:
-            self.yt_lbl.setText(f"Denetlenemedi: {err}")
+            self.yt_lbl.setText(_t("Denetlenemedi: {0}").format(err))
             return
         if isinstance(res, str):  # güncelleme yapıldı
-            self.yt_lbl.setText(f"✔ Video motoru güncellendi: {res}")
+            self.yt_lbl.setText(_t("✔ Video motoru güncellendi: {0}").format(res))
             self.yt_btn.hide()
             return
         cur, latest, avail = res
         if avail:
-            self.yt_lbl.setText(f"Güncelleme var: kurulu {cur or '—'} → en son {latest}. Video siteleri değişiklik "
-                                "yaptığında indirmeler bozulabilir; güncel tutmanız önerilir.")
+            self.yt_lbl.setText(_t("Güncelleme var: kurulu {0} → en son {1}. Video siteleri değişiklik yaptığında indirmeler bozulabilir; güncel tutmanız önerilir.").format(cur or '—', latest))
             self.yt_btn.show()
         else:
-            self.yt_lbl.setText(f"✔ Video motoru güncel ({cur}).")
+            self.yt_lbl.setText(_t("✔ Video motoru güncel ({0}).").format(cur))
 
     def _update_ytdlp(self):
         self.yt_btn.setEnabled(False)
-        self.yt_lbl.setText("İndiriliyor ve doğrulanıyor…")
+        self.yt_lbl.setText(_t("İndiriliyor ve doğrulanıyor…"))
         self._run(self.b_yt, ytdlp.update)
 
     def closeEvent(self, e):
@@ -1419,7 +1435,7 @@ class UpdateDialog(QDialog):
 
 
 # ------------------------------------------------------------------ ana pencere
-COLUMNS = ["", "Dosya Adı", "Boyut", "Durum", "Kalan Süre", "Aktarım Hızı", "Son Deneme", "Açıklama"]
+COLUMNS = ["", _t("Dosya Adı"), _t("Boyut"), _t("Durum"), _t("Kalan Süre"), _t("Aktarım Hızı"), _t("Son Deneme"), _t("Açıklama")]
 SEL = 0    # onay kutusu sütunu (toplu seçim)
 NAME = 1
 STATUS = 3
@@ -1499,7 +1515,7 @@ class MainWindow(QMainWindow):
         self.icon = load_icon()
         QApplication.setWindowIcon(self.icon)
         self.setWindowIcon(self.icon)
-        self.setWindowTitle(f"{APP_NAME} — İnternet İndirme Yöneticisi")
+        self.setWindowTitle(_t("{0} — İnternet İndirme Yöneticisi").format(APP_NAME))
         self.resize(1100, 620)
         self.setAcceptDrops(True)
         self.progress_dialogs = {}
@@ -1522,7 +1538,7 @@ class MainWindow(QMainWindow):
             self.srv = server.start(mgr.settings["server_port"])
         except OSError as e:
             self.srv = None
-            self.statusBar().showMessage(f"Tarayıcı köprüsü başlatılamadı: {e}", 10000)
+            self.statusBar().showMessage(_t("Tarayıcı köprüsü başlatılamadı: {0}").format(e), 10000)
 
         QApplication.clipboard().dataChanged.connect(self._on_clipboard)
         QTimer.singleShot(8000, self._auto_update_check)
@@ -1541,22 +1557,22 @@ class MainWindow(QMainWindow):
         return a
 
     def _build_actions(self):
-        self.a_add = self._act("URL Ekle", "add", self.add_url_prompt, "Ctrl+N")
-        self.a_torrent = self._act("Torrent Ekle", "torrent", self.add_torrent_prompt, "Ctrl+T")
-        self.a_magnet = self._act("Magnet Ekle", "magnet", self.add_magnet_prompt, "Ctrl+M")
-        self.a_resume = self._act("Devam Et", "play", self.resume_selected)
-        self.a_stop = self._act("Durdur", "pause", self.stop_selected)
-        self.a_stop_all = self._act("Tümünü Durdur", "stop", self.mgr.stop_all)
-        self.a_delete = self._act("Sil", "trash", lambda: self.delete_selected(False), "Del")
-        self.a_delete_done = self._act("Bitenleri Sil", "trash_done", self.delete_completed)
-        self.a_select_all = self._act("Tümünü seç", "finished", self.select_all, "Ctrl+A")
-        self.a_select_none = self._act("Seçimi kaldır", None, lambda: self.table.clearSelection(), "Esc")
-        self.a_options = self._act("Seçenekler", "settings", self.open_options)
-        self.a_sched = self._act("Zamanlayıcı", "clock", lambda: SchedulerDialog(self).exec())
-        self.a_qstart = self._act("Kuyruğu Başlat", "queue_start", self.mgr.start_queue)
-        self.a_qstop = self._act("Kuyruğu Durdur", "queue_stop", self.mgr.stop_queue)
-        self.a_quit = self._act("Çıkış", "quit", self.quit_app, "Ctrl+Q")
-        self.a_update = self._act("Güncellemeleri denetle…", "refresh", self.check_updates)
+        self.a_add = self._act(_t("URL Ekle"), "add", self.add_url_prompt, "Ctrl+N")
+        self.a_torrent = self._act(_t("Torrent Ekle"), "torrent", self.add_torrent_prompt, "Ctrl+T")
+        self.a_magnet = self._act(_t("Magnet Ekle"), "magnet", self.add_magnet_prompt, "Ctrl+M")
+        self.a_resume = self._act(_t("Devam Et"), "play", self.resume_selected)
+        self.a_stop = self._act(_t("Durdur"), "pause", self.stop_selected)
+        self.a_stop_all = self._act(_t("Tümünü Durdur"), "stop", self.mgr.stop_all)
+        self.a_delete = self._act(_t("Sil"), "trash", lambda: self.delete_selected(False), "Del")
+        self.a_delete_done = self._act(_t("Bitenleri Sil"), "trash_done", self.delete_completed)
+        self.a_select_all = self._act(_t("Tümünü seç"), "finished", self.select_all, "Ctrl+A")
+        self.a_select_none = self._act(_t("Seçimi kaldır"), None, lambda: self.table.clearSelection(), "Esc")
+        self.a_options = self._act(_t("Seçenekler"), "settings", self.open_options)
+        self.a_sched = self._act(_t("Zamanlayıcı"), "clock", lambda: SchedulerDialog(self).exec())
+        self.a_qstart = self._act(_t("Kuyruğu Başlat"), "queue_start", self.mgr.start_queue)
+        self.a_qstop = self._act(_t("Kuyruğu Durdur"), "queue_stop", self.mgr.stop_queue)
+        self.a_quit = self._act(_t("Çıkış"), "quit", self.quit_app, "Ctrl+Q")
+        self.a_update = self._act(_t("Güncellemeleri denetle…"), "refresh", self.check_updates)
 
     def _theme_changed(self):
         """Windows açık/koyu moda geçti ya da tema seçildi: simgeleri yeni renklerle yeniden çiz."""
@@ -1580,28 +1596,27 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self):
         mb = self.menuBar()
-        m = mb.addMenu("&Görevler")
+        m = mb.addMenu(_t("&Görevler"))
         for a in (self.a_add, self.a_torrent, self.a_magnet):
             m.addAction(a)
         m.addSeparator()
         m.addAction(self.a_quit)
-        m = mb.addMenu("&İndirmeler")
+        m = mb.addMenu(_t("&İndirmeler"))
         for a in (self.a_resume, self.a_stop, self.a_stop_all, None, self.a_delete,
                   self.a_delete_done, None, self.a_qstart, self.a_qstop, self.a_sched, None, self.a_options):
             m.addSeparator() if a is None else m.addAction(a)
         m.addSeparator()
-        self._add_select_menu(m.addMenu("Toplu seçim"))
-        m = mb.addMenu("&Yardım")
+        self._add_select_menu(m.addMenu(_t("Toplu seçim")))
+        m = mb.addMenu(_t("&Yardım"))
         m.addAction(self.a_update)
-        m.addAction(theme.icon("document"), "Sürüm notları", lambda: QDesktopServices.openUrl(
-            QUrl(f"https://github.com/{UPDATE_REPO}/blob/main/SURUM_NOTLARI.md")))
+        m.addAction(theme.icon("document"), _t("Sürüm notları"), lambda: QDesktopServices.openUrl(
+            QUrl(f"https://github.com/{UPDATE_REPO}/blob/main/"
+                 + ("SURUM_NOTLARI.md" if i18n.language() == "tr" else "RELEASE_NOTES.md"))))
         m.addSeparator()
-        m.addAction("Hakkında", lambda: QMessageBox.about(
-            self, APP_NAME, f"<b>{APP_NAME}</b> {VERSION}<br>Çok bağlantılı HTTP/HTTPS, FTP, HLS video, "
-                            f"video ve BitTorrent indirme yöneticisi.<br><br>Özgür yazılım: GNU GPL v3 lisansı. "
-                            f'Kaynak kodu: <a href="https://github.com/{UPDATE_REPO}">github.com/{UPDATE_REPO}</a>'))
+        m.addAction(_t("Hakkında"), lambda: QMessageBox.about(
+            self, APP_NAME, _t("<b>{0}</b> {1}<br>Çok bağlantılı HTTP/HTTPS, FTP, video (HLS/DASH) ve BitTorrent indirme yöneticisi.<br><br>Özgür yazılım: GNU GPL v3 lisansı. Kaynak kodu: <a href=\"https://github.com/{2}\">github.com/{3}</a>").format(APP_NAME, VERSION, UPDATE_REPO, UPDATE_REPO)))
 
-        tb = QToolBar("Araçlar")
+        tb = QToolBar(_t("Araçlar"))
         tb.setObjectName("main")
         tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         tb.setIconSize(QSize(26, 26))
@@ -1641,12 +1656,12 @@ class MainWindow(QMainWindow):
             it.setData(0, Qt.UserRole + 1, ic)
             it.setIcon(0, theme.icon(ic))
             return it
-        root = nav_item("Tüm İndirmeler", "all", "all")
+        root = nav_item(_t("Tüm İndirmeler"), "all", "all")
         for key, (disp, _, _) in CATEGORIES.items():
             root.addChild(nav_item(disp, "cat:" + key, cat_icons.get(key, "general")))
         self.tree.addTopLevelItem(root)
-        for text, key, ic in (("Bitmemiş", "unfinished", "unfinished"), ("Bitmiş", "finished", "finished"),
-                              ("Kuyruk", "queue", "queue")):
+        for text, key, ic in ((_t("Bitmemiş"), "unfinished", "unfinished"), (_t("Bitmiş"), "finished", "finished"),
+                              (_t("Kuyruk"), "queue", "queue")):
             self.tree.addTopLevelItem(nav_item(text, key, ic))
         self.tree.expandAll()
         self.tree.setItemsExpandable(False)
@@ -1658,7 +1673,7 @@ class MainWindow(QMainWindow):
         self.table.setItemDelegateForColumn(STATUS, StatusDelegate(self.table))
         self.table.setIconSize(QSize(18, 18))
         self.table.setHorizontalHeaderLabels(COLUMNS)
-        self.table.horizontalHeaderItem(SEL).setToolTip("Tümünü seç / seçimi kaldır")
+        self.table.horizontalHeaderItem(SEL).setToolTip(_t("Tümünü seç / seçimi kaldır"))
         # başlığa tıklamak sütunu (satır seçiminde bütün listeyi) seçmesin; yalnızca kutu başlığı seçim yapar
         self.table.horizontalHeader().sectionPressed.disconnect()
         self.table.horizontalHeader().setHighlightSections(False)
@@ -1701,7 +1716,7 @@ class MainWindow(QMainWindow):
     def _build_tray(self):
         self.tray = QSystemTrayIcon(self.icon, self)
         menu = QMenu()
-        menu.addAction("Göster", self.show_normal)
+        menu.addAction(_t("Göster"), self.show_normal)
         menu.addAction(self.a_add)
         menu.addAction(self.a_stop_all)
         menu.addSeparator()
@@ -1738,10 +1753,10 @@ class MainWindow(QMainWindow):
         return [self._visible[r] for r in rows if r < len(self._visible)]
 
     # ---------------------------------------------------------- toplu seçim
-    SELECT_PRESETS = (("Bitmemişleri seç", lambda it: it.status not in ("completed", "seeding")),
-                      ("Bitenleri seç", lambda it: it.status in ("completed", "seeding")),
-                      ("Durdurulanları seç", lambda it: it.status in ("stopped", "queued")),
-                      ("Hatalıları seç", lambda it: it.status == "error"))
+    SELECT_PRESETS = ((_t("Bitmemişleri seç"), lambda it: it.status not in ("completed", "seeding")),
+                      (_t("Bitenleri seç"), lambda it: it.status in ("completed", "seeding")),
+                      (_t("Durdurulanları seç"), lambda it: it.status in ("stopped", "queued")),
+                      (_t("Hatalıları seç"), lambda it: it.status == "error"))
 
     def _add_select_menu(self, m):
         m.addAction(self.a_select_all)
@@ -1779,7 +1794,7 @@ class MainWindow(QMainWindow):
         n, total = len(sel), len(self._visible)
         head = self.table.horizontalHeaderItem(SEL)
         head.setText("☑" if total and n == total else "☐")
-        self.sel_lbl.setText(f"{n} indirme seçili  " if n > 1 else "")
+        self.sel_lbl.setText(_t("{0} indirme seçili  ").format(n) if n > 1 else "")
 
     def refresh(self, force=False):
         self._update_nav_counts()
@@ -1800,7 +1815,7 @@ class MainWindow(QMainWindow):
         for r, iid in enumerate(self._visible):
             it = self.mgr.items[iid]
             if it.status in ("downloading", "connecting") and it.size:
-                st = f"%{it.done_bytes / it.size * 100:.2f}"
+                st = fmt_pct(it.done_bytes / it.size * 100, 2)
                 if it.status == "connecting" and it.error:
                     st = it.error
             elif it.status == "error":
@@ -1808,9 +1823,9 @@ class MainWindow(QMainWindow):
             else:
                 st = STATUS_TEXT.get(it.status, it.status)
                 if it.status in ("stopped", "queued") and it.size and it.done_bytes:
-                    st += f" (%{it.done_bytes / it.size * 100:.1f})"
+                    st += f" ({fmt_pct(it.done_bytes / it.size * 100, 1)})"
             if it.kind == "torrent" and it.status in ("downloading", "seeding"):
-                st += f"  ·  {it.peers} eş"
+                st += _t("  ·  {0} eş").format(it.peers)
             frac = (it.done_bytes / it.size if it.size and it.status in ("downloading", "connecting", "stopped",
                                                                          "queued", "error") else None)
             tone = {"completed": "ok", "seeding": "ok", "error": "bad", "downloading": "accent",
@@ -1854,7 +1869,7 @@ class MainWindow(QMainWindow):
         while self.mgr.events:
             kind, it = self.mgr.events.pop(0)
             if kind == "completed":
-                self.tray.showMessage(APP_NAME, f"İndirme tamamlandı:\n{it.filename}", self.icon, 4000)
+                self.tray.showMessage(APP_NAME, _t("İndirme tamamlandı:\n{0}").format(it.filename), self.icon, 4000)
                 if it.kind == "http" and it.path.lower().endswith(".torrent") and self.mgr.torrents:
                     self.add_source(it.path)  # inen .torrent → torrent olarak indirmeyi öner
                     continue
@@ -1864,17 +1879,17 @@ class MainWindow(QMainWindow):
                 action = next((a for a in ("shutdown", "sleep", "exit") if oc.get(a)), None)
                 if action:
                     bring_to_front(PowerActionDialog(self, action, oc.get("force", False),
-                                                     reason=f"İndirme tamamlandı: {it.filename}"))
+                                                     reason=_t("İndirme tamamlandı: {0}").format(it.filename)))
             elif kind == "error":
-                self.tray.showMessage(APP_NAME, f"Hata: {it.filename}\n{it.error}",
+                self.tray.showMessage(APP_NAME, _t("Hata: {0}\n{1}").format(it.filename, it.error),
                                       QSystemTrayIcon.Warning, 5000)
                 self._error_dialog(it)
             elif kind == "queue_done":
-                self.tray.showMessage(APP_NAME, "Kuyruktaki tüm indirmeler işlendi.", self.icon, 4000)
+                self.tray.showMessage(APP_NAME, _t("Kuyruktaki tüm indirmeler işlendi."), self.icon, 4000)
                 action = self.mgr.settings.get("queue_done_action") or "none"
                 if action in POWER_ACTIONS:
                     bring_to_front(PowerActionDialog(self, action, self.mgr.settings.get("queue_done_force", False),
-                                                     reason="Kuyruktaki tüm indirmeler tamamlandı."))
+                                                     reason=_t("Kuyruktaki tüm indirmeler tamamlandı.")))
             elif kind == "info":
                 self.tray.showMessage(APP_NAME, it, self.icon, 3000)
         while not server.requests.empty():
@@ -1882,19 +1897,19 @@ class MainWindow(QMainWindow):
         self.refresh()
         sp = self.mgr.total_speed()
         active = sum(1 for i in self.mgr.items.values() if i.status in ("downloading", "connecting"))
-        q = "  ·  Kuyruk çalışıyor" if self.mgr.queue_running else ""
-        self.speed_lbl.setText(f"Etkin: {active}   ·   Toplam hız: {fmt_speed(sp) or '0 B/s'}{q}")
-        self.tray.setToolTip(f"{APP_NAME}\n{fmt_speed(sp) or 'Boşta'}")
+        q = _t("  ·  Kuyruk çalışıyor") if self.mgr.queue_running else ""
+        self.speed_lbl.setText(_t("Etkin: {0}   ·   Toplam hız: {1}{2}").format(active, fmt_speed(sp) or '0 B/s', q))
+        self.tray.setToolTip(f"{APP_NAME}\n{fmt_speed(sp) or _t("Boşta")}")
 
     def _complete_dialog(self, it):
         path = it.path if it.kind != "torrent" else os.path.join(it.path, it.name)
         box = QMessageBox(self)
-        box.setWindowTitle("İndirme tamamlandı")
+        box.setWindowTitle(_t("İndirme tamamlandı"))
         box.setIcon(QMessageBox.Information)
-        box.setText(f"<b>{it.filename}</b><br>{fmt_size(it.size)}<br>{path}")
-        b_open = box.addButton("Aç", QMessageBox.AcceptRole)
-        b_dir = box.addButton("Klasörü Aç", QMessageBox.ActionRole)
-        box.addButton("Kapat", QMessageBox.RejectRole)
+        box.setText(_t("<b>{0}</b><br>{1}<br>{2}").format(it.filename, fmt_size(it.size), path))
+        b_open = box.addButton(_t("Aç"), QMessageBox.AcceptRole)
+        b_dir = box.addButton(_t("Klasörü Aç"), QMessageBox.ActionRole)
+        box.addButton(_t("Kapat"), QMessageBox.RejectRole)
         box.setAttribute(Qt.WA_DeleteOnClose)
         box.buttonClicked.connect(lambda b: open_path(path) if b is b_open
                                   else open_folder(path) if b is b_dir else None)
@@ -1916,11 +1931,11 @@ class MainWindow(QMainWindow):
     def _error_dialog(self, it):
         """İndirme hatası: IDM gibi önde bir uyarı, tek tıkla yeniden deneme."""
         box = QMessageBox(self)
-        box.setWindowTitle("İndirme hatası")
+        box.setWindowTitle(_t("İndirme hatası"))
         box.setIcon(QMessageBox.Warning)
-        box.setText(f"<b>{it.filename}</b><br><br>{it.error or 'Bilinmeyen hata'}")
-        b_retry = box.addButton("Tekrar Dene", QMessageBox.AcceptRole)
-        box.addButton("Kapat", QMessageBox.RejectRole)
+        box.setText(_t("<b>{0}</b><br><br>{1}").format(it.filename, it.error or _t('Bilinmeyen hata')))
+        b_retry = box.addButton(_t("Tekrar Dene"), QMessageBox.AcceptRole)
+        box.addButton(_t("Kapat"), QMessageBox.RejectRole)
         box.setAttribute(Qt.WA_DeleteOnClose)
         iid = it.id
         box.buttonClicked.connect(lambda b: (self.mgr.start(iid), self.show_progress(iid)) if b is b_retry else None)
@@ -1930,30 +1945,30 @@ class MainWindow(QMainWindow):
     def add_url_prompt(self):
         clip = QApplication.clipboard().text().strip()
         default = clip if re.match(r"^(https?|ftp)://|^magnet:", clip, re.I) else "https://"
-        url, ok = QInputDialog.getText(self, "Yeni indirme", "İndirilecek adres (URL veya magnet):", text=default)
+        url, ok = QInputDialog.getText(self, _t("Yeni indirme"), _t("İndirilecek adres (URL veya magnet):"), text=default)
         if ok and url.strip():
             self.add_source(url.strip())
 
     def add_torrent_prompt(self):
-        p, _ = QFileDialog.getOpenFileName(self, "Torrent dosyası seç", "", "Torrent (*.torrent)")
+        p, _ = QFileDialog.getOpenFileName(self, _t("Torrent dosyası seç"), "", _t("Torrent (*.torrent)"))
         if p:
             self.add_source(p)
 
     def add_magnet_prompt(self):
-        url, ok = QInputDialog.getText(self, "Magnet ekle", "Magnet bağlantısı:")
+        url, ok = QInputDialog.getText(self, _t("Magnet ekle"), _t("Magnet bağlantısı:"))
         if ok and url.strip():
             self.add_source(url.strip())
 
     def add_source(self, src, headers=None, suggested=None, cookies=None):
         if is_magnet(src) or (src.lower().endswith(".torrent") and os.path.isfile(src)):
             if not self.mgr.torrents:
-                QMessageBox.warning(self, APP_NAME, f"Torrent desteği yok: {self.mgr.torrent_error}")
+                QMessageBox.warning(self, APP_NAME, _t("Torrent desteği yok: {0}").format(self.mgr.torrent_error))
                 return
             d = TorrentAddDialog(self, src)
         elif re.match(r"^(https?|ftp)://", src, re.I):
             d = FileInfoDialog(self, src, headers, suggested, cookies)
         else:
-            QMessageBox.warning(self, APP_NAME, "Geçersiz adres. http(s)://, ftp:// ya da magnet: bağlantısı girin.")
+            QMessageBox.warning(self, APP_NAME, _t("Geçersiz adres. http(s)://, ftp:// ya da magnet: bağlantısı girin."))
             return
         bring_to_front(d)
 
@@ -1999,10 +2014,10 @@ class MainWindow(QMainWindow):
         Sonuç (akış adresleriyle) önbelleğe alınır; kalite seçilince YouTube'a ikinci istek gitmez."""
         url = data.get("url") or ""
         if not re.match(r"^https?://", url, re.I):
-            raise ValueError("Geçersiz adres")
+            raise ValueError(_t("Geçersiz adres"))
         url = ytdlp.canonical_url(url)
         if not ytdlp.available():
-            raise RuntimeError("yt-dlp bulunamadı")
+            raise RuntimeError(_t("yt-dlp bulunamadı"))
         hit = self._fmt_cache.get(url)
         if hit and time.time() - hit[0] < self.FORMAT_CACHE_SECONDS:
             info = hit[1]
@@ -2049,7 +2064,7 @@ class MainWindow(QMainWindow):
 
     def _on_auto_update(self, info, err):
         if info and info["available"]:
-            self.tray.showMessage(APP_NAME, f"Yeni sürüm var: {info['latest']}", self.icon, 5000)
+            self.tray.showMessage(APP_NAME, _t("Yeni sürüm var: {0}").format(info['latest']), self.icon, 5000)
             self.check_updates(prefetched=info)
 
     def _on_clipboard(self):
@@ -2110,10 +2125,10 @@ class MainWindow(QMainWindow):
             return
         if not with_file:
             box = QMessageBox(QMessageBox.Question, APP_NAME,
-                              f"{len(ids)} indirme listeden silinsin mi?", parent=self)
-            b_list = box.addButton("Listeden sil", QMessageBox.AcceptRole)
-            b_file = box.addButton("Dosyalarla birlikte sil", QMessageBox.DestructiveRole)
-            box.addButton("İptal", QMessageBox.RejectRole)
+                              _t("{0} indirme listeden silinsin mi?").format(len(ids)), parent=self)
+            b_list = box.addButton(_t("Listeden sil"), QMessageBox.AcceptRole)
+            b_file = box.addButton(_t("Dosyalarla birlikte sil"), QMessageBox.DestructiveRole)
+            box.addButton(_t("İptal"), QMessageBox.RejectRole)
             box.exec()
             if box.clickedButton() is b_file:
                 with_file = True
@@ -2125,8 +2140,7 @@ class MainWindow(QMainWindow):
 
     def delete_completed(self):
         done = [i for i in self.mgr.order if self.mgr.items[i].status == "completed"]
-        if done and QMessageBox.question(self, APP_NAME, f"{len(done)} tamamlanmış indirme listeden kaldırılsın mı?\n"
-                                         "(Dosyalar diskte kalır.)") == QMessageBox.Yes:
+        if done and QMessageBox.question(self, APP_NAME, _t("{0} tamamlanmış indirme listeden kaldırılsın mı?\n(Dosyalar diskte kalır.)").format(len(done))) == QMessageBox.Yes:
             for iid in done:
                 self.mgr.remove(iid, False)
             self.refresh(force=True)
@@ -2156,35 +2170,35 @@ class MainWindow(QMainWindow):
         it = self.mgr.items[ids[0]]
         many = len(ids) > 1
         if many:  # toplu işlem: hepsine uygulanan komutlar
-            head = m.addAction(f"{len(ids)} indirme seçili")
+            head = m.addAction(_t("{0} indirme seçili").format(len(ids)))
             head.setEnabled(False)
             m.addSeparator()
         else:
-            m.addAction("Aç", lambda: open_path(self._item_path(it))).setEnabled(it.status == "completed")
-            m.addAction("Klasörü aç", lambda: open_folder(self._item_path(it)))
-            m.addAction("İndirme durumu…", lambda: self.show_progress(it.id))
+            m.addAction(_t("Aç"), lambda: open_path(self._item_path(it))).setEnabled(it.status == "completed")
+            m.addAction(_t("Klasörü aç"), lambda: open_folder(self._item_path(it)))
+            m.addAction(_t("İndirme durumu…"), lambda: self.show_progress(it.id))
             m.addSeparator()
         m.addAction(self.a_resume)
         m.addAction(self.a_stop)
         m.addSeparator()
-        m.addAction("Kuyruğa ekle", lambda: [self.mgr.set_queue(i, True) for i in ids])
-        m.addAction("Kuyruktan çıkar", lambda: [self.mgr.set_queue(i, False) for i in ids])
+        m.addAction(_t("Kuyruğa ekle"), lambda: [self.mgr.set_queue(i, True) for i in ids])
+        m.addAction(_t("Kuyruktan çıkar"), lambda: [self.mgr.set_queue(i, False) for i in ids])
         m.addSeparator()
-        m.addAction("Adresleri kopyala" if many else "Adresi kopyala", lambda: QApplication.clipboard().setText(
+        m.addAction(_t("Adresleri kopyala") if many else _t("Adresi kopyala"), lambda: QApplication.clipboard().setText(
             "\n".join(self.mgr.items[i].url for i in ids if i in self.mgr.items)))
         if not many:
             if it.kind != "torrent":
-                m.addAction("İndirme adresini yenile…", lambda: self._refresh_address(it))
+                m.addAction(_t("İndirme adresini yenile…"), lambda: self._refresh_address(it))
             else:
-                m.addAction("Dosya seçimi…", lambda: self.show_progress(it.id))
+                m.addAction(_t("Dosya seçimi…"), lambda: self.show_progress(it.id))
         m.addSeparator()
-        m.addAction(f"Sil ({len(ids)})…" if many else "Sil…", lambda: self.delete_selected(False))
-        self._add_select_menu(m.addMenu("Toplu seçim"))
+        m.addAction(_t("Sil ({0})…").format(len(ids)) if many else _t("Sil…"), lambda: self.delete_selected(False))
+        self._add_select_menu(m.addMenu(_t("Toplu seçim")))
         m.exec(self.table.viewport().mapToGlobal(pos))
 
     def _refresh_address(self, it):
         """Süresi dolmuş linkler için (IDM'deki 'Refresh download address')."""
-        url, ok = QInputDialog.getText(self, "Adresi yenile", "Yeni indirme adresi:", text=it.url)
+        url, ok = QInputDialog.getText(self, _t("Adresi yenile"), _t("Yeni indirme adresi:"), text=it.url)
         if ok and url.strip():
             self.mgr.stop(it.id)
             it.url = url.strip()
@@ -2198,7 +2212,14 @@ class MainWindow(QMainWindow):
             return
         e.ignore()
         self.hide()
-        self.tray.showMessage(APP_NAME, "Program arka planda çalışmaya devam ediyor.", self.icon, 2000)
+        self.tray.showMessage(APP_NAME, _t("Program arka planda çalışmaya devam ediyor."), self.icon, 2000)
+
+    def restart_app(self):
+        """Dil değişikliği için: kapan ve yeniden aç; inmekte olan indirmeler sürer (--resume)."""
+        from PySide6.QtCore import QProcess
+        cmd = i18n.restart_command() + ["--resume"]
+        self.quit_app()
+        QProcess.startDetached(cmd[0], cmd[1:])
 
     def quit_app(self):
         self._quitting = True

@@ -1,3 +1,5 @@
+<p align="right"><b>Türkçe</b> · <a href="README.en.md">English</a></p>
+
 <p align="center">
   <img src="installer/turbodm.png" width="96" alt="TurboDM">
 </p>
@@ -48,7 +50,7 @@
 - Kategoriler, kuyruk, zamanlayıcı; onay kutularıyla **toplu seçim ve toplu işlem**.
 - **Windows'un açık/koyu moduna kendiliğinden uyan** TurboDM teması.
 - Program içinden tek tıkla güncelleme (*Yardım → Güncellemeleri denetle*); güncellemede inmekte olan indirmeler kaldığı yerden sürer.
-- Tamamen Türkçe.
+- **7 dil:** Türkçe, English, Deutsch, Français, Español, العربية, Italiano (*Seçenekler → Genel → Dil*); kurulumda da dil seçilir.
 
 <p align="center">
   <img src="docs/github/ekran-acik.png" alt="TurboDM ana pencere (açık tema)">
@@ -78,7 +80,7 @@ Kullanılan açık kaynak bileşenler: yt-dlp, ffmpeg (LGPL), libtorrent, deno �
 Telif hakkıyla korunan içerikleri yalnızca hak sahibinin izin verdiği ölçüde indirin.
 
 ## 📝 Sürüm notları
-Her sürümde nelerin değiştiğini **[SURUM_NOTLARI.md](SURUM_NOTLARI.md)** dosyasında görebilirsiniz (programda: *Yardım → Sürüm notları*).
+Her sürümde nelerin değiştiğini **[SURUM_NOTLARI.md](SURUM_NOTLARI.md)** dosyasında görebilirsiniz (programda: *Yardım → Sürüm notları*). English: [RELEASE_NOTES.md](RELEASE_NOTES.md)
 
 ## 🛣 Yol haritası
 - [x] Çok bağlantılı indirme, devam, hız sınırı, kuyruk ve zamanlayıcı
@@ -89,6 +91,7 @@ Her sürümde nelerin değiştiğini **[SURUM_NOTLARI.md](SURUM_NOTLARI.md)** do
 - [x] Sunucu bağlantı sınırını öğrenen akıllı bağlantı yönetimi
 - [x] DASH akışları, gömülü oynatıcı desteği, MKV/AVI/MP3 dönüştürme
 - [x] Açık kaynak (GPL v3)
+- [x] 7 dil desteği (program, kurulum ve tarayıcı eklentisi)
 - [ ] Tarayıcı eklentisinin Edge Eklentiler mağazasında yayımlanması (incelemede), ardından Chrome Web Mağazası
 - [ ] İmzalı kurulum dosyası (SmartScreen uyarısının kalkması)
 
@@ -97,7 +100,6 @@ TurboDM'in kaynak kodu bu depodadır; isteyen inceleyebilir ve kendisi derleyebi
 - **Gerekenler:** Windows 10/11, Python 3.12, `pip install -r requirements.txt` ve PyInstaller, Inno Setup 6.
 - **Yardımcı programlar:** `installer\fetch_tools.ps1` yt-dlp ve deno'yu resmi sürümlerinden SHA-256 doğrulamasıyla indirir. ffmpeg (LGPL, BtbN) için bkz. `vendor\ffmpeg\source\DERLEME_BILGISI.txt`. Ardından `installer\pin_vendor.ps1` çalıştırılır.
 - **Çalıştırma:** `python main.py`  ·  **Testler:** `tests\run_tests.ps1`  ·  **Kurulum dosyası:** `build.ps1 -NoInstall`
-un_tests.ps1`  ·  **Kurulum dosyası:** `build.ps1 -NoInstall`
 - Resmi sürümlerin güncelleme bilgisi geliştiricinin özel anahtarıyla imzalanır. Kendi derlediğiniz kopya bu anahtara sahip olmadığı için resmi güncelleme kanalına sürüm yayımlayamaz; bu bilinçli bir güvenlik önlemidir.
 
 Geliştirme notları: [docs/GELISTIRME.md](docs/GELISTIRME.md)

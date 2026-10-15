@@ -6,15 +6,16 @@
 """
 import os
 import subprocess
+from .i18n import _t
 
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 # anahtar → (kullanıcıya görünen ad, uzantı)
 FORMATS = {
-    "": ("Olduğu gibi (önerilen)", None),
-    "mkv": ("MKV (hızlı, kayıpsız)", ".mkv"),
-    "avi": ("AVI (eski TV/oynatıcılar için, yeniden kodlanır: yavaş)", ".avi"),
-    "mp3": ("MP3 (yalnızca ses)", ".mp3"),
+    "": (_t("Olduğu gibi (önerilen)"), None),
+    "mkv": (_t("MKV (hızlı, kayıpsız)"), ".mkv"),
+    "avi": (_t("AVI (eski TV/oynatıcılar için, yeniden kodlanır: yavaş)"), ".avi"),
+    "mp3": (_t("MP3 (yalnızca ses)"), ".mp3"),
 }
 
 
@@ -39,7 +40,7 @@ def ffmpeg_args(ffmpeg, src, dst, fmt):
     elif fmt == "mp3":
         a += ["-vn", "-map", "0:a:0", "-c:a", "libmp3lame", "-q:a", "2"]
     else:
-        raise ValueError(f"bilinmeyen biçim: {fmt}")
+        raise ValueError(_t("bilinmeyen biçim: {0}").format(fmt))
     return a + [dst]
 
 
@@ -47,7 +48,7 @@ def convert(ffmpeg, src, fmt):
     """src'yi dönüştürür, başarılıysa src'yi siler ve yeni dosya yolunu döndürür; başarısızsa OSError
     (asıl dosya korunur)."""
     if not ffmpeg:
-        raise OSError("ffmpeg bulunamadı (Seçenekler → Video)")
+        raise OSError(_t("ffmpeg bulunamadı (Seçenekler → Video)"))
     if os.path.splitext(src)[1].lower() == FORMATS[fmt][1]:
         return src  # zaten istenen biçimde
     dst = target_path(src, fmt)
@@ -56,8 +57,8 @@ def convert(ffmpeg, src, fmt):
     if r.returncode != 0 or not os.path.isfile(tmp) or os.path.getsize(tmp) == 0:
         if os.path.exists(tmp):
             os.remove(tmp)
-        err = (r.stderr.decode("utf-8", "replace").strip().splitlines() or ["bilinmeyen hata"])[-1]
-        raise OSError(f"Dönüştürülemedi: {err}")
+        err = (r.stderr.decode("utf-8", "replace").strip().splitlines() or [_t("bilinmeyen hata")])[-1]
+        raise OSError(_t("Dönüştürülemedi: {0}").format(err))
     os.replace(tmp, dst)
     os.remove(src)
     return dst

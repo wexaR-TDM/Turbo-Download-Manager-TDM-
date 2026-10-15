@@ -42,9 +42,11 @@ if ($real) {
 
 if (Test-Path "$app\unins000.exe") { Start-Process "$app\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES" -Wait; for ($i = 0; $i -lt 30 -and (Test-Path $app); $i++) { Start-Sleep 0.5 } }
 "== 1) Sessiz kurulum"
-$p = Start-Process $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/TASKS=desktopicon", "/LOG=`"$out\install.log`"" -PassThru -Wait
+$p = Start-Process $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/TASKS=desktopicon", "/LANG=german", "/LOG=`"$out\install.log`"" -PassThru -Wait
 "   exit=$($p.ExitCode)"
 "   kurulu dosya sayısı: " + (Get-ChildItem $app -Recurse -File).Count
+"   kurulum dili ayarlarda: " + ((Get-Content "$fakeAppData\TurboDM\settings.json" -Raw -ErrorAction SilentlyContinue) -match '"language":\s*"de"')
+"   dile göre eklenti yardımı (BROWSER_EXTENSION.txt): " + (Test-Path "$app\BROWSER_EXTENSION.txt")
 "   unins000.exe programın klasöründe: " + (Test-Path "$app\unins000.exe")
 "   ffmpeg: " + (Test-Path "$app\ffmpeg\ffmpeg.exe") + " | eklenti: " + (Test-Path "$app\browser_extension\manifest.json")
 $startMenu = Join-Path ([Environment]::GetFolderPath("Programs")) "TurboDM-Test"

@@ -1,4 +1,83 @@
 {
-  "extName": { "message": "TurboDM Integration" },
-  "extDescription": { "message": "Sends browser downloads and on-page videos to the TurboDM download manager." }
+  "extName": {
+    "message": "TurboDM Integration"
+  },
+  "extDescription": {
+    "message": "Sends browser downloads and on-page videos to the TurboDM download manager."
+  },
+  "ctxDownload": {
+    "message": "Download with TurboDM"
+  },
+  "labelHls": {
+    "message": "Video stream (HLS)"
+  },
+  "labelDash": {
+    "message": "Video stream (DASH)"
+  },
+  "labelAudio": {
+    "message": "Audio"
+  },
+  "labelVideo": {
+    "message": "Video"
+  },
+  "labelPagePlayer": {
+    "message": "Video · on-page player"
+  },
+  "appDown": {
+    "message": "TurboDM is not running"
+  },
+  "appDownLong": {
+    "message": "TurboDM is not running. Open the program and try again."
+  },
+  "popupCatch": {
+    "message": "Catch downloads"
+  },
+  "popupGrabber": {
+    "message": "Video grabber"
+  },
+  "popupChecking": {
+    "message": "Checking connection…"
+  },
+  "popupPage": {
+    "message": "⬇ Open this page's video in TurboDM"
+  },
+  "popupMedia": {
+    "message": "Media on this page"
+  },
+  "popupNone": {
+    "message": "None. Try playing the video."
+  },
+  "popupRunning": {
+    "message": "✔ TurboDM is running"
+  },
+  "popupClosed": {
+    "message": "✖ TurboDM is closed"
+  },
+  "pickQuality": {
+    "message": "✔ Choose the quality in TurboDM"
+  },
+  "download": {
+    "message": "Download"
+  },
+  "btnDownload": {
+    "message": "⬇ Download this video"
+  },
+  "sent": {
+    "message": "✔ Sent to TurboDM"
+  },
+  "pickFolder": {
+    "message": "✔ Choose where to save in TurboDM"
+  },
+  "loadingQualities": {
+    "message": "Getting qualities…"
+  },
+  "noVideo": {
+    "message": "No video found yet. Try playing the video."
+  },
+  "moreOptions": {
+    "message": "More options (open in TurboDM)…"
+  },
+  "opened": {
+    "message": "✔ Opened in TurboDM"
+  }
 }

@@ -20,6 +20,7 @@ import tempfile
 import urllib.request
 
 from .appinfo import LEGACY_REPO, UPDATE_REPO, VERSION
+from .i18n import _t
 
 UA = {"User-Agent": f"TurboDM/{VERSION}"}
 
@@ -45,7 +46,7 @@ def verify_manifest(m, keys=None):
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
     sig = m.get("sig")
     if not sig:
-        raise ValueError("Güncelleme bilgisi imzasız: güvenlik nedeniyle kurulmadı.")
+        raise ValueError(_t("Güncelleme bilgisi imzasız: güvenlik nedeniyle kurulmadı."))
     payload = signed_payload(m)
     for k in keys or PUBLIC_KEYS:
         try:
@@ -54,10 +55,9 @@ def verify_manifest(m, keys=None):
         except (InvalidSignature, ValueError):
             continue
     else:
-        raise ValueError("Güncelleme imzası doğrulanamadı: dosya TurboDM geliştiricisinden gelmiyor olabilir. "
-                         "Güvenlik nedeniyle kurulmadı.")
+        raise ValueError(_t("Güncelleme imzası doğrulanamadı: dosya TurboDM geliştiricisinden gelmiyor olabilir. Güvenlik nedeniyle kurulmadı."))
     if not any(m["url"].startswith(p) for p in ALLOWED_DOWNLOAD):
-        raise ValueError("Güncelleme adresi resmi sürüm sayfası değil: güvenlik nedeniyle kurulmadı.")
+        raise ValueError(_t("Güncelleme adresi resmi sürüm sayfası değil: güvenlik nedeniyle kurulmadı."))
 
 
 def manifest_url(repo=None):
@@ -96,14 +96,14 @@ def check(url):
         m = json.loads(r.read().decode("utf-8-sig"))
     for k in ("version", "url", "sha256"):
         if not m.get(k):
-            raise ValueError(f"latest.json eksik alan: {k}")
+            raise ValueError(_t("latest.json eksik alan: {0}").format(k))
     verify_manifest(m)
     cur_build = installed_build()
     newer = vkey(m["version"]) > vkey(VERSION)
     rebuilt = (vkey(m["version"]) == vkey(VERSION) and m.get("build") and cur_build
                and m["build"] != cur_build)
     return {"available": bool(newer or rebuilt), "current": VERSION, "latest": m["version"],
-            "build": m.get("build"), "notes": m.get("notes", ""), "url": m["url"],
+            "build": m.get("build"), "notes": m.get("notes", ""), "notes_en": m.get("notes_en", ""), "url": m["url"],
             "sha256": m["sha256"].lower(), "size": int(m.get("size") or 0),
             "published": m.get("published", ""), "same_version": bool(rebuilt)}
 
@@ -112,7 +112,7 @@ def download(info, progress=None, cancelled=None):
     """Kurulum dosyasını indirir ve SHA-256 ile doğrular; dosya yolunu döndürür.
     info, check()'ten gelir: adres ve SHA-256 imzalı güncelleme bilgisindendir."""
     if not any(info["url"].startswith(p) for p in ALLOWED_DOWNLOAD):
-        raise ValueError("Güncelleme adresi resmi sürüm sayfası değil: güvenlik nedeniyle indirilmedi.")
+        raise ValueError(_t("Güncelleme adresi resmi sürüm sayfası değil: güvenlik nedeniyle indirilmedi."))
     name = os.path.basename(info["url"].split("?")[0]) or "TurboDM-Setup.exe"
     if not name.lower().endswith(".exe"):
         name += ".exe"
@@ -126,7 +126,7 @@ def download(info, progress=None, cancelled=None):
         got = 0
         while True:
             if cancelled and cancelled():
-                raise InterruptedError("İptal edildi")
+                raise InterruptedError(_t("İptal edildi"))
             chunk = r.read(256 * 1024)
             if not chunk:
                 break
@@ -137,7 +137,7 @@ def download(info, progress=None, cancelled=None):
                 progress(got, total)
     if h.hexdigest().lower() != info["sha256"]:
         os.remove(path + ".part")
-        raise ValueError("İndirilen kurulum dosyası doğrulanamadı (SHA-256 uyuşmuyor). Güncelleme yapılmadı.")
+        raise ValueError(_t("İndirilen kurulum dosyası doğrulanamadı (SHA-256 uyuşmuyor). Güncelleme yapılmadı."))
     os.replace(path + ".part", path)
     return path
 
