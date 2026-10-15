@@ -6,10 +6,10 @@ turbodm/locale/<dil>.json dosyalarından (Türkçe metin → çeviri) gelir. Çe
   _t("İndirme tamamlandı")               → seçili dildeki karşılığı
   _t("{0} indirme seçili").format(n)     → yer tutucular çeviride de aynen bulunur
 
-Dil, program açılırken (bu modül ilk yüklendiğinde) ayarlardan okunur; böylece modül düzeyindeki sabitler
-de doğru dilde oluşur. Dil değişikliği yeniden başlatınca uygulanır.
+Dil, program açılırken ayarlardan okunur (varsayılan İngilizce). Dil değişikliği anında uygulanır:
+modül düzeyindeki çevrilmiş tablolar on_change() ile kaydedilir ve dil değişince yeniden doldurulur,
+ana pencere menüleri/listeyi yeniden kurar (MainWindow.set_language).
 """
-import ctypes
 import json
 import os
 import sys
@@ -20,11 +20,11 @@ LANGUAGES = {
     "es": "Español", "ar": "العربية", "it": "Italiano",
 }
 RTL = {"ar"}
-# Windows dil kimliğinin (LANGID) birincil kısmı → dil kodu
-_WIN_PRIMARY = {0x1F: "tr", 0x09: "en", 0x07: "de", 0x0C: "fr", 0x0A: "es", 0x01: "ar", 0x10: "it"}
+DEFAULT = "en"
 
 _lang = "tr"
 _table = {}
+_hooks = []
 
 
 def _locale_dir():
@@ -36,17 +36,9 @@ def _locale_dir():
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "locale")
 
 
-def system_language():
-    """Windows'un arayüz dili desteklenenlerden biriyse o, değilse İngilizce."""
-    try:
-        langid = ctypes.windll.kernel32.GetUserDefaultUILanguage()
-        return _WIN_PRIMARY.get(langid & 0x3FF, "en")
-    except Exception:  # noqa: BLE001 (Windows dışı)
-        return "en"
-
-
 def resolve(setting):
-    return setting if setting in LANGUAGES else system_language()
+    """Ayardaki dil; tanımsız ya da eski "auto" değeri → İngilizce."""
+    return setting if setting in LANGUAGES else DEFAULT
 
 
 def set_language(code):
@@ -59,6 +51,16 @@ def set_language(code):
                 _table = json.load(f)
         except (OSError, ValueError):
             _table = {}
+    for fn in list(_hooks):
+        fn()
+
+
+def on_change(fn):
+    """Çevrilmiş metin tablosu dolduran fonksiyonu kaydeder: hemen ve her dil değişiminde çağrılır.
+    Tablolar yerinde güncellenir (dict.update / list[:]), böylece 'from x import TABLO' yapanlar da yeni dili görür."""
+    _hooks.append(fn)
+    fn()
+    return fn
 
 
 def language():
@@ -80,7 +82,7 @@ def _settings_path():
 
 def save_language_setting(code):
     """Kurulumda seçilen dili ayarlara yazar (diğer ayarlara dokunmadan). TurboDM.exe --set-language <kod>"""
-    if code not in LANGUAGES and code != "auto":
+    if code not in LANGUAGES:
         return False
     path = _settings_path()
     try:
@@ -106,9 +108,9 @@ def _initial():
     path = _settings_path()
     try:
         with open(path, encoding="utf-8") as f:
-            return resolve(json.load(f).get("language", "auto"))
+            return resolve(json.load(f).get("language"))
     except (OSError, ValueError):
-        return resolve("auto")
+        return DEFAULT
 
 
 set_language(_initial())
@@ -118,19 +120,16 @@ _qt_translator = None
 
 
 def apply_to_app(app):
-    """Qt'nin kendi metinleri (Tamam/İptal/Evet/Hayır, dosya pencereleri) ve sağdan sola düzen (Arapça)."""
+    """Qt'nin kendi metinleri (Tamam/İptal/Evet/Hayır, dosya pencereleri) ve sağdan sola düzen (Arapça).
+    Dil değişince yeniden çağrılır: önceki Qt çevirisi kaldırılır."""
     global _qt_translator
     from PySide6.QtCore import QLibraryInfo, Qt, QTranslator
+    if _qt_translator is not None:
+        app.removeTranslator(_qt_translator)
+        _qt_translator = None
     tr = QTranslator(app)
     if tr.load(f"qtbase_{_lang}", QLibraryInfo.path(QLibraryInfo.TranslationsPath)):
         app.installTranslator(tr)
         _qt_translator = tr
     app.setLayoutDirection(Qt.RightToLeft if is_rtl() else Qt.LeftToRight)
 
-
-def restart_command():
-    """Programı yeniden başlatan komut (dil değişince). --restart: eski kopya kapanana kadar bekle."""
-    if getattr(sys, "frozen", False):
-        return [sys.executable, "--restart"]
-    main = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "main.py"))
-    return [sys.executable, main, "--restart"]

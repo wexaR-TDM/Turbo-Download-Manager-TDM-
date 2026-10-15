@@ -50,7 +50,7 @@
 - Kategoriler, kuyruk, zamanlayıcı; onay kutularıyla **toplu seçim ve toplu işlem**.
 - **Windows'un açık/koyu moduna kendiliğinden uyan** TurboDM teması.
 - Program içinden tek tıkla güncelleme (*Yardım → Güncellemeleri denetle*); güncellemede inmekte olan indirmeler kaldığı yerden sürer.
-- **7 dil:** Türkçe, English, Deutsch, Français, Español, العربية, Italiano (*Seçenekler → Genel → Dil*); kurulumda da dil seçilir.
+- **7 dil:** English, Türkçe, Deutsch, Français, Español, العربية, Italiano — menü çubuğundaki **Language** menüsünden anında değişir (program kapanmaz); kurulumda da dil seçilir (varsayılan İngilizce).
 
 <p align="center">
   <img src="docs/github/ekran-acik.png" alt="TurboDM ana pencere (açık tema)">

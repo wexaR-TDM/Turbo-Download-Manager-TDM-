@@ -249,7 +249,8 @@ def probe(url, headers=None):
 
 
 TORRENT_MAX = 20 * 1024 * 1024
-NOT_TORRENT = (_t("Site torrent dosyası yerine bir web sayfası gönderdi (indirme sayfası, giriş isteyen ya da süresi dolmuş bağlantı). Torrent'i sitedeki indirme düğmesiyle tarayıcıdan indirin: TurboDM eklentisi inen .torrent dosyasını otomatik olarak TurboDM'de açar."))
+def not_torrent_message():
+    return (_t("Site torrent dosyası yerine bir web sayfası gönderdi (indirme sayfası, giriş isteyen ya da süresi dolmuş bağlantı). Torrent'i sitedeki indirme düğmesiyle tarayıcıdan indirin: TurboDM eklentisi inen .torrent dosyasını otomatik olarak TurboDM'de açar."))
 
 
 def looks_like_torrent(url, info=None):
@@ -270,7 +271,7 @@ def fetch_torrent(url, headers=None):
     if len(data) > TORRENT_MAX:
         raise ValueError(_t("Torrent dosyası beklenenden çok büyük"))
     if not (data.startswith(b"d") and b"4:info" in data):
-        raise ValueError(NOT_TORRENT)
+        raise ValueError(not_torrent_message())
     return data
 
 

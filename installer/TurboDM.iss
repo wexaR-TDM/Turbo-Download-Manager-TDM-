@@ -66,9 +66,9 @@ LZMANumBlockThreads=4
 LZMAUseSeparateProcess=yes
 CloseApplications=yes
 RestartApplications=no
-; Kurulum başında dil seçimi (varsayılan: Windows'un dili). Güncellemede önceki kurulumun dili kullanılır.
+; Kurulum başında dil seçimi (varsayılan: İngilizce, listedeki ilk dil). Güncellemede önceki kurulumun dili kullanılır.
 ShowLanguageDialog=yes
-LanguageDetectionMethod=uilanguage
+LanguageDetectionMethod=none
 UsePreviousLanguage=yes
 VersionInfoVersion={#AppVersion}.0
 VersionInfoDescription=TurboDM Setup
@@ -76,8 +76,8 @@ VersionInfoProductName={#AppName}
 
 [Languages]
 ; Adlar değiştirilmemeli: güncellemede önceki kurulumun dili bu adla bulunur (1.6.x yalnızca "turkish" idi)
-Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"

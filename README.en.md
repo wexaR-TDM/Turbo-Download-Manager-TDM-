@@ -50,7 +50,7 @@ Multi-connection downloads · Video grabber · Torrent · Browser integration</p
 - Categories, queue, scheduler; **bulk selection and bulk actions** with checkboxes.
 - A TurboDM theme that **follows Windows light/dark mode automatically**.
 - One-click update from inside the program (*Help → Check for updates*); active downloads continue where they left off.
-- **7 languages:** Türkçe, English, Deutsch, Français, Español, العربية, Italiano (*Options → General → Language*); the language is also chosen during setup.
+- **7 languages:** English, Türkçe, Deutsch, Français, Español, العربية, Italiano — switch instantly from the **Language** menu in the menu bar (the program stays open); the language is also chosen during setup (English by default).
 
 <p align="center">
   <img src="docs/github/ekran-acik.png" alt="TurboDM main window (light theme)">

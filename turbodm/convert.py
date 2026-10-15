@@ -6,17 +6,23 @@
 """
 import os
 import subprocess
+from . import i18n
 from .i18n import _t
 
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 # anahtar → (kullanıcıya görünen ad, uzantı)
-FORMATS = {
+FORMATS = {}
+
+
+@i18n.on_change
+def _texts():
+    FORMATS.update({
     "": (_t("Olduğu gibi (önerilen)"), None),
     "mkv": (_t("MKV (hızlı, kayıpsız)"), ".mkv"),
     "avi": (_t("AVI (eski TV/oynatıcılar için, yeniden kodlanır: yavaş)"), ".avi"),
     "mp3": (_t("MP3 (yalnızca ses)"), ".mp3"),
-}
+    })
 
 
 def target_path(src, fmt):

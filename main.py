@@ -236,15 +236,6 @@ def main():
     elif _send_to_running(arg):
         return
 
-    if sys.platform == "win32" and "--restart" in sys.argv[1:]:
-        # dil değişikliği sonrası yeniden başlatma: eski kopya tamamen kapanana kadar bekle
-        import ctypes
-        for _ in range(60):
-            h = ctypes.windll.kernel32.OpenMutexW(0x00100000, False, MUTEX_NAME)  # SYNCHRONIZE
-            if not h:
-                break
-            ctypes.windll.kernel32.CloseHandle(h)
-            time.sleep(0.25)
     if sys.platform == "win32":
         import ctypes
         # Görev çubuğunda Python simgesi yerine TurboDM simgesi görünsün

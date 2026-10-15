@@ -617,8 +617,14 @@ class LocaleTests(unittest.TestCase):
                 self.assertEqual(fields(k), fields(table[k]), f"{code}: yer tutucu uyuşmuyor: {k!r}")
 
     def test_switching_language_translates(self):
-        from turbodm import i18n
+        from turbodm import convert, i18n, manager, torrent
         try:
+            i18n.set_language("fr")  # modül tabloları da anında yeni dilde (yeniden başlatmadan)
+            self.assertEqual(manager.CATEGORIES["music"][0], "Musique")
+            self.assertNotEqual(torrent.STATE_TEXT["downloading"], "İndiriliyor")
+            self.assertTrue(convert.FORMATS["mp3"][0].startswith("MP3"))
+            self.assertEqual(i18n.resolve("auto"), "en")  # varsayılan İngilizce
+            self.assertEqual(i18n.resolve(None), "en")
             i18n.set_language("de")
             self.assertEqual(i18n._t("İndirmeyi Başlat"), "Download starten")
             i18n.set_language("ar")

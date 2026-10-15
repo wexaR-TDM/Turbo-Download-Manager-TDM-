@@ -8,11 +8,11 @@ import urllib.parse
 from datetime import datetime
 
 from PySide6.QtCore import QObject, QPointF, QRectF, QSize, Qt, QTime, QTimer, QUrl, Signal
-from PySide6.QtGui import QAction, QColor, QDesktopServices, QIcon, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QAction, QActionGroup, QColor, QDesktopServices, QIcon, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel,
-    QLineEdit, QMainWindow, QMenu, QMessageBox, QPushButton, QSpinBox, QSplitter, QStyle,
+    QLineEdit, QMainWindow, QMenu, QMenuBar, QMessageBox, QPushButton, QSpinBox, QSplitter, QStyle,
     QSystemTrayIcon, QTableWidget, QTableWidgetItem, QTabWidget, QTimeEdit, QToolBar,
     QGroupBox, QProgressBar, QTextBrowser, QStyledItemDelegate, QStyleOptionViewItem,
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
@@ -34,11 +34,16 @@ from .i18n import _t
 
 APP_NAME = "TurboDM"
 
-STATUS_TEXT = {
+STATUS_TEXT = {}
+
+
+@i18n.on_change
+def _status_texts():
+    STATUS_TEXT.update({
     "stopped": _t("Durduruldu"), "queued": _t("Kuyrukta"), "connecting": _t("Bağlanıyor…"),
     "downloading": _t("İndiriliyor"), "completed": _t("Tamamlandı"), "error": _t("Hata"),
     "seeding": _t("Paylaşılıyor"), "converting": _t("Dönüştürülüyor…"),
-}
+    })
 
 
 # ------------------------------------------------------------------ biçimlendirme
@@ -987,8 +992,13 @@ class ProgressDialog(QDialog):
 
 
 # ------------------------------------------------------------------ bitince yapılacaklar
-POWER_ACTIONS = {"shutdown": _t("Bilgisayar kapatılacak"), "sleep": _t("Bilgisayar uyku moduna alınacak"),
-                 "exit": _t("TurboDM kapatılacak")}
+POWER_ACTIONS = {}
+
+
+@i18n.on_change
+def _power_texts():
+    POWER_ACTIONS.update({"shutdown": _t("Bilgisayar kapatılacak"), "sleep": _t("Bilgisayar uyku moduna alınacak"),
+                          "exit": _t("TurboDM kapatılacak")})
 
 
 class PowerActionDialog(QDialog):
@@ -1071,10 +1081,9 @@ class OptionsDialog(QDialog):
         self.rejected.connect(lambda: theme.apply(QApplication.instance(), self._theme_before))
         f.addRow(_t("Tema:"), self.theme)
         self.lang = QComboBox()
-        self.lang.addItem(_t("Sistem dili (otomatik)"), "auto")
         for code, name in i18n.LANGUAGES.items():
             self.lang.addItem(name, code)
-        self.lang.setCurrentIndex(max(0, self.lang.findData(s.get("language", "auto"))))
+        self.lang.setCurrentIndex(max(0, self.lang.findData(i18n.language())))
         f.addRow(_t("Dil / Language:"), self.lang)
         self.port = QSpinBox(maximum=65535, minimum=1024, value=s["server_port"])
         f.addRow(_t("Tarayıcı entegrasyon portu:"), self.port)
@@ -1200,20 +1209,14 @@ class OptionsDialog(QDialog):
                  torrent_upload_kb=self.ul.value(), seed_after_complete=self.seed.isChecked(),
                  torrent_upload_auto=self.ulauto.isChecked(), theme=self.theme.currentData(),
                  ffmpeg_path=self.ffmpeg.text().strip(), auto_update_check=self.autoupd.isChecked())
-        lang_changed = s.get("language", "auto") != self.lang.currentData()
-        s["language"] = self.lang.currentData()
         self.mgr.apply_settings()
         if self.autostart.isChecked() != winassoc.autostart_enabled():
             winassoc.set_autostart(self.autostart.isChecked())
         if restart:
             QMessageBox.information(self, APP_NAME, _t("Port değişiklikleri program yeniden başlatılınca geçerli olur."))
         self.accept()
-        if lang_changed and i18n.resolve(s["language"]) != i18n.language():
-            q = QMessageBox.question(self.parent(), APP_NAME, _t(
-                "Dil değişikliği program yeniden başlatılınca uygulanır. Şimdi yeniden başlatılsın mı?\n"
-                "(İnmekte olan indirmeler kaldığı yerden devam eder.)"))
-            if q == QMessageBox.Yes:
-                self.parent().restart_app()
+        if self.lang.currentData() != i18n.language():  # anında, yeniden başlatmadan
+            self.parent().set_language(self.lang.currentData())
 
 
 class SchedulerDialog(QDialog):
@@ -1269,7 +1272,8 @@ class SchedulerDialog(QDialog):
 
 
 # ------------------------------------------------------------------ güncellemeler
-UPDATE_NOTE = (_t("ℹ TurboDM sık güncelleniyor. Güncelleme sırasında program kısa süre kapanır; kurulum bitince görev çubuğunda kendiliğinden yeniden açılır ve inmekte olan indirmeleriniz kaldığı yerden devam eder. Bir şey yapmanıza gerek yok."))
+def update_note():
+    return (_t("ℹ TurboDM sık güncelleniyor. Güncelleme sırasında program kısa süre kapanır; kurulum bitince görev çubuğunda kendiliğinden yeniden açılır ve inmekte olan indirmeleriniz kaldığı yerden devam eder. Bir şey yapmanıza gerek yok."))
 
 
 class UpdateDialog(QDialog):
@@ -1293,7 +1297,7 @@ class UpdateDialog(QDialog):
         self.app_bar = QProgressBar()
         self.app_bar.hide()
         # Sürümler sık çıktığı için: güncellemenin indirmeleri bozmadığını baştan söyle
-        self.app_note = QLabel(UPDATE_NOTE)
+        self.app_note = QLabel(update_note())
         self.app_note.setWordWrap(True)
         self.app_note.setStyleSheet(f"color: {theme.T['muted']};")
         self.app_note.hide()
@@ -1435,7 +1439,12 @@ class UpdateDialog(QDialog):
 
 
 # ------------------------------------------------------------------ ana pencere
-COLUMNS = ["", _t("Dosya Adı"), _t("Boyut"), _t("Durum"), _t("Kalan Süre"), _t("Aktarım Hızı"), _t("Son Deneme"), _t("Açıklama")]
+COLUMNS = []
+
+
+@i18n.on_change
+def _column_texts():
+    COLUMNS[:] = ["", _t("Dosya Adı"), _t("Boyut"), _t("Durum"), _t("Kalan Süre"), _t("Aktarım Hızı"), _t("Son Deneme"), _t("Açıklama")]
 SEL = 0    # onay kutusu sütunu (toplu seçim)
 NAME = 1
 STATUS = 3
@@ -1515,7 +1524,6 @@ class MainWindow(QMainWindow):
         self.icon = load_icon()
         QApplication.setWindowIcon(self.icon)
         self.setWindowIcon(self.icon)
-        self.setWindowTitle(_t("{0} — İnternet İndirme Yöneticisi").format(APP_NAME))
         self.resize(1100, 620)
         self.setAcceptDrops(True)
         self.progress_dialogs = {}
@@ -1595,6 +1603,7 @@ class MainWindow(QMainWindow):
             self.a_magnet.setEnabled(False)
 
     def _build_ui(self):
+        self.setWindowTitle(_t("{0} — İnternet İndirme Yöneticisi").format(APP_NAME))
         mb = self.menuBar()
         m = mb.addMenu(_t("&Görevler"))
         for a in (self.a_add, self.a_torrent, self.a_magnet):
@@ -1615,6 +1624,7 @@ class MainWindow(QMainWindow):
         m.addSeparator()
         m.addAction(_t("Hakkında"), lambda: QMessageBox.about(
             self, APP_NAME, _t("<b>{0}</b> {1}<br>Çok bağlantılı HTTP/HTTPS, FTP, video (HLS/DASH) ve BitTorrent indirme yöneticisi.<br><br>Özgür yazılım: GNU GPL v3 lisansı. Kaynak kodu: <a href=\"https://github.com/{2}\">github.com/{3}</a>").format(APP_NAME, VERSION, UPDATE_REPO, UPDATE_REPO)))
+        self._build_language_menu(mb)
 
         tb = QToolBar(_t("Araçlar"))
         tb.setObjectName("main")
@@ -1713,15 +1723,31 @@ class MainWindow(QMainWindow):
         self.speed_lbl = QLabel()
         self.statusBar().addPermanentWidget(self.speed_lbl)
 
-    def _build_tray(self):
-        self.tray = QSystemTrayIcon(self.icon, self)
+    def _build_language_menu(self, mb):
+        """Menü çubuğunda sabit 'Language' menüsü: adı her dilde aynı, böylece dili bilmeyen de bulur."""
+        m = mb.addMenu("&Language")
+        m.setObjectName("language")
+        group = QActionGroup(m)
+        for code, name in i18n.LANGUAGES.items():
+            a = m.addAction(name)
+            a.setCheckable(True)
+            a.setChecked(code == i18n.language())
+            a.setData(code)
+            group.addAction(a)
+            a.triggered.connect(lambda _=False, c=code: self.set_language(c))
+
+    def _tray_menu(self):
         menu = QMenu()
         menu.addAction(_t("Göster"), self.show_normal)
         menu.addAction(self.a_add)
         menu.addAction(self.a_stop_all)
         menu.addSeparator()
         menu.addAction(self.a_quit)
-        self.tray.setContextMenu(menu)
+        return menu
+
+    def _build_tray(self):
+        self.tray = QSystemTrayIcon(self.icon, self)
+        self.tray.setContextMenu(self._tray_menu())
         self.tray.activated.connect(
             lambda r: self.show_normal() if r == QSystemTrayIcon.DoubleClick else None)
         self.tray.show()
@@ -2107,7 +2133,7 @@ class MainWindow(QMainWindow):
             except RuntimeError:
                 pass
         d = ProgressDialog(self, iid)
-        d.destroyed.connect(lambda *_: self.progress_dialogs.pop(iid, None))
+        d.destroyed.connect(lambda *_, d=d: self.progress_dialogs.get(iid) is d and self.progress_dialogs.pop(iid))
         self.progress_dialogs[iid] = d
         bring_to_front(d)
 
@@ -2214,12 +2240,57 @@ class MainWindow(QMainWindow):
         self.hide()
         self.tray.showMessage(APP_NAME, _t("Program arka planda çalışmaya devam ediyor."), self.icon, 2000)
 
-    def restart_app(self):
-        """Dil değişikliği için: kapan ve yeniden aç; inmekte olan indirmeler sürer (--resume)."""
-        from PySide6.QtCore import QProcess
-        cmd = i18n.restart_command() + ["--resume"]
-        self.quit_app()
-        QProcess.startDetached(cmd[0], cmd[1:])
+    # ---------------------------------------------------------- dil
+    def set_language(self, code):
+        """Dili anında değiştirir, program kapanmaz: indirmeler sürer; menüler, araç çubuğu, liste ve açık
+        indirme pencereleri yeni dille yeniden kurulur."""
+        if code not in i18n.LANGUAGES:
+            return
+        self.mgr.settings["language"] = code
+        self.mgr.save()
+        if code == i18n.language():
+            return
+        i18n.set_language(code)  # çevrilmiş tablolar (durum, sütun, kategori…) yeniden dolar
+        i18n.apply_to_app(QApplication.instance())  # Qt'nin kendi metinleri, Arapçada sağdan sola
+        self._retranslate()
+
+    def _retranslate(self):
+        filt, sel = self._filter, set(self.selected_ids())
+        old_actions = [v for k, v in vars(self).items() if k.startswith("a_") and isinstance(v, QAction)]
+        for tb in self.findChildren(QToolBar):
+            self.removeToolBar(tb)
+            tb.deleteLater()
+        for w in (self.sel_lbl, self.speed_lbl):
+            self.statusBar().removeWidget(w)
+            w.deleteLater()
+        self.setMenuBar(QMenuBar(self))  # eski menü çubuğu (ve menüleri) silinir
+        self._build_actions()
+        self._build_ui()  # yeni gezinme ağacı ve liste; eskileri setCentralWidget ile silinir
+        for a in old_actions:
+            a.deleteLater()
+        old_menu = self.tray.contextMenu()
+        self.tray.setContextMenu(self._tray_menu())
+        old_menu.deleteLater()
+        if not self.mgr.torrents:
+            self.a_torrent.setEnabled(False)
+            self.a_magnet.setEnabled(False)
+        for i in range(self.tree.topLevelItemCount()):  # seçili kategori korunsun
+            top = self.tree.topLevelItem(i)
+            for it in [top] + [top.child(j) for j in range(top.childCount())]:
+                if it.data(0, Qt.UserRole) == filt:
+                    self.tree.setCurrentItem(it)
+        self._visible = []
+        self.refresh(force=True)
+        self._select_rows([r for r, iid in enumerate(self._visible) if iid in sel])
+        for iid, d in list(self.progress_dialogs.items()):  # açık indirme pencereleri yeni dille
+            pos = d.pos()
+            self.progress_dialogs.pop(iid, None)
+            d.close()
+            d.deleteLater()
+            self.show_progress(iid)
+            nd = self.progress_dialogs.get(iid)
+            if nd is not None:
+                nd.move(pos)
 
     def quit_app(self):
         self._quitting = True

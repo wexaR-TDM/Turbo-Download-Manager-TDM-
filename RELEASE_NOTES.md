@@ -7,6 +7,10 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.1
+• Instant language switching: a fixed "Language" menu in the menu bar; menus, the list and open download windows switch without closing the program, downloads keep running
+• English is the default language (in setup and in the program); choose the language at the start of setup or from the Language menu
+
 ## 1.7.0
 • Language support: Türkçe, English, Deutsch, Français, Español, العربية (right-to-left layout), Italiano — Options → General → Language; the default is the Windows language
 • Setup asks for the language first; the chosen language becomes the program's language. The setup and uninstall windows also use the chosen language

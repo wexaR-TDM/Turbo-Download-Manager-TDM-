@@ -1,5 +1,6 @@
 """libtorrent tabanlı BitTorrent motoru (magnet bağlantıları ve .torrent dosyaları)."""
 import os
+from . import i18n
 from .i18n import _t
 
 try:
@@ -9,14 +10,19 @@ except ImportError:  # torrent desteği isteğe bağlı
 
 AVAILABLE = lt is not None
 
-STATE_TEXT = {
+STATE_TEXT = {}
+
+
+@i18n.on_change
+def _texts():
+    STATE_TEXT.update({
     "checking_files": _t("Dosyalar denetleniyor"),
     "downloading_metadata": _t("Meta veri alınıyor"),
     "downloading": _t("İndiriliyor"),
     "finished": _t("Tamamlandı"),
     "seeding": _t("Paylaşılıyor (seed)"),
     "checking_resume_data": _t("Devam verisi denetleniyor"),
-}
+    })
 
 
 def file_list(ti):

@@ -314,6 +314,37 @@ class GuiTests(unittest.TestCase):
             act.trigger()
         self.assertEqual(opened, ["https://github.com/wexaR-TDM/TurboDM/blob/main/SURUM_NOTLARI.md"])
 
+    def test_language_menu_switches_instantly(self):
+        # menü çubuğunda sabit "Language" menüsü; seçince program kapanmadan her şey yeni dilde
+        it = self.win.mgr.add_http(self.s.url("/arsiv.zip"), os.path.join(TMP, "dl", "dil.zip"), start=False)
+        self.win.refresh(force=True)
+        self.win.show_progress(it.id)
+        try:
+            titles = lambda: [a.text() for a in self.win.menuBar().actions()]  # noqa: E731
+            self.assertEqual(titles()[-1], "&Language")
+            lang_menu = self.win.menuBar().findChild(G.QMenu, "language")
+            de = next(a for a in lang_menu.actions() if a.data() == "de")
+            de.trigger()
+            APP.processEvents()
+            self.assertIn("&Hilfe", titles())
+            self.assertEqual(titles()[-1], "&Language")
+            self.assertEqual(self.win.table.horizontalHeaderItem(G.NAME).text(), "Dateiname")
+            self.assertEqual(self.win.mgr.settings["language"], "de")
+            row = self.win._visible.index(it.id)
+            self.assertEqual(self.win.table.item(row, G.STATUS).text(), G.STATUS_TEXT[it.status])
+            self.assertNotEqual(G.STATUS_TEXT["queued"], "Kuyrukta")
+            self.assertIn(it.id, self.win.progress_dialogs)  # açık indirme penceresi yeniden açıldı
+            self.win.set_language("ar")
+            self.assertEqual(APP.layoutDirection(), G.Qt.RightToLeft)
+        finally:
+            self.win.set_language("tr")
+            APP.processEvents()
+            self.assertEqual(APP.layoutDirection(), G.Qt.LeftToRight)
+            self.assertIn("&Yardım", [a.text() for a in self.win.menuBar().actions()])
+            for d in list(self.win.progress_dialogs.values()):
+                d.close()
+            self.win.mgr.remove(it.id, False)
+
     def test_list_survives_restart(self):
         it = self.win.mgr.add_http(self.s.url("/arsiv.zip"), os.path.join(TMP, "dl", "kalici.zip"), start=False)
         self.win.mgr.save()

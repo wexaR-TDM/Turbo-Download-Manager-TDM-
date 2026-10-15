@@ -12,6 +12,7 @@ from . import torrent as tmod
 from .engine import ChainLimiter, HttpTask, SpeedLimiter
 from .hls import HlsTask, find_ffmpeg
 from . import convert, ytdlp
+from . import i18n
 from .i18n import _t
 
 APP_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "TurboDM")
@@ -19,7 +20,12 @@ TORRENT_DIR = os.path.join(APP_DIR, "torrents")
 DEFAULT_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "TurboDM")
 
 # anahtar: (görünen ad, klasör, uzantılar)
-CATEGORIES = {
+CATEGORIES = {}
+
+
+@i18n.on_change
+def _texts():
+    CATEGORIES.update({
     "compressed": (_t("Sıkıştırılmış"), "Compressed",
                    "zip rar 7z tar gz tgz bz2 xz iso cab arj lzh z ace".split()),
     "documents": (_t("Belgeler"), "Documents",
@@ -30,7 +36,7 @@ CATEGORIES = {
               "mp4 mkv avi mov wmv flv webm m4v mpg mpeg 3gp ts m2ts".split()),
     "torrent": (_t("Torrent"), "Torrent", []),
     "general": (_t("Genel"), "General", []),
-}
+    })
 
 DEFAULT_SETTINGS = {
     "download_root": DEFAULT_ROOT,
@@ -50,7 +56,7 @@ DEFAULT_SETTINGS = {
     "schedule_stop": "07:00",
     "ffmpeg_path": "",
     "auto_update_check": True,
-    "language": "auto",         # auto (Windows dili) | tr | en | de | fr | es | ar | it
+    "language": "en",           # tr | en | de | fr | es | ar | it (kurulumda seçilir)
     "theme": "auto",            # auto (Windows ile aynı) | light | dark
     "last_update_check": 0,
     "update_repo": "",      # boşsa appinfo.UPDATE_REPO kullanılır
