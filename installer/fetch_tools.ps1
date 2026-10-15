@@ -1,4 +1,4 @@
-﻿# YouTube desteği için yardımcı araçları resmi GitHub sürümlerinden indirir ve SHA-256 ile doğrular.
+﻿# Video desteği için yardımcı araçları resmi GitHub sürümlerinden indirir ve SHA-256 ile doğrular.
 #   vendor\ytdlp\yt-dlp.exe   (yt-dlp, Unlicense)
 #   vendor\deno\deno.exe      (deno, MIT — yt-dlp'nin YouTube şifre çözücüsü için korumalı JS motoru)
 # Kullanım: powershell -ExecutionPolicy Bypass -File installer\fetch_tools.ps1

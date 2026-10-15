@@ -85,7 +85,6 @@
  "Devam ettirme": "Fortsetzen möglich",
  "Devam verisi denetleniyor": "Fortsetzungsdaten werden geprüft",
  "Dil / Language:": "Sprache / Language:",
- "Dil değişikliği program yeniden başlatılınca uygulanır. Şimdi yeniden başlatılsın mı?\n(İnmekte olan indirmeler kaldığı yerden devam eder.)": "Die Sprachänderung wird nach einem Neustart wirksam. Jetzt neu starten?\n(Laufende Downloads werden an der gleichen Stelle fortgesetzt.)",
  "Dinleme portu:": "Port:",
  "Diskte yeterli boş alan yok": "Nicht genügend freier Speicherplatz",
  "Diskte yeterli boş alan yok: {0:.2f} GB gerekli, {1:.2f} GB boş": "Nicht genügend freier Speicherplatz: {0:.2f} GB benötigt, {1:.2f} GB frei",

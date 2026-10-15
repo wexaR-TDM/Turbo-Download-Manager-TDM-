@@ -7,6 +7,11 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.6
+• Düzeltme: TurboDM.exe'nin dosya özelliklerinde (Ayrıntılar) sürüm artık doğru görünür (hep 1.0.0.0 yazıyordu)
+• Kurulum sihirbazının yan görselindeki özellik satırı güncellendi
+• Kod ve belgelerde genel temizlik: kullanılmayan kod ve metinler kaldırıldı, geliştirici notları güncellendi
+
 ## 1.7.5
 • Pencere kapatılıp program sistem tepsisine indiğinde "Program arka planda çalışmaya devam ediyor" bildirimi artık her seferinde değil, yalnızca ilk kez gösterilir
 

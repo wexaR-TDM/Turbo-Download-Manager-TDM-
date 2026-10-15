@@ -23,7 +23,7 @@ from turbodm import manager as M  # noqa: E402
 M.DEFAULT_SETTINGS.update(download_root=os.path.join(tmp, "dl"), server_port=9697, torrent_port=6997,
                           auto_update_check=False, theme=mode)
 from turbodm import i18n  # noqa: E402
-from turbodm.gui import MainWindow, ProgressDialog, apply_theme  # noqa: E402
+from turbodm.gui import MainWindow, apply_theme  # noqa: E402
 i18n.apply_to_app(app)
 apply_theme(app)
 mgr = M.Manager()
@@ -54,19 +54,6 @@ for _ in range(15):
 win.refresh(force=True)
 app.processEvents()
 win.grab().save(out)
-from turbodm.gui import OptionsDialog  # noqa: E402
-d = OptionsDialog(win)
-d.show()
-app.processEvents()
-d.grab().save(out.replace(".png", "_opt.png"))
-d.close()
-iid = mgr.order[5]
-it = mgr.items[iid]
-it.segments = [[0, it.size // 2, int(it.size * 0.3)], [it.size // 2 + 1, it.size - 1, int(it.size * 0.7)]]
-pd = ProgressDialog(win, iid)
-pd.show()
-for _ in range(10):
-    app.processEvents()
-    time.sleep(0.03)
-pd.grab().save(out.replace(".png", "_pd.png"))
+import shutil  # noqa: E402
+shutil.rmtree(tmp, ignore_errors=True)  # geçici ayar/indirme klasörü kalmasın
 os._exit(0)

@@ -12,8 +12,6 @@ from string import Template
 from PySide6.QtCore import QEvent, QObject, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPalette, QPen, QPixmap
 
-ACCENT = "#2f80ed"
-
 DARK = {
     "dark": True,
     "bg": "#0f141b", "surface": "#151b24", "surface2": "#1b2330", "alt": "#18202a", "input": "#111720",

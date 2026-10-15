@@ -3,7 +3,7 @@ import os
 import sys
 
 APP_NAME = "TurboDM"
-VERSION = "1.7.5"   # build.ps1 kurulum dosyasının sürümünü buradan alır
+VERSION = "1.7.6"   # build.ps1 kurulum dosyasının sürümünü buradan alır
 
 # Güncellemelerin yayımlandığı GitHub deposu ("kullanıcı/depo"). Boşsa "Güncellemeleri denetle"
 # sunucunun ayarlanmadığını söyler. Program şu adresi okur:
@@ -18,7 +18,6 @@ LEGACY_REPO = "wexaR-TDM/Turbo-Download-Manager-TDM-"
 # Edge'e eklentiyi önerir. Onaydan önce boş kalmalı (yayımlanmamış kimlik Edge'de hata verir).
 # Mağaza kimliği: dpeakjonbfgodlhkbpeekljfgnpbbjai (2026-10-14 itibarıyla incelemede)
 EDGE_EXTENSION_ID = ""
-PUBLISHER = "TurboDM"
 APP_USER_MODEL_ID = "TurboDM.DownloadManager"
 MUTEX_NAME = "TurboDM_SingleInstance_Mutex"
 

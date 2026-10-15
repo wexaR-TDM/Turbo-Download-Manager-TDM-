@@ -103,7 +103,7 @@ def wizard_side(scale):
     f.setPixelSize(int(9 * scale))
     p.setFont(f)
     p.setPen(QColor(255, 255, 255, 150))
-    p.drawText(0, h - int(30 * scale), w, int(20 * scale), Qt.AlignCenter, "HTTP · FTP · YouTube · Torrent")
+    p.drawText(0, h - int(30 * scale), w, int(20 * scale), Qt.AlignCenter, "HTTP · FTP · Video · Torrent")
     p.end()
     return img
 

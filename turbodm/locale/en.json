@@ -85,7 +85,6 @@
  "Devam ettirme": "Resume support",
  "Devam verisi denetleniyor": "Checking resume data",
  "Dil / Language:": "Language / Dil:",
- "Dil değişikliği program yeniden başlatılınca uygulanır. Şimdi yeniden başlatılsın mı?\n(İnmekte olan indirmeler kaldığı yerden devam eder.)": "The language change takes effect after a restart. Restart now?\n(Active downloads will continue where they left off.)",
  "Dinleme portu:": "Listening port:",
  "Diskte yeterli boş alan yok": "Not enough free disk space",
  "Diskte yeterli boş alan yok: {0:.2f} GB gerekli, {1:.2f} GB boş": "Not enough free disk space: {0:.2f} GB needed, {1:.2f} GB free",

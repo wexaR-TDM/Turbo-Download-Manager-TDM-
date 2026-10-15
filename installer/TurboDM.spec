@@ -4,6 +4,38 @@ import os
 
 ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))
 
+
+def version_file():
+    """TurboDM.exe dosya özellikleri (Ayrıntılar sekmesi): sürüm turbodm/appinfo.py'den, her derlemede."""
+    import re
+    with open(os.path.join(ROOT, "turbodm", "appinfo.py"), encoding="utf-8") as f:
+        ver = re.search(r'VERSION = "([\d.]+)"', f.read()).group(1)
+    nums = tuple(int(x) for x in (ver.split(".") + ["0"] * 4)[:4])
+    dotted = ".".join(map(str, nums))
+    text = f"""VSVersionInfo(
+  ffi=FixedFileInfo(filevers={nums}, prodvers={nums}, mask=0x3f, flags=0x0, OS=0x40004, fileType=0x1,
+                    subtype=0x0, date=(0, 0)),
+  kids=[
+    StringFileInfo([StringTable('040904b0', [
+      StringStruct('CompanyName', 'TurboDM'),
+      StringStruct('FileDescription', 'TurboDM Download Manager'),
+      StringStruct('FileVersion', '{dotted}'),
+      StringStruct('InternalName', 'TurboDM'),
+      StringStruct('LegalCopyright', 'GNU GPL v3'),
+      StringStruct('OriginalFilename', 'TurboDM.exe'),
+      StringStruct('ProductName', 'TurboDM'),
+      StringStruct('ProductVersion', '{dotted}')])]),
+    VarFileInfo([VarStruct('Translation', [0x0409, 1200])])
+  ]
+)
+"""
+    path = os.path.join(workpath, "version_info.txt")  # noqa: F821 (PyInstaller tanımlar)
+    os.makedirs(workpath, exist_ok=True)  # noqa: F821
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+    return path
+
+
 a = Analysis(
     [os.path.join(ROOT, "main.py")],
     pathex=[ROOT],
@@ -20,7 +52,7 @@ exe = EXE(
     exclude_binaries=True,
     name="TurboDM",
     icon=os.path.join(SPECPATH, "turbodm.ico"),
-    version=os.path.join(SPECPATH, "version_info.txt"),
+    version=version_file(),
     console=False,
     upx=False,
 )

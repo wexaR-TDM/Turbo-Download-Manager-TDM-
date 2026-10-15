@@ -56,8 +56,11 @@ def shot(html, png):
 def popup_frame():
     """Gerçek popup.html'i sahte tarayıcı ortamıyla çalıştıran kopya (görüntü için)."""
     html = open(os.path.join(EXT, "popup.html"), encoding="utf-8").read()
+    msgs = open(os.path.join(EXT, "_locales", "tr", "messages.json"), encoding="utf-8").read()
     stub = """<script>
+const MSGS = """ + msgs + """;
 window.chrome = {
+  i18n: { getMessage(k) { return k === "@@bidi_dir" ? "ltr" : (MSGS[k] || {}).message || ""; } },
   storage: { local: { get(d, cb) { cb({ enabled: true, grabber: true }); }, set() {} } },
   tabs: { query(q, cb) { cb([{ id: 1, url: "https://ornekvideo.test/izle/123", title: "Doğa Belgeseli" }]); } },
   runtime: { sendMessage(m, cb) { cb([{ url: "https://cdn.ornekvideo.test/master.m3u8", label: "Video akışı (HLS) · 1080p" },
@@ -75,7 +78,7 @@ window.fetch = () => Promise.resolve({ json: () => Promise.resolve({ app: "Turbo
 
 def qt_assets():
     from PySide6.QtCore import Qt
-    from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter
+    from PySide6.QtGui import QColor, QFont, QPainter
     from PySide6.QtWidgets import QApplication
     import make_icon
 
@@ -177,6 +180,9 @@ def package():
 if __name__ == "__main__":
     shutil.rmtree(OUT, ignore_errors=True)
     os.makedirs(OUT)
+    with open(os.path.join(DEMO, "messages_tr.js"), "w", encoding="utf-8") as f:  # video.html eklenti metinleri
+        f.write("window.TDM_MSGS = " + open(os.path.join(EXT, "_locales", "tr", "messages.json"),
+                                            encoding="utf-8").read() + ";\n")
     shot(os.path.join(DEMO, "video.html"), os.path.join(OUT, "ekran_1_video.png"))
     popup_frame()
     shot(os.path.join(DEMO, "popup.html"), os.path.join(OUT, "ekran_2_eklenti.png"))

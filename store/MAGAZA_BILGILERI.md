@@ -8,7 +8,8 @@ Partner Center → **Edge** → **Create new extension**
 ---
 
 ## 1) Packages (Paket)
-Yükle: **`TurboDM-Eklenti-1.4.1.zip`** → yüklenince **Continue**.
+Yükle: **`TurboDM-Eklenti-<sürüm>.zip`** (`store\cikti\` içindeki en yeni paket; sürüm `browser_extension\manifest.json`'dan) → yüklenince **Continue**.
+Mağazada yayımlanan eklentiyi güncellemek için: Partner Center → eklenti → **Update** → yeni paket → Publish.
 
 ## 2) Availability (Erişilebilirlik)
 - **Visibility:** Public

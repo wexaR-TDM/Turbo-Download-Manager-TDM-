@@ -293,7 +293,6 @@ class HttpTask:
         self.max_request = int(getattr(item, "max_request", 0) or 0)
         self.lock = threading.Lock()
         self.stop_event = threading.Event()
-        self.threads = []
         self.active = set()        # şu an bir bağlantının çalıştığı segmentler (id)
         self.conn_info = {}        # id(seg) -> durum yazısı (bağlantı penceresi için)
         self.state = "connecting"  # connecting | downloading | completed | error | stopped

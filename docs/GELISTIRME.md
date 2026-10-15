@@ -4,9 +4,10 @@ IDM (Internet Download Manager) mantığıyla çalışan; HTTP/HTTPS, FTP, HLS v
 
 ## Kullanıcılar için: kurulum
 
-`dist\TurboDM-Setup-1.1.0.exe` dosyasını çalıştırın. Windows 10/11 (64 bit). Python ya da başka bir
+[Sürümler sayfasındaki](https://github.com/wexaR-TDM/TurboDM/releases/latest) `TurboDM-Setup-x.x.x.exe` dosyasını çalıştırın. Windows 10/11 (64 bit). Python ya da başka bir
 şey kurmanız gerekmez; ffmpeg dahil her şey içindedir.
 
+* Kurulum başında dil seçilir (varsayılan: Windows'un dili); seçilen dil programın dili olur.
 * Kurulum `C:\Program Files\TurboDM` klasörüne yapılır (yönetici izni ister).
 * Seçenekler: masaüstü kısayolu, magnet/.torrent ilişkilendirmesi, güvenlik duvarı izni, Windows açılışında başlatma.
 * İmzasız olduğu için Windows SmartScreen "Windows bilgisayarınızı korudu" diyebilir:
@@ -42,8 +43,8 @@ Altyapı: yt-dlp + deno (JavaScript çalıştırma ortamı, dosya/ağ erişimi k
 Siteler değişiklik yaptığında **Yardım → Güncellemeleri denetle → Video motorunu güncelle**
 (yt-dlp, `%LOCALAPPDATA%\TurboDM\tools` altına SHA-256 doğrulamasıyla indirilir; yönetici izni gerekmez).
 
-Gizlilik: eklentinin gönderdiği oturum çerezleri diske kaydedilmez; yalnızca indirme sırasında geçici
-bir dosyayla yt-dlp'ye verilir ve hemen silinir.
+Gizlilik: video indirmelerinde eklentinin gönderdiği oturum çerezleri diske kaydedilmez; yalnızca indirme
+sırasında geçici bir dosyayla yt-dlp'ye verilir ve hemen silinir.
 
 ## Güncellemeler (Yardım → Güncellemeleri denetle)
 
@@ -54,13 +55,13 @@ varsa notlarını gösterir; **İndir ve Kur** kurulum dosyasını indirir, SHA-
 
 ### Yeni sürüm yayımlama
 
-1. `turbodm\appinfo.py` → `VERSION` artırın (ör. `1.2.0`). İlk seferde `UPDATE_REPO = "kullanici/depo"` yazın.
-2. `SURUM_NOTLARI.md` en üstüne `## 1.2.0` bölümünü ekleyin.
+1. `turbodm\appinfo.py` → `VERSION` artırın (ör. `1.2.0`).
+2. `SURUM_NOTLARI.md` (Türkçe) ve `RELEASE_NOTES.md` (İngilizce) en üstüne `## 1.2.0` bölümünü ekleyin;
+   güncelleme penceresi programın diline göre birini gösterir.
 3. `powershell -ExecutionPolicy Bypass -File build.ps1` → `dist\TurboDM-Setup-1.2.0.exe` + `dist\latest.json`
 4. Yayımlayın:
-   * GitHub CLI ile: `powershell -ExecutionPolicy Bypass -File publish.ps1`
-   * ya da elle: GitHub → Releases → *Draft a new release* → etiket `v1.2.0` → iki dosyayı da yükleyin →
-     *Set as the latest release* → Publish.
+   `powershell -ExecutionPolicy Bypass -File publish.ps1` (GitHub CLI; değişiklikler commit'lenmiş olmalı).
+   latest.json geliştiricinin anahtarıyla imzalıdır (`installer\sign_update.py`); elle yükleme yapılmaz.
 
 Depo herkese açık (public) olmalıdır; aksi hâlde kullanıcıların programı dosyaları indiremez.
 
@@ -68,12 +69,13 @@ Depo herkese açık (public) olmalıdır; aksi hâlde kullanıcıların program�
 
 Her sürümden önce (yalnızca yerel sunucularla çalışır, internete çıkmaz):
 
-```n powershell -ExecutionPolicy Bypass -File tests\run_tests.ps1 -Installer
+```
+powershell -ExecutionPolicy Bypass -File tests\run_tests.ps1 -Installer
 ```
 
-* `tests\test_turbodm.py`: çok bağlantılı indirme, devam, Range'siz/boyutsuz/boş dosya, bağlantı kopması, 404, yarım gövde, istek boyu sınırı, hız sınırları, yönlendirme ve süresi dolan imzalı adres, disk dolu/izin hataları, dosya adı kuralları, YouTube hızlı mod (birleştirme, devam, adres yenileme, sahipsiz bağlantı, önbellek), HLS (AES, ayrı ses, canlı yayın), FTP, kuyruk, bozuk liste kurtarma, köprü güvenliği, tek kopya, kaldırma temizliği
-* `tests\test_gui.py`: pencereler, tamamlandı/hata pencereleri, bitince kapat geri sayımı, güncelleme denetimi, tarayıcı menüsü akışı, magnet + dosya seçimi
-* `-Installer`: kurulum dosyasını kurar, öz-testini çalıştırır, program açıkken kaldırır ve iz kalmadığını denetler
+* `tests\test_turbodm.py`: çok bağlantılı indirme, devam, Range'siz/boyutsuz/boş dosya, bağlantı kopması, 404, yarım gövde, istek boyu sınırı, hız sınırları, yönlendirme ve süresi dolan imzalı adres, disk dolu/izin hataları, dosya adı kuralları, video hızlı mod (birleştirme, devam, adres yenileme, sahipsiz bağlantı, önbellek), HLS/DASH (AES, ayrı ses, canlı yayın), FTP, kuyruk, bozuk liste kurtarma, köprü güvenliği, tek kopya, kaldırma temizliği, sunucu bağlantı sınırı, imzalı güncelleme, çeviriler
+* `tests\test_gui.py`: pencereler, tamamlandı/hata pencereleri, bitince kapat geri sayımı, güncelleme denetimi, tarayıcı menüsü akışı, magnet + dosya seçimi, toplu seçim, tema, anlık dil değişimi
+* `-Installer`: kurulum dosyasını (Almanca seçilerek) kurar, öz-testini çalıştırır, program açıkken kaldırır ve iz kalmadığını denetler
 
 ## Geliştiriciler için
 
@@ -94,8 +96,17 @@ Adımlar: simge → PyInstaller (`installer\TurboDM.spec`, klasör düzeni) → 
 260 karakter yol sınırı yüzünden kurulum düzeni `%LOCALAPPDATA%\TurboDM-build` altında hazırlanır.
 
 Komut satırı: `TurboDM.exe <url | magnet | dosya.torrent>` (program açıksa isteği ona iletir), `--tray` (tepside
-gizli başlar), `--quit`, `--register-assoc`, `--autostart on|off`, `--cleanup [--partials] [--downloads] [--appdata]`,
-`--selftest <rapor.json>`.
+gizli başlar), `--minimized --resume` (güncelleme sonrası), `--quit`, `--register-assoc`, `--autostart on|off`,
+`--set-language <kod>`, `--cleanup [--partials] [--downloads] [--appdata]`, `--selftest <rapor.json>`.
+
+## Çeviriler
+
+Kaynak dil Türkçedir: arayüz metinleri kodda Türkçe yazılır ve `_t("…")` ile sarılır. Diğer diller
+`turbodm\locale\<dil>.json` dosyalarındadır (Türkçe metin → çeviri). Yeni bir metin eklenince altı dosyaya da
+çevirisi eklenmelidir; `tests\test_turbodm.py` (LocaleTests) eksik çeviriyi ve uyuşmayan yer tutucuyu yakalar.
+Modül düzeyindeki çevrilmiş tablolar `@i18n.on_change` ile tanımlanır: dil değişince program kapanmadan yenilenir.
+Kurulum metinleri `installer\TurboDM.iss` → `[CustomMessages]`, eklenti metinleri `browser_extension\_locales`.
+`installer\i18n_wrap.py --rapor <dosya>` sarılmamış Türkçe metinleri gösterir.
 
 ## Özellikler
 
@@ -106,7 +117,9 @@ gizli başlar), `--quit`, `--register-assoc`, `--autostart on|off`, `--cleanup [
 | **Dinamik segmentasyon** | Parçasını bitiren bağlantı, kalan en büyük parçayı ikiye bölüp ikinci yarısını devralır | `_next_segment` |
 | Devam ettirme | Her parçanın `[başlangıç, bitiş, konum]` bilgisi kaydedilir; program kapansa bile kaldığı yerden sürer | `downloads.json` |
 | FTP | Aynı çok bağlantılı motor; `REST` ile parça/devam, kullanıcı adı-şifre URL'de (`ftp://ad:şifre@sunucu/yol`) | `engine.py` → `_FtpResponse` |
-| HLS (m3u8) | Kalite seçimi, AES-128 şifre çözme, fMP4, ayrı ses kanalı, paralel parça indirme, devam, ffmpeg ile .mp4 | `hls.py` |
+| HLS (m3u8) / DASH (mpd) | Kalite seçimi, AES-128 şifre çözme, fMP4, ayrı ses kanalı, paralel parça indirme, devam, ffmpeg ile .mp4 | `hls.py` |
+| Biçim dönüştürme | İndirme bitince MKV (kayıpsız), AVI veya MP3 | `convert.py` |
+| Sunucu bağlantı sınırı | Sunucunun izin verdiği bağlantı sayısını öğrenir, fazlasını bozmadan bırakır, arada yenisini dener | `engine.py` → `_retire`, `_supervise` |
 | Hata toleransı | Kopan bağlantı artan beklemeyle 8 kez yeniden dener | `_download_segment` |
 | Hız sınırı | Tüm indirmeler tek bir jeton kovasını paylaşır | `SpeedLimiter` |
 | Kategoriler | Uzantıya göre Video/Müzik/Belgeler/… klasörlerine kaydeder | `manager.py` |
@@ -140,5 +153,5 @@ düğmesiyle açılan ekranda magnet için TurboDM'i seçin.
 ## Sınırlar
 
 * DRM'li videolar (Netflix, Disney+, SAMPLE-AES/Widevine) indirilemez; canlı yayınlar desteklenmez.
-* DASH (.mpd) akışları desteklenmez.
-* Eklentinin gönderdiği çerezler (oturum gerektiren indirmeler için) `%APPDATA%\TurboDM\downloads.json` içinde düz metin saklanır.
+* Oturum gerektiren normal (video olmayan) indirmelerde eklentinin gönderdiği çerez, indirme sonradan devam
+  edebilsin diye `%APPDATA%\TurboDM\downloads.json` içinde (yalnızca bu kullanıcının klasöründe) saklanır.

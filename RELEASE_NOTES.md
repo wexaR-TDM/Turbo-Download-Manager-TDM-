@@ -7,6 +7,11 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.6
+• Fix: the version shown in TurboDM.exe's file properties (Details) is now correct (it always said 1.0.0.0)
+• Updated the feature line on the setup wizard's side image
+• General cleanup of code and documents: unused code and texts removed, developer notes updated
+
 ## 1.7.5
 • When the window is closed and the program goes to the system tray, the "The program keeps running in the background" notification is shown only the first time instead of every time
 

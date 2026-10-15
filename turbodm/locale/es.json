@@ -85,7 +85,6 @@
  "Devam ettirme": "Reanudación",
  "Devam verisi denetleniyor": "Comprobando datos de reanudación",
  "Dil / Language:": "Idioma / Language:",
- "Dil değişikliği program yeniden başlatılınca uygulanır. Şimdi yeniden başlatılsın mı?\n(İnmekte olan indirmeler kaldığı yerden devam eder.)": "El cambio de idioma se aplicará al reiniciar. ¿Reiniciar ahora?\n(Las descargas en curso continuarán donde se quedaron.)",
  "Dinleme portu:": "Puerto de escucha:",
  "Diskte yeterli boş alan yok": "No hay suficiente espacio libre en el disco",
  "Diskte yeterli boş alan yok: {0:.2f} GB gerekli, {1:.2f} GB boş": "No hay suficiente espacio libre en el disco: se necesitan {0:.2f} GB, hay {1:.2f} GB libres",
