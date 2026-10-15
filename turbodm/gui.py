@@ -749,14 +749,21 @@ class SmoothProgress:
         self.actual = None
         self.actual_t = 0.0
         self.t = None
+        self.est = 0.0  # hız verilmezse (bağlantı başına) gerçek değerin artışından tahmin
 
     def step(self, actual, speed, size=None, running=True, now=None):
+        """speed=None: hız, gerçek değerin artış hızından tahmin edilir (bağlantı satırları, bağlantı çubuğu)."""
         now = time.monotonic() if now is None else now
         dt = 0.0 if self.t is None else max(0.0, min(now - self.t, 0.5))
         self.t = now
-        speed = max(0.0, speed or 0.0)
         if actual != self.actual:
+            if speed is None and self.actual is not None and actual > self.actual:
+                inst = (actual - self.actual) / max(now - self.actual_t, 0.05)
+                self.est = inst if not self.est else self.est + (inst - self.est) * 0.3
             self.actual, self.actual_t = actual, now
+        elif speed is None and now - self.actual_t > 2.0:
+            self.est = 0.0  # bir süredir artmıyor: bekleyen bağlantı
+        speed = max(0.0, self.est if speed is None else (speed or 0.0))
         if self.shown is None or not running or actual < self.shown - max(speed, 1) * self.LOOKAHEAD * 2:
             # ilk değer, duraklatma/bitiş ya da geri sarma (yeniden başlatılan indirme): doğrudan gerçek değer
             self.shown, self.speed = float(actual), (speed if running else 0.0)
@@ -914,6 +921,7 @@ class ProgressDialog(QDialog):
         self.resize(680, 600)
 
         self.smooth = SmoothProgress()
+        self._detail_smooth = {}  # ayrıntılar: ("s", parça başı) / ("c", bağlantı no) -> SmoothProgress
         self.timer = QTimer(self, interval=500, timeout=self.update_view)
         self.timer.start()
         # yüzde, indirilen ve hız saniyede ~30 kez çizilir: sıçramadan, akıcı ilerler
@@ -933,6 +941,55 @@ class ProgressDialog(QDialog):
         self.lbl["speed"].setText(fmt_speed(speed) or "—")
         self.pbar.setValue(int(pct * 10))
         self.pbar.setFormat(fmt_pct(pct, 1))
+        if not self.is_torrent and self.details.isVisible():
+            self._update_details(it)
+
+    def _update_details(self, it):
+        """Ayrıntılar: bağlantı çubuğu ve bağlantı listesi. İnerken saniyede ~30 kez, akıcı (SmoothProgress)."""
+        running = it.status in ("downloading", "connecting")
+        live = set()
+        if it.task:
+            total, segs = it.task.bar_data()
+            if running:  # her parçanın ilerlemesi (başlangıç noktasına göre) yumuşatılır
+                smooth = []
+                for a, b, pos in segs:
+                    live.add(("s", a))
+                    sm = self._detail_smooth.setdefault(("s", a), SmoothProgress())
+                    smooth.append([a, b, min(b + 1, sm.step(pos, None, b + 1, True)[0])])
+                segs = smooth
+        elif it.status == "completed":
+            total, segs = 1, [[0, 0, 1]]
+        elif it.kind == "hls":
+            total, segs = 1, [[0, 0, (it.done_bytes / it.size) if it.size else 0]]
+        else:
+            total, segs = it.size, [list(s) for s in it.segments]
+        self.bar.set_data(total, segs)
+        conns = it.task.connections_snapshot() if it.task else []
+        if running:  # bağlantı başına indirilen miktar da akıcı
+            smooth = []
+            for n, done, ctotal, info in conns:
+                live.add(("c", n))
+                sm = self._detail_smooth.setdefault(("c", n), SmoothProgress())
+                shown = sm.step(done, None, ctotal or None, True)[0]
+                smooth.append((n, shown, ctotal, info))
+            conns = smooth
+        for k in [k for k in self._detail_smooth if k not in live]:  # biten/bölünen parçalar
+            del self._detail_smooth[k]
+        self.table.setRowCount(len(conns))
+        for r, (n, done, total, info) in enumerate(conns):
+            amount = f"{fmt_size(done)} / {fmt_size(total)}" if total else fmt_size(done)
+            for c, v in enumerate((str(n), amount, info)):
+                cell = self.table.item(r, c)
+                if cell is None:
+                    cell = QTableWidgetItem()
+                    self.table.setItem(r, c, cell)
+                if cell.text() != v:
+                    cell.setText(v)
+            ok = _t("Veri alınıyor") in info  # dil ne olursa olsun; video bağlantılarında "Görüntü · " ile başlar
+            bad = (_t("Yeniden deneniyor ({0}/{1}): {2}").split("{")[0] in info
+                   or _t("Hata: {0}").split("{")[0] in info)
+            color = QColor(theme.T["ok"]) if ok else QColor(theme.T["bad"]) if bad else QColor()
+            self.table.item(r, 2).setForeground(color if color.isValid() else self.palette().text().color())
 
     # ---- olaylar
     def _toggle_details(self):
@@ -1004,15 +1061,7 @@ class ProgressDialog(QDialog):
                 self.table.set_progress([d for *_, d in files])
             return
 
-        if it.task:
-            total, segs = it.task.bar_data()
-        elif it.status == "completed":
-            total, segs = 1, [[0, 0, 1]]
-        elif it.kind == "hls":
-            total, segs = 1, [[0, 0, (it.done_bytes / it.size) if it.size else 0]]
-        else:
-            total, segs = it.size, [list(s) for s in it.segments]
-        self.bar.set_data(total, segs)
+        self._update_details(it)
         if it.kind == "hls":
             n_done, n_total = len(it.extra.get("done", [])), it.extra.get("total")
             self.lbl["parts"].setText(f"{n_done} / {n_total}" if n_total else "—")
@@ -1022,21 +1071,6 @@ class ProgressDialog(QDialog):
             if lim and lim < it.connections:
                 txt += _t("   ·   Sunucu en fazla {0} bağlantıya izin veriyor").format(lim)
             self.lbl["resume"].setText(txt)
-        conns = it.task.connections_snapshot() if it.task else []
-        self.table.setRowCount(len(conns))
-        for r, (n, done, total, info) in enumerate(conns):
-            amount = f"{fmt_size(done)} / {fmt_size(total)}" if total else fmt_size(done)
-            for c, v in enumerate((str(n), amount, info)):
-                cell = self.table.item(r, c)
-                if cell is None:
-                    cell = QTableWidgetItem()
-                    self.table.setItem(r, c, cell)
-                if cell.text() != v:
-                    cell.setText(v)
-            ok = info.startswith(_t("Veri alınıyor"))  # dil ne olursa olsun (çevrilmiş kalıbın başı)
-            bad = info.startswith(_t("Yeniden deneniyor ({0}/{1}): {2}").split("{")[0]) or                 info.startswith(_t("Hata: {0}").split("{")[0])
-            color = QColor(theme.T["ok"]) if ok else QColor(theme.T["bad"]) if bad else QColor()
-            self.table.item(r, 2).setForeground(color if color.isValid() else self.palette().text().color())
         if it.status == "completed":
             self.close()
 

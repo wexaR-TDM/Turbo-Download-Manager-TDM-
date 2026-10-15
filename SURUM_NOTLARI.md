@@ -7,6 +7,10 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.12
+• Akıcı gösterim ayrıntılarda da: indirme penceresindeki bağlantı çubuğu ve bağlantı listesindeki "İndirilen" miktarları artık sıçramadan, yumuşak ilerler
+• Video indirmelerinde bağlantı listesindeki "Veri alınıyor" satırları da yeşil gösterilir
+
 ## 1.7.11
 • Akıcı gösterim: indirme penceresinde ve listede yüzde, indirilen miktar, aktarım hızı ve ilerleme çubuğu artık sıçramadan, yumuşak ilerler (%14 → %18 → %23 gibi atlamalar yerine %14.1, %14.2…); hız dalgalanmadan gösterilir. Yalnızca görünüm değişti, indirme hızı aynı
 

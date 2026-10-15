@@ -333,6 +333,19 @@ class GuiTests(unittest.TestCase):
         self.assertLess(max(steps) / size, 0.005)  # kare başına %0.5'ten az (eskiden %2.5'lik sıçrama)
         # duraklatınca/bitince gösterilen değer gerçek değere hemen eşitlenir, hız 0
         self.assertEqual(s.step(actual, 0, size, False, now=t), (actual, 0.0))
+        # bağlantı satırları: hız verilmez, artıştan tahmin edilir; yine akıcı ve geri gitmeyen
+        c = G.SmoothProgress()
+        t, actual, prev, moved = 0.0, 0, None, 0
+        while t < 5:
+            if int(t * 1000) % 500 < 33:
+                actual += 5_000_000  # bağlantı başına ~10 MB/s, yarım saniyede bir
+            shown, _ = c.step(actual, None, 700_000_000, True, now=t)
+            if prev is not None:
+                self.assertGreaterEqual(shown, prev)
+                moved += shown != prev
+            prev = shown
+            t += 0.033
+        self.assertGreater(moved, 100)  # 150 karenin çoğunda ilerledi (yarım saniyede bir sıçrama değil)
 
     def test_progress_values_redraw_fast(self):
         it = self.win.mgr.add_http(self.s.url("/arsiv.zip"), os.path.join(TMP, "dl", "akici.zip"), start=False)
