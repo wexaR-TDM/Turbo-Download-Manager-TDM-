@@ -24,6 +24,11 @@ if ($LASTEXITCODE) {
     gh api -X PUT "repos/$repo/contents/README.md" -f message="TurboDM" -f content=$b64 --silent
     if ($LASTEXITCODE) { throw "Depoya README eklenemedi" }
 }
+# Kaynak kodu (GPL v3) ve README: sürüm etiketi bu kaydı göstersin diye sürümden önce gönderilir
+$dirty = git -C $root status --porcelain
+if ($dirty) { throw "Kaydedilmemiş değişiklik var: önce git commit (yayımlanan kod ile sürüm aynı olmalı)" }
+git -C $root push origin main
+if ($LASTEXITCODE) { throw "git push başarısız" }
 $notesFile = New-TemporaryFile
 # Sürüm sayfasında en üstte: hangi dosyanın indirileceği ("Source code" dosyalarını GitHub kendisi ekler)
 $body = "**Kurmak için ``TurboDM-Setup-$version.exe`` dosyasını indirin** (aşağıda, Assets bölümünde).`n`n" + $m.notes +
@@ -32,13 +37,10 @@ $body = "**Kurmak için ``TurboDM-Setup-$version.exe`` dosyasını indirin** (a�
 # LGPL: dağıtılan ffmpeg.exe'nin birebir kaynak kodu her sürümle birlikte yayımlanır
 $ffsrc = Get-ChildItem (Join-Path $root "vendor\ffmpeg\source") -Filter "ffmpeg-*-source.tar.gz" | Select-Object -First 1
 if (-not $ffsrc) { throw "vendor\ffmpeg\source içinde ffmpeg kaynak arşivi yok (LGPL gereği yayımlanmalı)" }
-gh release create "v$version" $setup $latest $ffsrc.FullName --repo $repo --title "TurboDM $version" --notes-file $notesFile --latest
+gh release create "v$version" $setup $latest $ffsrc.FullName --repo $repo --target main --title "TurboDM $version" --notes-file $notesFile --latest
 if ($LASTEXITCODE) { throw "gh release create başarısız" }
 Remove-Item $notesFile
 
-# Deponun ön sayfası (README + ekran görüntüleri) her sürümde güncellenir
-python (Join-Path $root "installer\push_readme.py") $repo
-if ($LASTEXITCODE) { Write-Warning "README güncellenemedi" }
 
 # Yalnızca son sürüm kalsın: önceki sürümler (ve etiketleri) silinir. Güncelleme denetimi her zaman
 # releases/latest adresini kullandığı için kurulu programlar bundan etkilenmez.

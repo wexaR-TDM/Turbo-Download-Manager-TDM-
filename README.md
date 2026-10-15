@@ -1,144 +1,107 @@
-# TurboDM — İnternet İndirme Yöneticisi
+<p align="center">
+  <img src="installer/turbodm.png" width="96" alt="TurboDM">
+</p>
 
-IDM (Internet Download Manager) mantığıyla çalışan; HTTP/HTTPS, FTP, HLS video akışları ve BitTorrent destekli indirme yöneticisi.
+<h1 align="center">TurboDM</h1>
+<p align="center"><b>Türkçe, ücretsiz bir IDM alternatifi</b><br>
+Çok bağlantılı indirme · Video yakalayıcı · Torrent · Tarayıcı entegrasyonu</p>
 
-## Kullanıcılar için: kurulum
+<p align="center">
+  <a href="https://github.com/wexaR-TDM/TurboDM/releases/latest"><b>⬇ Son sürümü indir</b></a>
+  &nbsp;·&nbsp; Windows 10 / 11 (64 bit) &nbsp;·&nbsp; Ücretsiz · reklamsız · kâr amacı gütmeyen kişisel proje
+</p>
 
-`dist\TurboDM-Setup-1.1.0.exe` dosyasını çalıştırın. Windows 10/11 (64 bit). Python ya da başka bir
-şey kurmanız gerekmez; ffmpeg dahil her şey içindedir.
+<p align="center">
+  <img src="docs/github/ekran-koyu.png" alt="TurboDM ana pencere (koyu tema)">
+</p>
 
-* Kurulum `C:\Program Files\TurboDM` klasörüne yapılır (yönetici izni ister).
-* Seçenekler: masaüstü kısayolu, magnet/.torrent ilişkilendirmesi, güvenlik duvarı izni, Windows açılışında başlatma.
-* İmzasız olduğu için Windows SmartScreen "Windows bilgisayarınızı korudu" diyebilir:
-  **Ek bilgi → Yine de çalıştır**.
+---
 
-### Kaldırma
+## Neler yapabiliyor?
 
-Başlat menüsü → TurboDM → **TurboDM'i Kaldır**, ya da Ayarlar → Uygulamalar, ya da
-`C:\Program Files\TurboDM\unins000.exe`. Açılan pencerede seçilir:
+### 🚀 IDM mantığıyla hızlı indirme
+- Dosyayı parçalara bölüp **aynı anda birden çok bağlantıyla** indirir; biten bağlantı kalan en büyük parçayı ikiye bölerek yardıma koşar (dinamik bölümleme).
+- **Kaldığı yerden devam:** bağlantı kopsa, bilgisayar kapansa da indirme aynı yerden sürer.
+- **Sunucu bağlantı sınırını öğrenir:** sunucu az bağlantıya izin veriyorsa (ör. dosya paylaşım siteleri) fazla bağlantılar indirmeyi bozmadan çekilir; indirme sorunsuz giderken arada yeni bağlantı denenir, sunucu izin verirse hız artar.
+- Süresi dolan indirme adreslerini mümkünse kendiliğinden yeniler. HTTP, HTTPS ve FTP desteği.
+- IDM'deki gibi indirme penceresi: bağlantıların parçalı ilerleme çubuğu, **hız sınırlayıcı**, **"bitince bilgisayarı kapat / uyut / programdan çık"**.
 
-| Her zaman kaldırılır | Seçmeli |
-|---|---|
-| Program klasörü (sonradan oluşan dosyalar dahil), kısayollar, "Programlar ve Özellikler" kaydı, magnet/.torrent ilişkilendirmesi, Windows açılışında başlatma, güvenlik duvarı kuralı | ☑ Ayarlar, indirme listesi, torrent devam verileri (`%APPDATA%\TurboDM`) — varsayılan açık |
-| | ☑ Yarım kalmış indirmeler (.tdm, .tdm_parts, bitmemiş torrent dosyaları) — varsayılan açık |
-| | ☐ Tamamlanmış indirilen dosyalar (yalnızca TurboDM listesindekiler) — varsayılan kapalı |
+### 🎬 Video indirme
+- Tarayıcı eklentisi, sayfadaki videonun üstüne **"Bu videoyu indir"** düğmesi koyar; tıklayınca kaliteler listelenir (4K, 1080p, yalnızca ses…), seçilen kalite TurboDM'in kayıt penceresinde hazır gelir.
+- Yüzlerce video sitesi desteklenir (yt-dlp ile). HLS (m3u8), DASH (mpd) ve şifreli (AES-128) akışlar indirilip tek dosyada birleştirilir.
+- Gömülü oynatıcılar (başka siteden gelen video) desteklenir: video, oynatıcının kendi adresiyle istenir.
+- **Biçim seçimi:** indirme bitince MP4 olarak bırakılır ya da **MKV** (kayıpsız, saniyeler sürer), **AVI** (eski TV/oynatıcılar için) veya **MP3** (yalnızca ses) olarak kaydedilir.
+- DRM ile korunan yayınlar (Netflix, Disney+ vb.) indirilmez.
 
-TurboDM'in listesinde olmayan hiçbir dosyaya ve TurboDM'in açmadığı hiçbir klasöre dokunulmaz.
-Kaldırma sırasında program açıksa önce düzgünce kapatılır. Sessiz kaldırma: `unins000.exe /VERYSILENT`
-(ayarlar ve yarım kalanlar silinir, indirilenler kalır).
+### 🧲 Torrent
+- Magnet bağlantıları ve .torrent dosyaları doğrudan TurboDM'de açılır; indirmeden önce dosya seçimi.
+- İndirirken yükleme hızı otomatik ayarlanır (dolan yükleme hattı indirmeyi yavaşlatır), şifreli bağlantı ve rastgele port.
 
-Tarayıcı eklentisi tarayıcının kendi listesinde durduğu için onu tarayıcının eklentiler sayfasından kaldırın.
+### 🧩 Tarayıcı entegrasyonu (Edge / Chrome)
+- Tarayıcıda başlatılan indirmeler otomatik olarak TurboDM'e gider; sağ tık → **"TurboDM ile indir"**.
+- Sayfanın yüklediği video/ses akışlarını eklenti penceresinde listeler. Eklenti siteye özel kod içermez, her sitede aynı çalışır.
 
-Sorun tespiti: `"C:\Program Files\TurboDM\TurboDM.exe" --selftest %USERPROFILE%\Desktop\turbodm-test.json`
-arayüz, torrent, şifre çözme, ffmpeg, HTTPS ve indirme motorunu dener; sonuç dosyasında `"hepsi_tamam": true` olmalıdır.
+### 🗂 Düzen ve arayüz
+- Kategoriler, kuyruk, zamanlayıcı; onay kutularıyla **toplu seçim ve toplu işlem**.
+- **Windows'un açık/koyu moduna kendiliğinden uyan** TurboDM teması.
+- Program içinden tek tıkla güncelleme (*Yardım → Güncellemeleri denetle*); güncellemede inmekte olan indirmeler kaldığı yerden sürer.
+- Tamamen Türkçe.
 
-## Site videoları
+<p align="center">
+  <img src="docs/github/ekran-acik.png" alt="TurboDM ana pencere (açık tema)">
+</p>
 
-Tarayıcı eklentisi kuruluysa sayfadaki ana videonun sağ üstünde **"⬇ Bu videoyu indir"** düğmesi çıkar
-(eklenti simgesinden de olur). TurboDM kalite listesini getirir; görüntü ve ses ffmpeg ile tek .mp4'te
-birleşir. Video sayfasının adresini "URL Ekle"ye yapıştırmak da çalışır.
+---
 
-Altyapı: yt-dlp + deno (JavaScript çalıştırma ortamı, dosya/ağ erişimi kapalı), programla gelir.
-Siteler değişiklik yaptığında **Yardım → Güncellemeleri denetle → Video motorunu güncelle**
-(yt-dlp, `%LOCALAPPDATA%\TurboDM\tools` altına SHA-256 doğrulamasıyla indirilir; yönetici izni gerekmez).
+## Kurulum
+1. [Sürümler sayfasından](https://github.com/wexaR-TDM/TurboDM/releases/latest) **TurboDM-Setup-x.x.x.exe** dosyasını indirin. ("Source code" dosyalarına gerek yok; GitHub onları her sürüme kendisi ekler.)
+2. Kurulumu çalıştırın. ffmpeg, yt-dlp vb. gerekli her şey içinde gelir.
+3. Tarayıcı eklentisi: Başlat menüsü → **TurboDM → "Tarayıcı Eklentisi (kurulum yardımı)"**. Eklenti Microsoft Edge Eklentiler mağazasında incelemede; onaylanınca kurulumda otomatik önerilecek.
 
-Gizlilik: eklentinin gönderdiği oturum çerezleri diske kaydedilmez; yalnızca indirme sırasında geçici
-bir dosyayla yt-dlp'ye verilir ve hemen silinir.
+## 🔒 Güvenlik ve gizlilik
+- **Veri toplamaz:** reklam, kullanım istatistiği ya da izleme yok. Program yalnızca indirmek istediğiniz sitelere ve güncelleme denetimi için GitHub'a bağlanır.
+- **Eklenti veriyi dışarı göndermez:** indirme adresleri ve gerekli çerezler yalnızca kendi bilgisayarınızdaki TurboDM'e (127.0.0.1) iletilir. → [Gizlilik politikası](PRIVACY.md)
+- **Yerel köprü korumalı:** web siteleri TurboDM'in yerel adresine istek gönderemez (özel başlık zorunluluğu, DNS rebinding koruması).
+- **Güncellemeler dijital imzalıdır:** her sürümün güncelleme bilgisi, yalnızca geliştiricinin bilgisayarında bulunan bir anahtarla (Ed25519) imzalanır; TurboDM imzası doğrulanmayan güncellemeyi kurmaz. Böylece bu GitHub hesabı ele geçirilse bile kullanıcılara sahte bir "güncelleme" dağıtılamaz. Ayrıca kurulum dosyası yalnızca bu sayfadaki resmi sürümden indirilir ve SHA-256 özeti kontrol edilir.
+- **Derleme bütünlüğü:** kuruluma giren yardımcı programlar (ffmpeg, yt-dlp, deno) resmi kaynaklarından doğrulanarak alınır; her derlemede doğrulanmış özetleriyle karşılaştırılır, değişmişse derleme durur.
+- **Yönetici izni yalnızca kurulumda**; program normal kullanıcı olarak çalışır. Kaldırıcı seçtiğiniz seçeneklere göre iz bırakmadan temizler, indirdiğiniz dosyalara siz istemedikçe dokunmaz.
 
-## Güncellemeler (Yardım → Güncellemeleri denetle)
+> ⚠ **"Bilgisayarınız korundu" uyarısı:** Kurulum dosyası henüz dijital olarak imzalı değil; Windows SmartScreen uyarı gösterebilir → *Ek bilgi → Yine de çalıştır*. Bazı antivirüsler imzasız yeni programlarda yanlış alarm verebilir. Dosyayı yalnızca bu sayfadan indirin; isterseniz [VirusTotal](https://www.virustotal.com)'a yükleyin ya da SHA-256 özetini doğrulayın (sürüm sayfasındaki dosya bilgisinde ve `latest.json` içinde yazar):
+> ```powershell
+> Get-FileHash .\TurboDM-Setup-x.x.x.exe -Algorithm SHA256
+> ```
 
-Program `https://github.com/<UPDATE_REPO>/releases/latest/download/latest.json` dosyasını okur, yeni sürüm
-varsa notlarını gösterir; **İndir ve Kur** kurulum dosyasını indirir, SHA-256 ile doğrular ve çalıştırır
-(kurulum, açık TurboDM'i kapatıp güncelleme modunda kurar). Açılışta günde bir kez sessizce denetler
-(Seçenekler → Genel'den kapatılabilir).
+Kullanılan açık kaynak bileşenler: yt-dlp, ffmpeg (LGPL), libtorrent, deno — lisans metinleri kurulumla birlikte gelir.
+Telif hakkıyla korunan içerikleri yalnızca hak sahibinin izin verdiği ölçüde indirin.
 
-### Yeni sürüm yayımlama
+## 🛣 Yol haritası
+- [x] Çok bağlantılı indirme, devam, hız sınırı, kuyruk ve zamanlayıcı
+- [x] Video yakalayıcı ve sayfa içi kalite menüsü, HLS
+- [x] Torrent (magnet, dosya seçimi, otomatik yükleme sınırı)
+- [x] Program içinden otomatik güncelleme (GitHub)
+- [x] Açık/koyu moda uyan TurboDM teması, toplu işlem
+- [x] Sunucu bağlantı sınırını öğrenen akıllı bağlantı yönetimi
+- [x] DASH akışları, gömülü oynatıcı desteği, MKV/AVI/MP3 dönüştürme
+- [ ] Tarayıcı eklentisinin Edge Eklentiler mağazasında yayımlanması (incelemede), ardından Chrome Web Mağazası
+- [ ] İmzalı kurulum dosyası (SmartScreen uyarısının kalkması)
 
-1. `turbodm\appinfo.py` → `VERSION` artırın (ör. `1.2.0`). İlk seferde `UPDATE_REPO = "kullanici/depo"` yazın.
-2. `SURUM_NOTLARI.md` en üstüne `## 1.2.0` bölümünü ekleyin.
-3. `powershell -ExecutionPolicy Bypass -File build.ps1` → `dist\TurboDM-Setup-1.2.0.exe` + `dist\latest.json`
-4. Yayımlayın:
-   * GitHub CLI ile: `powershell -ExecutionPolicy Bypass -File publish.ps1`
-   * ya da elle: GitHub → Releases → *Draft a new release* → etiket `v1.2.0` → iki dosyayı da yükleyin →
-     *Set as the latest release* → Publish.
+## 🛠 Kaynaktan derleme
+TurboDM'in kaynak kodu bu depodadır; isteyen inceleyebilir ve kendisi derleyebilir.
+- **Gerekenler:** Windows 10/11, Python 3.12, `pip install -r requirements.txt` ve PyInstaller, Inno Setup 6.
+- **Yardımcı programlar:** `installer\fetch_tools.ps1` yt-dlp ve deno'yu resmi sürümlerinden SHA-256 doğrulamasıyla indirir. ffmpeg (LGPL, BtbN) için bkz. `vendor\ffmpeg\source\DERLEME_BILGISI.txt`. Ardından `installer\pin_vendor.ps1` çalıştırılır.
+- **Çalıştırma:** `python main.py`  ·  **Testler:** `tests\run_tests.ps1`  ·  **Kurulum dosyası:** `build.ps1 -NoInstall`
+un_tests.ps1`  ·  **Kurulum dosyası:** `build.ps1 -NoInstall`
+- Resmi sürümlerin güncelleme bilgisi geliştiricinin özel anahtarıyla imzalanır. Kendi derlediğiniz kopya bu anahtara sahip olmadığı için resmi güncelleme kanalına sürüm yayımlayamaz; bu bilinçli bir güvenlik önlemidir.
 
-Depo herkese açık (public) olmalıdır; aksi hâlde kullanıcıların programı dosyaları indiremez.
+Geliştirme notları: [docs/GELISTIRME.md](docs/GELISTIRME.md)
 
-## Testler
+## 📄 Lisans
+TurboDM, **GNU Genel Kamu Lisansı v3 (GPL-3.0)** ile lisanslanmıştır: kullanabilir, inceleyebilir, değiştirebilir ve paylaşabilirsiniz; değiştirilmiş sürümler de aynı lisansla ve kaynak koduyla birlikte paylaşılmalıdır. Ayrıntılar: [LICENSE](LICENSE). Kullanılan açık kaynak bileşenlerin lisansları: [installer/LISANSLAR.txt](installer/LISANSLAR.txt).
 
-Her sürümden önce (yalnızca yerel sunucularla çalışır, internete çıkmaz):
+## ⚖ Hak ihlali bildirimi
+TurboDM kâr amacı gütmeyen, ücretsiz bir kişisel projedir ve hiçbir içerik barındırmaz ya da dağıtmaz; yalnızca kullanıcının kendi seçtiği dosyaları indirir. Programın herhangi bir parçasının, açıklamalarının ya da bu sayfadaki bir içeriğin haklarınızı ihlal ettiğini düşünüyorsanız lütfen **[bir kayıt (issue) açarak](https://github.com/wexaR-TDM/TurboDM/issues/new?title=Hak%20ihlali%20bildirimi)** bildirin: ilgili kısım incelenir ve gerekirse gecikmeden kaldırılır ya da düzeltilir.
 
-```n powershell -ExecutionPolicy Bypass -File tests\run_tests.ps1 -Installer
-```
+TurboDM'in telif hakkıyla korunan içeriklerin izinsiz indirilmesi için kullanılması amaçlanmamıştır; kullanıcılar indirdikleri içerikten kendileri sorumludur.
 
-* `tests\test_turbodm.py`: çok bağlantılı indirme, devam, Range'siz/boyutsuz/boş dosya, bağlantı kopması, 404, yarım gövde, istek boyu sınırı, hız sınırları, yönlendirme ve süresi dolan imzalı adres, disk dolu/izin hataları, dosya adı kuralları, YouTube hızlı mod (birleştirme, devam, adres yenileme, sahipsiz bağlantı, önbellek), HLS (AES, ayrı ses, canlı yayın), FTP, kuyruk, bozuk liste kurtarma, köprü güvenliği, tek kopya, kaldırma temizliği
-* `tests\test_gui.py`: pencereler, tamamlandı/hata pencereleri, bitince kapat geri sayımı, güncelleme denetimi, tarayıcı menüsü akışı, magnet + dosya seçimi
-* `-Installer`: kurulum dosyasını kurar, öz-testini çalıştırır, program açıkken kaldırır ve iz kalmadığını denetler
-
-## Geliştiriciler için
-
-```
-pip install -r requirements.txt
-python main.py
-```
-
-Kurulum dosyasını yeniden üretmek (gerekenler: `pip install pyinstaller`, Inno Setup 6, `vendor\ffmpeg\ffmpeg.exe`;
-yt-dlp ve deno için bir kez `powershell -ExecutionPolicy Bypass -File installer\fetch_tools.ps1`):
-
-```
-powershell -ExecutionPolicy Bypass -File build.ps1
-```
-
-Adımlar: simge → PyInstaller (`installer\TurboDM.spec`, klasör düzeni) → kurulum düzeni → Inno Setup
-(`installer\TurboDM.iss`) → `dist\TurboDM-Setup-<sürüm>.exe`. Proje çok derin bir klasördeyse Inno Setup'ın
-260 karakter yol sınırı yüzünden kurulum düzeni `%LOCALAPPDATA%\TurboDM-build` altında hazırlanır.
-
-Komut satırı: `TurboDM.exe <url | magnet | dosya.torrent>` (program açıksa isteği ona iletir), `--tray` (tepside
-gizli başlar), `--quit`, `--register-assoc`, `--autostart on|off`, `--cleanup [--partials] [--downloads] [--appdata]`,
-`--selftest <rapor.json>`.
-
-## Özellikler
-
-| Özellik | Açıklama | Dosya |
-|---|---|---|
-| Ön sorgu | 1 baytlık `Range` isteğiyle boyut, devam desteği, dosya adı öğrenilir | `engine.py` → `probe` |
-| Çok bağlantı | Dosya N parçaya bölünür, her parça ayrı bağlantıyla aynı dosyaya yazılır | `HttpTask` |
-| **Dinamik segmentasyon** | Parçasını bitiren bağlantı, kalan en büyük parçayı ikiye bölüp ikinci yarısını devralır | `_next_segment` |
-| Devam ettirme | Her parçanın `[başlangıç, bitiş, konum]` bilgisi kaydedilir; program kapansa bile kaldığı yerden sürer | `downloads.json` |
-| FTP | Aynı çok bağlantılı motor; `REST` ile parça/devam, kullanıcı adı-şifre URL'de (`ftp://ad:şifre@sunucu/yol`) | `engine.py` → `_FtpResponse` |
-| HLS (m3u8) | Kalite seçimi, AES-128 şifre çözme, fMP4, ayrı ses kanalı, paralel parça indirme, devam, ffmpeg ile .mp4 | `hls.py` |
-| Hata toleransı | Kopan bağlantı artan beklemeyle 8 kez yeniden dener | `_download_segment` |
-| Hız sınırı | Tüm indirmeler tek bir jeton kovasını paylaşır | `SpeedLimiter` |
-| Kategoriler | Uzantıya göre Video/Müzik/Belgeler/… klasörlerine kaydeder | `manager.py` |
-| Kuyruk + zamanlayıcı | "Sonra İndir" kuyruğa ekler; aynı anda N indirme; belirli saatte başlat/durdur | `Manager._tick_queue` |
-| Pano takibi | Kopyalanan indirilebilir linkler, m3u8 ve magnetler otomatik yakalanır | `gui.py` |
-| Adres yenileme | Süresi dolan linke yeni adres verip kaldığı yerden devam | sağ tık menüsü |
-| Torrent | Magnet ve .torrent, DHT/LSD/UPnP, devam verisi, isteğe bağlı seed | `torrent.py` |
-| Torrent dosya seçimi | Eklerken klasör ağacından dosya seç; magnet'te önce dosya listesi alınır (hiçbir şey inmeden). İndirme sürerken de değiştirilebilir | `TorrentAddDialog` |
-| Windows entegrasyonu | magnet: ve .torrent → TurboDM; Windows açılışında başlatma | `winassoc.py`, Seçenekler |
-
-Ayarlar ve liste: `%APPDATA%\TurboDM\`. İndirmeler: `İndirilenler\TurboDM\<Kategori>\`.
-
-## Tarayıcı eklentisi (Chrome / Edge / Brave)
-
-1. `chrome://extensions` → **Geliştirici modu** açık
-2. **Paketlenmemiş öğe yükle** → `browser_extension` klasörünü seç
-
-Ne yapar:
-* Tarayıcıda başlayan indirmeleri TurboDM'e yönlendirir (TurboDM kapalıysa tarayıcı normal indirir).
-* **Video yakalayıcı:** sayfanın yüklediği video/ses akışlarını (mp4, webm, m3u8…) algılar; videonun
-  üstünde "⬇ Bu videoyu indir" düğmesi çıkar, tıklayınca kalite/dosya listesi açılır. Eklenti simgesindeki
-  sayı bulunan medya sayısıdır; listeye simgeden de ulaşılır.
-* Linklere/videolara sağ tık → "TurboDM ile indir".
-
-## Windows'ta magnet bağlantıları
-
-Seçenekler → Torrent → **"Magnet ve .torrent'i TurboDM ile aç"**. Başka bir torrent programı (ör. qBittorrent)
-Windows'ta varsayılan olarak seçilmişse Windows buna izin vermez; o zaman **"Varsayılan uygulamalar…"**
-düğmesiyle açılan ekranda magnet için TurboDM'i seçin.
-
-## Sınırlar
-
-* DRM'li videolar (Netflix, Disney+, SAMPLE-AES/Widevine) indirilemez; canlı yayınlar desteklenmez.
-* DASH (.mpd) akışları desteklenmez.
-* Eklentinin gönderdiği çerezler (oturum gerektiren indirmeler için) `%APPDATA%\TurboDM\downloads.json` içinde düz metin saklanır.
+## Geri bildirim
+Hata ya da öneri için [Issues](https://github.com/wexaR-TDM/TurboDM/issues) sayfasından kayıt açabilirsiniz. Hata bildirirken Windows sürümünüzü ve sorunun nasıl oluştuğunu yazmanız çok yardımcı olur.

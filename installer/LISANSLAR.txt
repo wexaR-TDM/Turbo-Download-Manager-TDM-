@@ -1,3 +1,6 @@
+TurboDM — GNU Genel Kamu Lisansı v3 (GPL-3.0). Lisans metni: LICENSE.txt
+Kaynak kodu: https://github.com/wexaR-TDM/TurboDM
+
 TurboDM, aşağıdaki açık kaynak bileşenleri kullanır:
 
   Python 3.12          — PSF License                 https://www.python.org

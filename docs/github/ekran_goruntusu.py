@@ -7,7 +7,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 os.environ["QT_QPA_FONTDIR"] = r"C:\Windows\Fonts"
 tmp = tempfile.mkdtemp(prefix="tdm_shot_")
 os.environ["APPDATA"] = tmp
-sys.path.insert(0, r"C:\TurboDM Projem")
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))  # proje kökü
 from PySide6.QtGui import QFont  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 

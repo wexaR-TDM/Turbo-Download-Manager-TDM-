@@ -64,6 +64,7 @@ Copy-Item (Join-Path $root "installer\turbodm.ico") $stage
 Copy-Item (Join-Path $root "browser_extension") (Join-Path $stage "browser_extension") -Recurse
 Copy-Item (Join-Path $root "installer\TARAYICI_EKLENTISI.txt") $stage
 Copy-Item (Join-Path $root "installer\LISANSLAR.txt") $stage
+Copy-Item (Join-Path $root "LICENSE") (Join-Path $stage "LICENSE.txt")  # GPL: lisans metni programla birlikte
 
 # Derleme parmak izi: kurulacak tüm dosyaların içeriğinden. Aynı sürüm numarasıyla farklı bir derleme
 # kurulursa kurulum programı bunu "değişiklik var" olarak algılar ve günceller.

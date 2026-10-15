@@ -1,6 +1,6 @@
 # Edge Add-ons mağazası — form alanları
 
-Tüm dosyalar: `C:\TurboDM Projem\store\cikti\`
+Tüm dosyalar: proje klasöründe `store\cikti\`
 (Yeniden üretmek için: `python store\make_store_assets.py`)
 
 Partner Center → **Edge** → **Create new extension**

@@ -24,7 +24,7 @@ from . import server
 from . import theme
 from . import updater
 from . import ytdlp
-from .appinfo import VERSION
+from .appinfo import UPDATE_REPO, VERSION
 from . import torrent as tmod
 from . import winassoc
 from .engine import fetch_torrent, filename_from_url, looks_like_torrent, probe, sanitize_filename
@@ -1583,7 +1583,8 @@ class MainWindow(QMainWindow):
         m.addSeparator()
         m.addAction("Hakkında", lambda: QMessageBox.about(
             self, APP_NAME, f"<b>{APP_NAME}</b> {VERSION}<br>Çok bağlantılı HTTP/HTTPS, FTP, HLS video, "
-                            f"video ve BitTorrent indirme yöneticisi."))
+                            f"video ve BitTorrent indirme yöneticisi.<br><br>Özgür yazılım: GNU GPL v3 lisansı. "
+                            f'Kaynak kodu: <a href="https://github.com/{UPDATE_REPO}">github.com/{UPDATE_REPO}</a>'))
 
         tb = QToolBar("Araçlar")
         tb.setObjectName("main")
