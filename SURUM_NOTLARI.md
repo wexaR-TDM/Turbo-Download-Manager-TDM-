@@ -3,6 +3,10 @@
 Her yeni sürümde en üste bir bölüm ekleyin. "Güncellemeleri denetle" penceresinde kullanıcıya
 o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar).
 
+## 1.6.2
+• TurboDM artık açık kaynak: GNU GPL v3 lisansı; kaynak kodu github.com/wexaR-TDM/TurboDM adresinde
+• Lisans metni kurulumla birlikte gelir; Hakkında penceresinde lisans ve kaynak kodu bağlantısı
+
 ## 1.6.1
 • İndirme pencereleri ana pencereden bağımsız: ana pencere simge durumuna küçültülünce onlar açık kalır
 

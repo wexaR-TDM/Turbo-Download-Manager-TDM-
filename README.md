@@ -82,6 +82,7 @@ Telif hakkıyla korunan içerikleri yalnızca hak sahibinin izin verdiği ölç�
 - [x] Açık/koyu moda uyan TurboDM teması, toplu işlem
 - [x] Sunucu bağlantı sınırını öğrenen akıllı bağlantı yönetimi
 - [x] DASH akışları, gömülü oynatıcı desteği, MKV/AVI/MP3 dönüştürme
+- [x] Açık kaynak (GPL v3)
 - [ ] Tarayıcı eklentisinin Edge Eklentiler mağazasında yayımlanması (incelemede), ardından Chrome Web Mağazası
 - [ ] İmzalı kurulum dosyası (SmartScreen uyarısının kalkması)
 
