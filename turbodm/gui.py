@@ -7,8 +7,8 @@ import time
 import urllib.parse
 from datetime import datetime
 
-from PySide6.QtCore import QObject, QPointF, QRectF, QSize, Qt, QTime, QTimer, Signal
-from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtCore import QObject, QPointF, QRectF, QSize, Qt, QTime, QTimer, QUrl, Signal
+from PySide6.QtGui import QAction, QColor, QDesktopServices, QIcon, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel,
@@ -1580,6 +1580,8 @@ class MainWindow(QMainWindow):
         self._add_select_menu(m.addMenu("Toplu seçim"))
         m = mb.addMenu("&Yardım")
         m.addAction(self.a_update)
+        m.addAction(theme.icon("document"), "Sürüm notları", lambda: QDesktopServices.openUrl(
+            QUrl(f"https://github.com/{UPDATE_REPO}/blob/main/SURUM_NOTLARI.md")))
         m.addSeparator()
         m.addAction("Hakkında", lambda: QMessageBox.about(
             self, APP_NAME, f"<b>{APP_NAME}</b> {VERSION}<br>Çok bağlantılı HTTP/HTTPS, FTP, HLS video, "

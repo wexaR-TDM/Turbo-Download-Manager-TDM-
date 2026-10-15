@@ -74,6 +74,9 @@
 Kullanılan açık kaynak bileşenler: yt-dlp, ffmpeg (LGPL), libtorrent, deno — lisans metinleri kurulumla birlikte gelir.
 Telif hakkıyla korunan içerikleri yalnızca hak sahibinin izin verdiği ölçüde indirin.
 
+## 📝 Sürüm notları
+Her sürümde nelerin değiştiğini **[SURUM_NOTLARI.md](SURUM_NOTLARI.md)** dosyasında görebilirsiniz (programda: *Yardım → Sürüm notları*).
+
 ## 🛣 Yol haritası
 - [x] Çok bağlantılı indirme, devam, hız sınırı, kuyruk ve zamanlayıcı
 - [x] Video yakalayıcı ve sayfa içi kalite menüsü, HLS

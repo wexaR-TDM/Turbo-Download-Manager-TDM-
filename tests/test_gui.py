@@ -304,6 +304,14 @@ class GuiTests(unittest.TestCase):
             self.assertEqual(new[0].extra.get("convert"), "mkv")
             self.win.mgr.remove(new[0].id, False)
 
+    def test_release_notes_menu_opens_public_notes(self):
+        opened = []
+        with mock.patch.object(G.QDesktopServices, "openUrl", lambda u: opened.append(u.toString())):
+            act = next(a for m in self.win.menuBar().findChildren(G.QMenu) for a in m.actions()
+                       if a.text() == "Sürüm notları")
+            act.trigger()
+        self.assertEqual(opened, ["https://github.com/wexaR-TDM/TurboDM/blob/main/SURUM_NOTLARI.md"])
+
     def test_list_survives_restart(self):
         it = self.win.mgr.add_http(self.s.url("/arsiv.zip"), os.path.join(TMP, "dl", "kalici.zip"), start=False)
         self.win.mgr.save()

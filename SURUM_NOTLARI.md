@@ -1,7 +1,14 @@
 # TurboDM sürüm notları
 
-Her yeni sürümde en üste bir bölüm ekleyin. "Güncellemeleri denetle" penceresinde kullanıcıya
-o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar).
+Her sürümde nelerin değiştiği, en yeni sürüm en üstte. Son sürümü indirmek için:
+**[github.com/wexaR-TDM/TurboDM/releases/latest](https://github.com/wexaR-TDM/TurboDM/releases/latest)**
+Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*.
+
+<!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir. "Güncellemeleri denetle"
+     penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
+
+## 1.6.3
+• Yardım → Sürüm notları: tüm sürümlerin değişiklik notları tek sayfada (GitHub'da da herkese açık)
 
 ## 1.6.2
 • TurboDM artık açık kaynak: GNU GPL v3 lisansı; kaynak kodu github.com/wexaR-TDM/TurboDM adresinde
