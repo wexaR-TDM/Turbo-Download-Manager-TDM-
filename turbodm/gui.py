@@ -2244,7 +2244,11 @@ class MainWindow(QMainWindow):
             return
         e.ignore()
         self.hide()
-        self.tray.showMessage(APP_NAME, _t("Program arka planda çalışmaya devam ediyor."), self.icon, 2000)
+        # yalnızca ilk kez: programın kapanmadığını öğrensin, sonra her seferinde bildirim göstermesin
+        if not self.mgr.settings.get("tray_hint_shown"):
+            self.mgr.settings["tray_hint_shown"] = True
+            self.mgr.save()
+            self.tray.showMessage(APP_NAME, _t("Program arka planda çalışmaya devam ediyor."), self.icon, 2000)
 
     # ---------------------------------------------------------- dil
     def set_language(self, code):

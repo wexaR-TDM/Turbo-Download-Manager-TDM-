@@ -314,6 +314,18 @@ class GuiTests(unittest.TestCase):
             act.trigger()
         self.assertEqual(opened, ["https://github.com/wexaR-TDM/TurboDM/blob/main/SURUM_NOTLARI.md"])
 
+    def test_tray_hint_shown_only_once(self):
+        # pencere kapatılınca tepsiye iner; "arka planda çalışıyor" bildirimi yalnızca ilk sefer
+        shown = []
+        self.win.mgr.settings.pop("tray_hint_shown", None)
+        with mock.patch.object(self.win.tray, "showMessage", lambda *a, **k: shown.append(a)):
+            for _ in range(3):
+                self.win.show()
+                self.win.close()
+                APP.processEvents()
+        self.assertEqual(len(shown), 1)
+        self.assertTrue(self.win.mgr.settings["tray_hint_shown"])
+
     def test_language_menu_switches_instantly(self):
         # menü çubuğunda sabit "Language" menüsü; seçince program kapanmadan her şey yeni dilde
         it = self.win.mgr.add_http(self.s.url("/arsiv.zip"), os.path.join(TMP, "dl", "dil.zip"), start=False)

@@ -138,7 +138,10 @@ class Manager:
         # bağlantıdan alınıp dosya seçimi bekleyen geçici .torrent'ler (eklenince TORRENT_DIR'e kopyalanır)
         shutil.rmtree(os.path.join(TORRENT_DIR, "gelen"), ignore_errors=True)
         self.settings = dict(DEFAULT_SETTINGS)
-        self.settings.update(self._load_json("settings.json", {}))
+        saved = self._load_json("settings.json", {})
+        if saved and "tray_hint_shown" not in saved:
+            saved["tray_hint_shown"] = True  # önceki sürümlerden gelen kullanıcı bu bildirimi zaten gördü
+        self.settings.update(saved)
         if not self.settings["torrent_port_random"] and self.settings["torrent_port"] in (0, 6881):
             # bilinen BitTorrent portu yerine bu bilgisayara özgü rastgele bir port (bir kez seçilir)
             import random

@@ -7,6 +7,9 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.5
+• Pencere kapatılıp program sistem tepsisine indiğinde "Program arka planda çalışmaya devam ediyor" bildirimi artık her seferinde değil, yalnızca ilk kez gösterilir
+
 ## 1.7.4
 • Tarayıcı eklentisi 1.5.1: video bulunan sekme kapatılınca eklentiler sayfasında görünen "No tab with id" hata kaydı artık oluşmuyor (zararsızdı, işleyişi etkilemiyordu)
 
