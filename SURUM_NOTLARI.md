@@ -7,6 +7,9 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.15
+• Tarayıcı eklentisi 1.6.2: eklenti güncellenince ya da yeniden yüklenince açık sekmelerde eklentiler sayfasına düşen "Extension context invalidated" hata kaydı giderildi; eski kopya düğmelerini kaldırıp sessizce durur (sayfa yenilenince yeni sürüm çalışır)
+
 ## 1.7.14
 • Tarayıcı eklentisi 1.6.1: sayfada video varsa eklenti penceresinde de "Video kaliteleri" listelenir; bir kaliteye tıklayınca TurboDM'in kayıt penceresi o kalite seçili açılır (videonun üstündeki menüyle aynı)
 

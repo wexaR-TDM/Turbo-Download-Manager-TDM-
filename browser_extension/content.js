@@ -7,13 +7,30 @@
 (() => {
   if (window.__tdmLoaded) return;
   window.__tdmLoaded = true;
-  const M = (key) => chrome.i18n.getMessage(key) || key;  // _locales/<dil>/messages.json
+  const M = (key) => { try { return chrome.i18n.getMessage(key) || key; } catch { return key; } };  // _locales
+
+  // Eklenti güncellenince ya da yeniden yüklenince açık sekmelerdeki eski kopya eklentiyle bağını kaybeder
+  // ("Extension context invalidated"). O zaman sessizce durur: düğmeleri kaldırır, zamanlayıcıları kapatır.
+  function alive() {
+    try { return !!(chrome.runtime && chrome.runtime.id); } catch { return false; }
+  }
+  let timer = null, observer = null;
+  function shutdown() {
+    clearInterval(timer);
+    if (observer) observer.disconnect();
+    window.removeEventListener("scroll", position);
+    window.removeEventListener("resize", position);
+    document.removeEventListener("click", closeMenus);
+    document.querySelectorAll(".tdm-grab, .tdm-menu").forEach((el) => el.remove());
+    window.__tdmLoaded = false;  // sayfa yenilenmeden yeni sürüm eklenirse o çalışabilsin
+  }
   let mediaCount = 0;
   const panels = new WeakMap();
   let lastHref = location.href;
 
   function send(msg) {
     return new Promise((res) => {
+      if (!alive()) { res(null); return; }
       try { chrome.runtime.sendMessage(msg, (r) => res(chrome.runtime.lastError ? null : r)); }
       catch { res(null); }
     });
@@ -172,6 +189,7 @@
   }
 
   function position() {
+    if (!alive()) { shutdown(); return; }
     if (location.href !== lastHref) {  // sayfa içi geçiş (tek sayfalık uygulamalar): eski menüyü kapat
       lastHref = location.href;
       closeMenus();
@@ -205,8 +223,9 @@
   document.addEventListener("click", closeMenus);
   window.addEventListener("scroll", position, { passive: true });
   window.addEventListener("resize", position);
-  new MutationObserver(() => position()).observe(document.documentElement, { childList: true, subtree: true });
-  setInterval(position, 1000);
+  observer = new MutationObserver(() => position());
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  timer = setInterval(position, 1000);
   send({ type: "tdm-frame", url: location.href });  // bu çerçevenin adresi (gömülü oynatıcılar için)
   send({ type: "tdm-list" }).then((l) => { mediaCount = (l || []).length; position(); });
 })();

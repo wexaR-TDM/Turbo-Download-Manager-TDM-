@@ -711,7 +711,8 @@ class ExtensionTests(unittest.TestCase):
         srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
         threading.Thread(target=srv.serve_forever, daemon=True).start()
         ext = "file:///" + os.path.join(ROOT, "browser_extension").replace("\\", "/") + "/"
-        stub = ("window.chrome={i18n:{getMessage:k=>k},runtime:{lastError:null,onMessage:{addListener(){}},"
+        stub = ("window.__errs=0;addEventListener('error',()=>__errs++);addEventListener('unhandledrejection',()=>__errs++);"
+                "window.chrome={i18n:{getMessage:k=>k},runtime:{id:'test',lastError:null,onMessage:{addListener(){}},"
                 "sendMessage(m,cb){setTimeout(()=>cb(m.type==='tdm-list'?[{url:'x',kind:'hls',label:'x'}]:{ok:true}),5)}}};")
         pages = {
             "hikaye": '<div style="position:absolute;left:400px;top:50px;width:500px;height:700px;overflow:hidden">'
@@ -720,6 +721,10 @@ class ExtensionTests(unittest.TestCase):
                       '<video style="position:absolute;left:1000px;top:100px;width:300px;height:300px;opacity:0"></video>',
             "youtube": '<style>body{overflow:auto scroll;height:0}</style><div style="overflow:hidden;width:1080px;'
                        'height:608px;margin:60px 16px"><video style="width:1080px;height:608px"></video></div>',
+            # eklenti güncellendi: eski kopya bağını kaybeder (runtime.id kalkar) → düğmeleri kaldırıp sessizce durmalı
+            "yetim": '<video style="width:1000px;height:560px"></video>'
+                     '<script>setTimeout(()=>{delete chrome.runtime.id;chrome.i18n.getMessage=()=>{throw new Error('
+                     '"Extension context invalidated.")}},700)</script>',
         }
         procs = []
         try:
@@ -728,7 +733,7 @@ class ExtensionTests(unittest.TestCase):
                         f'<script>{stub}</script></head><body style="margin:0">{body}<script src="{ext}content.js"></script>'
                         f'<script>setTimeout(()=>{{const b=[...document.querySelectorAll(".tdm-grab")].filter(e=>'
                         f'e.style.display==="block");fetch("http://127.0.0.1:{srv.server_port}/",{{method:"POST",'
-                        f'mode:"no-cors",body:"{name}="+b.length+"@"+b.map(e=>parseInt(e.style.left)).join(",")}})}},1500)'
+                        f'mode:"no-cors",body:"{name}="+b.length+"@"+b.map(e=>parseInt(e.style.left)).join(",")+"!"+__errs}})}},2500)'
                         f'</script></body></html>')
                 path = os.path.join(TMP, f"eklenti_{name}.html")
                 with open(path, "w", encoding="utf-8") as f:
@@ -746,10 +751,11 @@ class ExtensionTests(unittest.TestCase):
             srv.shutdown()
         count, _, lefts = results.get("hikaye", "0@").partition("@")
         self.assertEqual(count, "1", results)  # yalnızca ortadaki video
-        self.assertTrue(400 < int(lefts) < 900, results)
+        self.assertTrue(400 < int(lefts.split("!")[0]) < 900, results)
         count, _, lefts = results.get("youtube", "0@").partition("@")
         self.assertEqual(count, "1", results)  # YouTube'da düğme kaybolmamalı
-        self.assertTrue(16 < int(lefts) < 1096, results)
+        self.assertTrue(16 < int(lefts.split("!")[0]) < 1096, results)
+        self.assertEqual(results.get("yetim"), "0@!0", results)  # düğme kaldırıldı, hiç hata fırlatılmadı
 
     def test_extension_popup_hides_empty_media_section(self):
         # "Bu sayfadaki medyalar" yalnızca sayfada akış bulunduysa görünür (boş "Yok" yazısı gösterilmez)
