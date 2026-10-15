@@ -7,6 +7,9 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*.
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir. "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.6.4
+• Güncelleme penceresi, güncellemede ne olacağını açıklar: program kısa süre kapanır, kurulum bitince görev çubuğunda kendiliğinden açılır, inmekte olan indirmeler kaldığı yerden sürer
+
 ## 1.6.3
 • Yardım → Sürüm notları: tüm sürümlerin değişiklik notları tek sayfada (GitHub'da da herkese açık)
 

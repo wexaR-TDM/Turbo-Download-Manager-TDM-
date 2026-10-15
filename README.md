@@ -11,6 +11,9 @@
   &nbsp;·&nbsp; Windows 10 / 11 (64 bit) &nbsp;·&nbsp; Ücretsiz · reklamsız · kâr amacı gütmeyen kişisel proje
 </p>
 
+> [!NOTE]
+> **Sık güncelleme notu:** TurboDM şu sıralar sık güncelleniyor. Güncelleme sırasında program kısa süre kapanır; kurulum bitince görev çubuğunda kendiliğinden yeniden açılır ve inmekte olan indirmeleriniz kaldığı yerden devam eder. Bir şey yapmanıza gerek yok.
+
 <p align="center">
   <img src="docs/github/ekran-koyu.png" alt="TurboDM ana pencere (koyu tema)">
 </p>

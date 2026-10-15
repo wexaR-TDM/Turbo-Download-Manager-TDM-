@@ -1251,6 +1251,11 @@ class SchedulerDialog(QDialog):
 
 
 # ------------------------------------------------------------------ güncellemeler
+UPDATE_NOTE = ("ℹ TurboDM sık güncelleniyor. Güncelleme sırasında program kısa süre kapanır; kurulum bitince "
+               "görev çubuğunda kendiliğinden yeniden açılır ve inmekte olan indirmeleriniz kaldığı yerden devam eder. "
+               "Bir şey yapmanıza gerek yok.")
+
+
 class UpdateDialog(QDialog):
     """Yardım → Güncellemeleri denetle: TurboDM'in kendisi + YouTube motoru (yt-dlp)."""
 
@@ -1271,6 +1276,11 @@ class UpdateDialog(QDialog):
         self.notes.hide()
         self.app_bar = QProgressBar()
         self.app_bar.hide()
+        # Sürümler sık çıktığı için: güncellemenin indirmeleri bozmadığını baştan söyle
+        self.app_note = QLabel(UPDATE_NOTE)
+        self.app_note.setWordWrap(True)
+        self.app_note.setStyleSheet(f"color: {theme.T['muted']};")
+        self.app_note.hide()
         self.app_btn = QPushButton("İndir ve Kur")
         self.app_btn.hide()
         self.app_btn.clicked.connect(self._install)
@@ -1278,6 +1288,7 @@ class UpdateDialog(QDialog):
         l1 = QVBoxLayout(g1)
         l1.addWidget(self.app_lbl)
         l1.addWidget(self.notes)
+        l1.addWidget(self.app_note)
         l1.addWidget(self.app_bar)
         r1 = QHBoxLayout()
         r1.addStretch()
@@ -1344,7 +1355,8 @@ class UpdateDialog(QDialog):
                 self.app_lbl.setText(f"Denetlenemedi: {err}")
             return
         if isinstance(info, str):  # indirme bitti → kurulum dosyasının yolu
-            self.app_lbl.setText("Kurulum başlatılıyor… TurboDM, kurulum sırasında otomatik olarak kapanacak.")
+            self.app_lbl.setText("Kurulum başlatılıyor… TurboDM kısa süre kapanacak, kurulum bitince görev "
+                                 "çubuğunda kendiliğinden açılacak; inmekte olan indirmeler kaldığı yerden sürecek.")
             try:
                 updater.run_installer(info)
             except OSError as e:
@@ -1362,6 +1374,7 @@ class UpdateDialog(QDialog):
         if info.get("notes"):
             self.notes.setPlainText(info["notes"])
             self.notes.show()
+        self.app_note.show()
         self.app_btn.show()
 
     def _install(self):

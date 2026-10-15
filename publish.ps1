@@ -31,7 +31,8 @@ git -C $root push origin main
 if ($LASTEXITCODE) { throw "git push başarısız" }
 $notesFile = New-TemporaryFile
 # Sürüm sayfasında en üstte: hangi dosyanın indirileceği ("Source code" dosyalarını GitHub kendisi ekler)
-$body = "**Kurmak için ``TurboDM-Setup-$version.exe`` dosyasını indirin** (aşağıda, Assets bölümünde).`n`n" + $m.notes +
+$body = "**Kurmak için ``TurboDM-Setup-$version.exe`` dosyasını indirin** (aşağıda, Assets bölümünde).`n`n" +
+        "> ℹ️ TurboDM şu sıralar sık güncelleniyor. Güncelleme sırasında program kısa süre kapanır; kurulum bitince görev çubuğunda kendiliğinden yeniden açılır ve inmekte olan indirmeleriniz kaldığı yerden devam eder. Bir şey yapmanıza gerek yok.`n`n" + $m.notes +
         "`n`n---`n<sub>``ffmpeg-...-source.tar.gz``: kurulumla gelen ffmpeg.exe'nin birebir kaynak kodu (LGPL gereği). Kurulum için gerekmez.</sub>"
 [IO.File]::WriteAllText($notesFile, $body, (New-Object Text.UTF8Encoding $false))
 # LGPL: dağıtılan ffmpeg.exe'nin birebir kaynak kodu her sürümle birlikte yayımlanır

@@ -147,6 +147,7 @@ class GuiTests(unittest.TestCase):
             d = G.UpdateDialog(self.win)
             d.show()
             self.assertTrue(pump(10, lambda: d.app_btn.isVisible()), d.app_lbl.text())
+            self.assertTrue(d.app_note.isVisible() and "kaldığı yerden" in d.app_note.text())
             d._install()
             self.assertTrue(pump(15, lambda: launched), d.app_lbl.text())
             self.assertEqual(open(launched[0], "rb").read(), setup)
