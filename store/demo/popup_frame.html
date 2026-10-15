@@ -43,7 +43,7 @@
   #page:hover { background: var(--accent-hover); }
   #page:disabled { opacity: .55; cursor: default; }
   /* sayfanın yüklediği akışlar: yalnızca bulunduysa görünür */
-  #media h4 { margin: 0; padding: 9px 12px; font-size: 12px; color: var(--muted); font-weight: 600;
+  #quals h4, #media h4 { margin: 0; padding: 9px 12px; font-size: 12px; color: var(--muted); font-weight: 600;
     border-bottom: 1px solid var(--border); }
   #media h4 #count { color: var(--accent); }
   .m { display: flex; gap: 8px; align-items: center; padding: 7px 12px; }
@@ -51,7 +51,12 @@
   .m span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .m button { background: var(--surface2); color: var(--accent); padding: 5px 10px; font-weight: 600; }
   .m button:hover { background: var(--hover); }
-  #list { max-height: 220px; overflow: auto; }
+  #list, #qlist { max-height: 220px; overflow: auto; }
+  /* video kaliteleri: satırın tamamı tıklanır (sayfadaki menüyle aynı) */
+  .q { padding: 8px 12px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .q + .q { border-top: 1px solid var(--border); }
+  .q:hover { background: var(--hover); }
+  .note { padding: 9px 12px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -66,6 +71,10 @@
       <label class="switch"><span data-i18n="popupGrabber"></span><input type="checkbox" id="gr"></label>
     </div>
     <button id="page" data-i18n="popupPage" style="display:none"></button>
+    <div id="quals" class="card" style="display:none">
+      <h4 data-i18n="popupQualities"></h4>
+      <div id="qlist"></div>
+    </div>
     <div id="media" class="card" style="display:none">
       <h4><span data-i18n="popupMedia"></span> · <span id="count"></span></h4>
       <div id="list"></div>
@@ -150,15 +159,21 @@ const MSGS = {
   },
   "opened": {
     "message": "✔ TurboDM'de açıldı"
+  },
+  "popupQualities": {
+    "message": "Video kaliteleri"
   }
 }
 ;
 window.chrome = {
   i18n: { getMessage(k) { return k === "@@bidi_dir" ? "ltr" : (MSGS[k] || {}).message || ""; } },
   storage: { local: { get(d, cb) { cb({ enabled: true, grabber: true }); }, set() {} } },
-  tabs: { query(q, cb) { cb([{ id: 1, url: "https://ornekvideo.test/izle/123", title: "Doğa Belgeseli" }]); } },
-  runtime: { sendMessage(m, cb) { cb([{ url: "https://cdn.ornekvideo.test/master.m3u8", label: "Video akışı (HLS) · 1080p" },
-                                     { url: "https://cdn.ornekvideo.test/tanitim.mp4", label: "Video · 48,2 MB · video/mp4" }]); } },
+  tabs: { query(q, cb) { cb([{ id: 1, url: "https://ornekvideo.test/izle/123", title: "Doğa Belgeseli" }]); },
+          sendMessage(id, m, cb) { cb({ video: true }); } },
+  runtime: { lastError: null, sendMessage(m, cb) { setTimeout(() => cb(m.type === "tdm-formats"
+      ? { title: "Doğa Belgeseli", choices: [{ label: "2160p (4K) · mp4 · 1,8 GB" }, { label: "1080p · mp4 · 512 MB" },
+                                             { label: "720p · mp4 · 260 MB" }, { label: "Yalnızca ses · m4a · 18 MB" }] }
+      : [{ url: "https://cdn.ornekvideo.test/master.m3u8", label: "Video akışı (HLS) · 1080p" }]), 20); } },
 };
 window.fetch = () => Promise.resolve({ json: () => Promise.resolve({ app: "TurboDM" }) });
 </script>

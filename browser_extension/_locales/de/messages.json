@@ -76,5 +76,8 @@
   },
   "opened": {
     "message": "✔ In TurboDM geöffnet"
+  },
+  "popupQualities": {
+    "message": "Videoqualitäten"
   }
 }

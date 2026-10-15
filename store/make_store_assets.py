@@ -62,9 +62,12 @@ const MSGS = """ + msgs + """;
 window.chrome = {
   i18n: { getMessage(k) { return k === "@@bidi_dir" ? "ltr" : (MSGS[k] || {}).message || ""; } },
   storage: { local: { get(d, cb) { cb({ enabled: true, grabber: true }); }, set() {} } },
-  tabs: { query(q, cb) { cb([{ id: 1, url: "https://ornekvideo.test/izle/123", title: "Doğa Belgeseli" }]); } },
-  runtime: { sendMessage(m, cb) { cb([{ url: "https://cdn.ornekvideo.test/master.m3u8", label: "Video akışı (HLS) · 1080p" },
-                                     { url: "https://cdn.ornekvideo.test/tanitim.mp4", label: "Video · 48,2 MB · video/mp4" }]); } },
+  tabs: { query(q, cb) { cb([{ id: 1, url: "https://ornekvideo.test/izle/123", title: "Doğa Belgeseli" }]); },
+          sendMessage(id, m, cb) { cb({ video: true }); } },
+  runtime: { lastError: null, sendMessage(m, cb) { setTimeout(() => cb(m.type === "tdm-formats"
+      ? { title: "Doğa Belgeseli", choices: [{ label: "2160p (4K) · mp4 · 1,8 GB" }, { label: "1080p · mp4 · 512 MB" },
+                                             { label: "720p · mp4 · 260 MB" }, { label: "Yalnızca ses · m4a · 18 MB" }] }
+      : [{ url: "https://cdn.ornekvideo.test/master.m3u8", label: "Video akışı (HLS) · 1080p" }]), 20); } },
 };
 window.fetch = () => Promise.resolve({ json: () => Promise.resolve({ app: "TurboDM" }) });
 </script>

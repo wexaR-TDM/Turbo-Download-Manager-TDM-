@@ -76,6 +76,9 @@ window.TDM_MSGS = {
   },
   "opened": {
     "message": "✔ TurboDM'de açıldı"
+  },
+  "popupQualities": {
+    "message": "Video kaliteleri"
   }
 }
 ;

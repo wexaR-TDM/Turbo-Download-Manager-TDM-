@@ -7,6 +7,9 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.14
+• Tarayıcı eklentisi 1.6.1: sayfada video varsa eklenti penceresinde de "Video kaliteleri" listelenir; bir kaliteye tıklayınca TurboDM'in kayıt penceresi o kalite seçili açılır (videonun üstündeki menüyle aynı)
+
 ## 1.7.13
 • Tarayıcı eklentisi 1.6.0: yeni TurboDM teması. Eklenti penceresi ve videonun üstündeki kalite menüsü programla aynı renklerde, tarayıcının açık/koyu moduna kendiliğinden uyar; açma/kapama anahtarları, TurboDM'in çalışıp çalışmadığını gösteren durum etiketi
 • Eklenti penceresindeki "Bu sayfadaki medyalar" bölümü yalnızca sayfada indirilebilir bir akış bulunduğunda görünür (boş "Yok. Videoyu oynatmayı deneyin." yazısı kaldırıldı)

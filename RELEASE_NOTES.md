@@ -7,6 +7,9 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.14
+• Browser extension 1.6.1: if the page has a video, the extension window also lists "Video qualities"; clicking one opens TurboDM's save window with that quality selected (same as the menu over the video)
+
 ## 1.7.13
 • Browser extension 1.6.0: new TurboDM theme. The extension window and the quality menu over videos use the program's colors and follow the browser's light/dark mode; toggle switches and a status label showing whether TurboDM is running
 • The "Media on this page" section in the extension window appears only when a downloadable stream was found on the page (the empty "None. Try playing the video." text was removed)

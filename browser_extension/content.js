@@ -191,10 +191,14 @@
     });
   }
 
-  chrome.runtime.onMessage.addListener((msg) => {
+  chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     if (msg.type === "tdm-media") {
       mediaCount = msg.count;
       position();
+    } else if (msg.type === "tdm-has-video") {
+      // eklenti penceresi soruyor: bu çerçevede görünen bir ana video var mı? Yalnızca varsa yanıt verilir
+      // (videosuz çerçeveler sessiz kalır; hiçbiri yanıt vermezse pencere kalite listesini hiç göstermez)
+      if ([...document.querySelectorAll("video")].some(isMainVideo)) reply({ video: true });
     }
   });
 
