@@ -309,7 +309,6 @@
  "{0} indirme listeden silinsin mi?": "Retirer {0} téléchargement(s) de la liste ?",
  "{0} indirme seçili": "{0} téléchargements sélectionnés",
  "{0} indirme seçili  ": "{0} téléchargements sélectionnés",
- "{0} kök sertifika (Windows deposu) yüklü, {1}": "{0} certificats racine (magasin Windows) chargés, {1}",
  "{0} parçası {1}": "{0} segment {1}",
  "{0} tamamlanmış indirme listeden kaldırılsın mı?\n(Dosyalar diskte kalır.)": "Retirer {0} téléchargement(s) terminé(s) de la liste ?\n(Les fichiers restent sur le disque.)",
  "{0} — İnternet İndirme Yöneticisi": "{0} — Gestionnaire de téléchargement Internet",

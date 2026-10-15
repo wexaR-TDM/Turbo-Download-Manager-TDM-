@@ -20,6 +20,7 @@ import tempfile
 import urllib.request
 
 from .appinfo import LEGACY_REPO, UPDATE_REPO, VERSION
+from .engine import SSL_CONTEXT
 from .i18n import _t
 
 UA = {"User-Agent": f"TurboDM/{VERSION}"}
@@ -92,7 +93,7 @@ def vkey(v):
 def check(url):
     """Dönüş: {"available": bool, "current", "latest", "notes", "url", "sha256", "size", "same_version"}"""
     req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=20) as r:
+    with urllib.request.urlopen(req, timeout=20, context=SSL_CONTEXT) as r:
         m = json.loads(r.read().decode("utf-8-sig"))
     for k in ("version", "url", "sha256"):
         if not m.get(k):
@@ -121,7 +122,7 @@ def download(info, progress=None, cancelled=None):
     path = os.path.join(folder, name)
     h = hashlib.sha256()
     req = urllib.request.Request(info["url"], headers=UA)
-    with urllib.request.urlopen(req, timeout=60) as r, open(path + ".part", "wb") as f:
+    with urllib.request.urlopen(req, timeout=60, context=SSL_CONTEXT) as r, open(path + ".part", "wb") as f:
         total = int(r.headers.get("Content-Length") or info.get("size") or 0)
         got = 0
         while True:

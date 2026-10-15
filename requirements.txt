@@ -1,3 +1,4 @@
 PySide6-Essentials>=6.6
 libtorrent>=2.0.9
 cryptography>=41
+truststore>=0.10

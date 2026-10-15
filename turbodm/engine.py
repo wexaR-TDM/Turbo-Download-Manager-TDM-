@@ -29,7 +29,21 @@ MAX_RETRIES = 8
 USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
 
-_ssl_ctx = ssl.create_default_context()
+
+
+def _make_ssl_context():
+    """HTTPS sertifikaları Windows'un kendi doğrulamasıyla (truststore) denetlenir; tarayıcılar gibi.
+    Python'un yerleşik doğrulaması yalnızca Windows deposunda o an bulunan kök sertifikaları görür; Windows ise
+    yeni kökleri ilk ihtiyaçta indirir. Yeni bir kök kullanan sitelerde (ör. Let's Encrypt'in yeni zinciri) eski
+    yol süresi dolmuş bir çapraz imzaya düşüp "certificate has expired" hatası veriyordu."""
+    try:
+        import truststore
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except Exception:  # noqa: BLE001 (truststore yoksa Python'un kendi doğrulaması)
+        return ssl.create_default_context()
+
+
+SSL_CONTEXT = _make_ssl_context()
 
 
 class SpeedLimiter:
@@ -102,7 +116,7 @@ def _open(url, headers=None, start=None, end=None, timeout=30):
     if start is not None:
         h["Range"] = f"bytes={start}-{'' if end is None else end}"
     req = urllib.request.Request(url, headers=h)
-    return urllib.request.urlopen(req, timeout=timeout, context=_ssl_ctx)
+    return urllib.request.urlopen(req, timeout=timeout, context=SSL_CONTEXT)
 
 
 class _FtpResponse:

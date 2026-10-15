@@ -21,6 +21,7 @@ import urllib.parse
 import urllib.request
 
 from .appinfo import install_dir
+from .engine import SSL_CONTEXT
 from .i18n import _t
 
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -737,7 +738,7 @@ GITHUB_LATEST = "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest"
 
 def latest_release():
     req = urllib.request.Request(GITHUB_LATEST, headers={"User-Agent": "TurboDM", "Accept": "application/vnd.github+json"})
-    with urllib.request.urlopen(req, timeout=20) as r:
+    with urllib.request.urlopen(req, timeout=20, context=SSL_CONTEXT) as r:
         rel = json.load(r)
     assets = {a["name"]: a["browser_download_url"] for a in rel.get("assets", [])}
     return {"version": rel.get("tag_name", "").strip(), "exe": assets.get("yt-dlp.exe"),
@@ -759,7 +760,8 @@ def update(progress=None):
     rel = latest_release()
     if not rel["exe"] or not rel["sums"]:
         raise RuntimeError(_t("Sürüm dosyaları bulunamadı"))
-    with urllib.request.urlopen(urllib.request.Request(rel["sums"], headers={"User-Agent": "TurboDM"}), timeout=30) as r:
+    with urllib.request.urlopen(urllib.request.Request(rel["sums"], headers={"User-Agent": "TurboDM"}), timeout=30,
+                                context=SSL_CONTEXT) as r:
         sums = r.read().decode()
     expected = next((ln.split()[0] for ln in sums.splitlines() if ln.strip().endswith(" yt-dlp.exe")), None)
     if not expected:
@@ -768,7 +770,7 @@ def update(progress=None):
     tmp = os.path.join(USER_TOOLS, "yt-dlp.exe.download")
     h = hashlib.sha256()
     req = urllib.request.Request(rel["exe"], headers={"User-Agent": "TurboDM"})
-    with urllib.request.urlopen(req, timeout=60) as r, open(tmp, "wb") as f:
+    with urllib.request.urlopen(req, timeout=60, context=SSL_CONTEXT) as r, open(tmp, "wb") as f:
         total = int(r.headers.get("Content-Length") or 0)
         got = 0
         while True:

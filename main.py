@@ -122,8 +122,8 @@ def _selftest(out_path):
 
     def https():
         import ssl
-        ctx = ssl.create_default_context()
-        return _t("{0} kök sertifika (Windows deposu) yüklü, {1}").format(len(ctx.get_ca_certs()), ssl.OPENSSL_VERSION)
+        from turbodm.engine import SSL_CONTEXT
+        return f"{type(SSL_CONTEXT).__module__}.{type(SSL_CONTEXT).__name__}, {ssl.OPENSSL_VERSION}"
 
     def engine():
         import tempfile

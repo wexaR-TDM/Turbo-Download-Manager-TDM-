@@ -7,6 +7,8 @@ TurboDM, aşağıdaki açık kaynak bileşenleri kullanır:
   Qt 6 / PySide6       — LGPL v3                     https://www.qt.io / https://pyside.org
   libtorrent           — BSD 3-Clause                https://libtorrent.org
   cryptography         — Apache 2.0 / BSD            https://cryptography.io
+  truststore           — MIT                         https://github.com/sethmlarson/truststore
+      HTTPS sertifikalarını Windows'un kendi doğrulamasıyla denetler.
   OpenSSL 3            — Apache 2.0                  https://www.openssl.org
   yt-dlp               — Unlicense (kamu malı)       https://github.com/yt-dlp/yt-dlp
       tools\yt-dlp.exe; güncellenen kopya %LOCALAPPDATA%\TurboDM\tools altına indirilir.

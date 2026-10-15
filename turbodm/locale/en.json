@@ -309,7 +309,6 @@
  "{0} indirme listeden silinsin mi?": "Remove {0} download(s) from the list?",
  "{0} indirme seçili": "{0} downloads selected",
  "{0} indirme seçili  ": "{0} downloads selected",
- "{0} kök sertifika (Windows deposu) yüklü, {1}": "{0} root certificates (Windows store) loaded, {1}",
  "{0} parçası {1}": "{0} segment {1}",
  "{0} tamamlanmış indirme listeden kaldırılsın mı?\n(Dosyalar diskte kalır.)": "Remove {0} completed download(s) from the list?\n(The files stay on disk.)",
  "{0} — İnternet İndirme Yöneticisi": "{0} — Internet Download Manager",

@@ -676,6 +676,15 @@ class ExtensionTests(unittest.TestCase):
             self.assertFalse(keys - set(msgs), lang)
         self.assertTrue(os.path.isdir(os.path.join(folder, "_locales", man["default_locale"])))
 
+    def test_https_uses_windows_certificate_verification(self):
+        # sertifikalar Windows'un doğrulamasıyla denetlenir (yeni kök sertifikalar gerektiğinde indirilir);
+        # Python'un kendi doğrulaması yeni Let's Encrypt zincirinde "certificate has expired" diyordu
+        import ssl
+        from turbodm import engine
+        self.assertEqual(type(engine.SSL_CONTEXT).__module__.split(".")[0], "truststore")
+        self.assertEqual(engine.SSL_CONTEXT.verify_mode, ssl.CERT_REQUIRED)  # doğrulama kapatılmadı
+        self.assertTrue(engine.SSL_CONTEXT.check_hostname)
+
     def test_extension_tab_calls_tolerate_closed_tabs(self):
         # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı
         with open(os.path.join(ROOT, "browser_extension", "background.js"), encoding="utf-8") as f:
