@@ -1,8 +1,9 @@
-"""Forum tanıtım görseli: docs/forum/turbodm-tanitim.png (yerelde kalır, depoya girmez).
+"""Forum tanıtım görseli (yerelde kalır, depoya girmez):
 
-  python installer/make_forum_banner.py
+  python installer/make_forum_banner.py        → docs/forum/turbodm-tanitim.png (Türkçe)
+  python installer/make_forum_banner.py en     → docs/forum/turbodm-promo-en.png (İngilizce)
 
-Ekran görüntüsü docs/github/ekran-koyu.png'den alınır (önce docs/github/ekran_goruntusu.py ile güncelleyin).
+Ekran görüntüsü docs/github/ekran-koyu.png (en: ekran-koyu-en.png) dosyasından alınır (önce docs/github/ekran_goruntusu.py ile güncelleyin).
 """
 import os
 import sys
@@ -16,6 +17,20 @@ from PySide6.QtGui import (QColor, QFont, QGuiApplication, QImage, QLinearGradie
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 W, H = 1600, 900
+TEXT = {
+    "tr": dict(tagline="Ücretsiz, Türkçe bir IDM alternatifi", shot="ekran-koyu.png",
+               footer="Windows 10 / 11  ·  Ücretsiz  ·  Reklamsız  ·  Açık kaynak", out="turbodm-tanitim.png"),
+    "en": dict(tagline="A free, open-source IDM alternative", shot="ekran-koyu-en.png",
+               footer="Windows 10 / 11  ·  Free  ·  No ads  ·  Open source (GPL v3)", out="turbodm-promo-en.png"),
+}
+FEATURES_EN = [
+    ("⚡", "Fast multi-connection downloads", "Resume, speed limiter, queue and scheduler"),
+    ("🎬", "Video grabber", "Download the video on the page in one click · MP4 / MKV / MP3"),
+    ("🧲", "Torrent", "Magnet links and .torrent files, with file selection"),
+    ("🌐", "Browser integration", "Edge / Chrome extension"),
+    ("🔒", "Secure and open source", "Signed updates · GPL v3 · no data collection"),
+    ("🌍", "7 languages", "English, Deutsch, Français, Español, Italiano…"),
+]
 FEATURES = [
     ("⚡", "Çok bağlantılı hızlı indirme", "Kaldığı yerden devam, hız sınırı, kuyruk"),
     ("🎬", "Video yakalayıcı", "Sayfadaki videoyu tek tıkla indir · MP4 / MKV / MP3"),
@@ -33,7 +48,10 @@ def font(size, weight=QFont.Normal, family="Segoe UI"):
     return f
 
 
-def main(out):
+def main(lang="tr", out=None):
+    t = TEXT[lang]
+    features = FEATURES_EN if lang == "en" else FEATURES
+    out = out or os.path.join(ROOT, "docs", "forum", t["out"])
     app = QGuiApplication.instance() or QGuiApplication([])  # noqa: F841
     img = QImage(W, H, QImage.Format_ARGB32)
     p = QPainter(img)
@@ -57,11 +75,11 @@ def main(out):
     p.drawText(QRectF(185, 62, 600, 90), Qt.AlignVCenter, "TurboDM")
     p.setFont(font(26, QFont.DemiBold))
     p.setPen(QColor("#7fb2ff"))
-    p.drawText(QRectF(188, 140, 700, 40), Qt.AlignVCenter, "Ücretsiz, Türkçe bir IDM alternatifi")
+    p.drawText(QRectF(188, 140, 700, 40), Qt.AlignVCenter, t["tagline"])
 
     # özellikler
     y = 230
-    for icon, title, sub in FEATURES:
+    for icon, title, sub in features:
         p.setFont(font(30, family="Segoe UI Emoji"))
         p.setPen(QColor("#ffffff"))
         p.drawText(QRectF(72, y, 50, 50), Qt.AlignCenter, icon)
@@ -73,7 +91,7 @@ def main(out):
         y += 82
 
     # sağ: ekran görüntüsü, gölge ve yuvarlak köşe
-    shot = QImage(os.path.join(ROOT, "docs", "github", "ekran-koyu.png"))
+    shot = QImage(os.path.join(ROOT, "docs", "github", t["shot"]))
     sw = 860
     sh = int(shot.height() * sw / shot.width())
     r = QRectF(W - sw - 60, 205, sw, sh)
@@ -102,7 +120,7 @@ def main(out):
     p.setFont(font(19))
     p.setPen(QColor("#9fb0cc"))
     p.drawText(QRectF(570, H - 120, W - 640, 64), Qt.AlignVCenter,
-               "Windows 10 / 11  ·  Ücretsiz  ·  Reklamsız  ·  Açık kaynak")
+               t["footer"])
     p.end()
     os.makedirs(os.path.dirname(out), exist_ok=True)
     img.save(out)
@@ -110,4 +128,4 @@ def main(out):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "docs", "forum", "turbodm-tanitim.png"))
+    main(sys.argv[1] if len(sys.argv) > 1 else "tr")
