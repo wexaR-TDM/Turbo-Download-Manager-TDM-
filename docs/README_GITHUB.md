@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/wexaR-TDM/TurboDM/releases/latest"><b>⬇ Son sürümü indir</b></a>
-  &nbsp;·&nbsp; Windows 10 / 11 (64 bit) &nbsp;·&nbsp; Şu an için tamamen ücretsiz
+  &nbsp;·&nbsp; Windows 10 / 11 (64 bit) &nbsp;·&nbsp; Ücretsiz · reklamsız · kâr amacı gütmeyen kişisel proje
 </p>
 
 <p align="center">
@@ -84,6 +84,11 @@ Telif hakkıyla korunan içerikleri yalnızca hak sahibinin izin verdiği ölç�
 - [x] DASH akışları, gömülü oynatıcı desteği, MKV/AVI/MP3 dönüştürme
 - [ ] Tarayıcı eklentisinin Edge Eklentiler mağazasında yayımlanması (incelemede), ardından Chrome Web Mağazası
 - [ ] İmzalı kurulum dosyası (SmartScreen uyarısının kalkması)
+
+## ⚖ Hak ihlali bildirimi
+TurboDM kâr amacı gütmeyen, ücretsiz bir kişisel projedir ve hiçbir içerik barındırmaz ya da dağıtmaz; yalnızca kullanıcının kendi seçtiği dosyaları indirir. Programın herhangi bir parçasının, açıklamalarının ya da bu sayfadaki bir içeriğin haklarınızı ihlal ettiğini düşünüyorsanız lütfen **[bir kayıt (issue) açarak](https://github.com/wexaR-TDM/TurboDM/issues/new?title=Hak%20ihlali%20bildirimi)** bildirin: ilgili kısım incelenir ve gerekirse gecikmeden kaldırılır ya da düzeltilir.
+
+TurboDM'in telif hakkıyla korunan içeriklerin izinsiz indirilmesi için kullanılması amaçlanmamıştır; kullanıcılar indirdikleri içerikten kendileri sorumludur.
 
 ## Geri bildirim
 Hata ya da öneri için [Issues](https://github.com/wexaR-TDM/TurboDM/issues) sayfasından kayıt açabilirsiniz. Hata bildirirken Windows sürümünüzü ve sorunun nasıl oluştuğunu yazmanız çok yardımcı olur.
