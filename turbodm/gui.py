@@ -1851,7 +1851,7 @@ class MainWindow(QMainWindow):
                 if it.status == "connecting" and it.error:
                     st = it.error
             elif it.status == "error":
-                st = f"Hata: {it.error or ''}"
+                st = _t("Hata: {0}").format(it.error or "")
             else:
                 st = STATUS_TEXT.get(it.status, it.status)
                 if it.status in ("stopped", "queued") and it.size and it.done_bytes:

@@ -360,5 +360,6 @@
  "✔ Video motoru güncellendi: {0}": "✔ Moteur vidéo mis à jour : {0}",
  "✔ ffmpeg bulundu: {0}\nHLS videoları .mp4 olarak kaydedilir, ayrı ses kanalı birleştirilir.": "✔ ffmpeg trouvé : {0}\nLes vidéos HLS sont enregistrées en .mp4 et les pistes audio séparées sont fusionnées.",
  "✔ magnet bağlantıları ve .torrent dosyaları TurboDM ile açılıyor.": "✔ Les liens magnet et fichiers .torrent s'ouvrent avec TurboDM.",
- "✖ ffmpeg bulunamadı. HLS videoları yine iner ama .ts olarak kaydedilir; ayrı ses kanalı varsa ayrı dosyaya yazılır.\nKurmak için: winget install Gyan.FFmpeg": "✖ ffmpeg introuvable. Les vidéos HLS sont tout de même téléchargées mais enregistrées en .ts ; une piste audio séparée est écrite dans son propre fichier.\nPour l'installer : winget install Gyan.FFmpeg"
+ "✖ ffmpeg bulunamadı. HLS videoları yine iner ama .ts olarak kaydedilir; ayrı ses kanalı varsa ayrı dosyaya yazılır.\nKurmak için: winget install Gyan.FFmpeg": "✖ ffmpeg introuvable. Les vidéos HLS sont tout de même téléchargées mais enregistrées en .ts ; une piste audio séparée est écrite dans son propre fichier.\nPour l'installer : winget install Gyan.FFmpeg",
+ "Hata, yeniden deneniyor ({0}/{1})": "Erreur, nouvelle tentative ({0}/{1})"
 }

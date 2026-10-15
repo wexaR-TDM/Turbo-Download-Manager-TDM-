@@ -7,6 +7,10 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.3
+• Fix: the error status in the list ("Error: …") and the "retrying" info of video streams now also appear in the chosen language
+• GitHub page: the English page shows English screenshots of the program
+
 ## 1.7.2
 • The default language is the Windows language again (in setup and in the program); "System language (automatic)" option at the top of the Language menu
 

@@ -7,6 +7,10 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.3
+• Düzeltme: listedeki hata durumu ("Hata: …") ve video akışlarındaki "yeniden deneniyor" bilgisi de seçilen dilde görünür
+• GitHub sayfası: İngilizce sayfada programın İngilizce ekran görüntüleri
+
 ## 1.7.2
 • Varsayılan dil yeniden Windows'un dili (kurulumda ve programda); Language menüsünün başında "Sistem dili (otomatik)" seçeneği
 

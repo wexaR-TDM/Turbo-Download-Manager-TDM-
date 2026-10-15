@@ -17,7 +17,7 @@ Multi-connection downloads · Video grabber · Torrent · Browser integration</p
 > **Frequent updates:** TurboDM is being updated often at the moment. During an update the program closes briefly; when installation finishes it reopens by itself in the taskbar and your active downloads continue where they left off. You don't need to do anything.
 
 <p align="center">
-  <img src="docs/github/ekran-koyu.png" alt="TurboDM main window (dark theme)">
+  <img src="docs/github/ekran-koyu-en.png" alt="TurboDM main window (dark theme)">
 </p>
 
 ---
@@ -53,7 +53,7 @@ Multi-connection downloads · Video grabber · Torrent · Browser integration</p
 - **7 languages:** English, Türkçe, Deutsch, Français, Español, العربية, Italiano — switch instantly from the **Language** menu in the menu bar (the program stays open); by default the Windows language is used, and the language can also be chosen during setup.
 
 <p align="center">
-  <img src="docs/github/ekran-acik.png" alt="TurboDM main window (light theme)">
+  <img src="docs/github/ekran-acik-en.png" alt="TurboDM main window (light theme)">
 </p>
 
 ---

@@ -3,6 +3,8 @@ import sys
 import tempfile
 import time
 
+# Kullanım: python ekran_goruntusu.py <auto|light|dark> <çıktı.png> [dil: tr|en|…]
+# README.md Türkçe, README.en.md İngilizce ekran görüntülerini kullanır.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 os.environ["QT_QPA_FONTDIR"] = r"C:\Windows\Fonts"
 tmp = tempfile.mkdtemp(prefix="tdm_shot_")
@@ -12,13 +14,17 @@ from PySide6.QtGui import QFont  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 mode, out = sys.argv[1], sys.argv[2]
+lang = sys.argv[3] if len(sys.argv) > 3 else "tr"
+os.environ["TURBODM_LANG"] = lang
 app = QApplication([])
 app.setStyle("Fusion")
 app.setFont(QFont("Segoe UI", 9))
 from turbodm import manager as M  # noqa: E402
 M.DEFAULT_SETTINGS.update(download_root=os.path.join(tmp, "dl"), server_port=9697, torrent_port=6997,
                           auto_update_check=False, theme=mode)
+from turbodm import i18n  # noqa: E402
 from turbodm.gui import MainWindow, ProgressDialog, apply_theme  # noqa: E402
+i18n.apply_to_app(app)
 apply_theme(app)
 mgr = M.Manager()
 rows = [("Doğa Belgeseli - Kuzey Ormanları.mp4", "downloading", 512, 0.62, 48.4, "video"),
@@ -28,6 +34,10 @@ rows = [("Doğa Belgeseli - Kuzey Ormanları.mp4", "downloading", 512, 0.62, 48.
         ("kurulum-araci.exe", "queued", 96, 0, 0, "programs"),
         ("Oyun Kurulumu.iso", "stopped", 33000, 0.44, 0, "general"),
         ("eski-baglanti.rar", "error", 300, 0.12, 0, "compressed")]
+if lang != "tr":  # örnek dosya adları da o dilde (İngilizce)
+    names = ["Nature Documentary - Northern Forests.mp4", "ubuntu-24.04-desktop-amd64.iso", "Project Presentation.pdf",
+             "Album - Live Recording.zip", "setup-tool.exe", "Game Setup.iso", "old-link.rar"]
+    rows = [(n,) + r[1:] for n, r in zip(names, rows)]
 for name, status, mb, frac, speed, cat in rows:
     it = mgr.add_http(f"https://ornek.test/{name}", os.path.join(tmp, "dl", name), start=False)
     it.size, it.status, it.category = mb * 1024 * 1024, status, cat

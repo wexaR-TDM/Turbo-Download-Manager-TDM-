@@ -337,7 +337,7 @@ class HlsTask:
                     if fatal or attempt == MAX_RETRIES:
                         self._fail(e)
                         return False
-                    self.conn_info[key] = f"Hata, yeniden deneniyor ({attempt + 1}/{MAX_RETRIES})"
+                    self.conn_info[key] = _t("Hata, yeniden deneniyor ({0}/{1})").format(attempt + 1, MAX_RETRIES)
                     self.stop_event.wait(min(2 ** (attempt + 1), 30))
             return False
         finally:
