@@ -389,6 +389,8 @@ Root: HKLM32; Subkey: "Software\Microsoft\Edge\Extensions\{#EdgeExtId}"; ValueTy
 #endif
 
 [Files]
+; Dile göre kurulum yan görselleri (yalnızca kurulum sırasında kullanılır, diske kopyalanmaz)
+Source: "wizard\side_*.png"; Flags: dontcopy
 Source: "{#Stage}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
@@ -505,8 +507,27 @@ begin
     IsUpgrade := True;  { daha eski sürüm ya da aynı sürümün farklı derlemesi → güncelle }
 end;
 
+{ Karşılama ve bitiş sayfasındaki yan görsel, seçilen dilde (installer\wizard\side_<dil>_<ölçek>.png) }
+procedure LoadSideImage();
+var
+  Tag, F: String;
+begin
+  if ScaleX(100) >= 175 then Tag := '200'
+  else if ScaleX(100) >= 125 then Tag := '150'
+  else Tag := '100';
+  F := 'side_' + CustomMessage('AppLang') + '_' + Tag + '.png';
+  try
+    ExtractTemporaryFile(F);
+    WizardForm.WizardBitmapImage.PngImage.LoadFromFile(ExpandConstant('{tmp}\' + F));
+    WizardForm.WizardBitmapImage2.PngImage.LoadFromFile(ExpandConstant('{tmp}\' + F));
+  except
+    { görsel yüklenemezse varsayılan (İngilizce) görsel kalır }
+  end;
+end;
+
 procedure InitializeWizard();
 begin
+  LoadSideImage();
   if IsUpgrade then
   begin
     WizardForm.WelcomeLabel1.Caption := CustomMessage('UpgradeTitle');

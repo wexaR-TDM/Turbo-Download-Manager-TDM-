@@ -7,6 +7,9 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.7
+• The text on the setup wizard's side image appears in the language chosen in setup
+
 ## 1.7.6
 • Fix: the version shown in TurboDM.exe's file properties (Details) is now correct (it always said 1.0.0.0)
 • Updated the feature line on the setup wizard's side image

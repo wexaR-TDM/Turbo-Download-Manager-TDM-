@@ -4,6 +4,7 @@ import struct
 import sys
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("QT_QPA_FONTDIR", os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts"))
 from PySide6.QtCore import QBuffer, QByteArray, QIODevice, Qt  # noqa: E402
 from PySide6.QtGui import (QColor, QFont, QGuiApplication, QImage, QLinearGradient, QPainter,  # noqa: E402
                            QPainterPath, QPen, QRadialGradient)
@@ -71,7 +72,15 @@ def wizard_background(scale):
     return img
 
 
-def wizard_side(scale):
+# Kurulum sihirbazı yan görselindeki alt başlık, kurulumda seçilen dile göre (TurboDM.iss → LoadSideImage)
+SIDE_SUBTITLE = {
+    "en": "Download Manager", "tr": "İnternet İndirme Yöneticisi", "de": "Download-Manager",
+    "fr": "Gestionnaire de téléchargement", "es": "Gestor de descargas", "ar": "مدير التنزيل",
+    "it": "Gestore di download",
+}
+
+
+def wizard_side(scale, lang="en"):
     """Karşılama ve bitiş sayfalarındaki sol panel."""
     w, h = int(164 * scale), int(314 * scale)
     img = QImage(w, h, QImage.Format_ARGB32)
@@ -99,7 +108,7 @@ def wizard_side(scale):
     f.setBold(False)
     p.setFont(f)
     p.setPen(QColor(255, 255, 255, 200))
-    p.drawText(0, int(190 * scale), w, int(20 * scale), Qt.AlignCenter, "İnternet İndirme Yöneticisi")
+    p.drawText(0, int(190 * scale), w, int(20 * scale), Qt.AlignCenter, SIDE_SUBTITLE[lang])
     f.setPixelSize(int(9 * scale))
     p.setFont(f)
     p.setPen(QColor(255, 255, 255, 150))
@@ -137,7 +146,10 @@ if __name__ == "__main__":
     # Kurulum sihirbazı görselleri: %100, %150, %200 ölçek (Inno en uygununu seçer)
     for scale, tag in ((1.0, "100"), (1.5, "150"), (2.0, "200")):
         wizard_background(scale).save(os.path.join(out, f"wizard_bg_{tag}.png"))
-        wizard_side(scale).save(os.path.join(out, f"wizard_side_{tag}.png"))
+        wizard_side(scale).save(os.path.join(out, f"wizard_side_{tag}.png"))  # varsayılan: İngilizce
+        os.makedirs(os.path.join(out, "wizard"), exist_ok=True)
+        for lang in SIDE_SUBTITLE:  # her kurulum dili için ayrı yan görsel
+            wizard_side(scale, lang).save(os.path.join(out, "wizard", f"side_{lang}_{tag}.png"))
         render(int(58 * scale)).save(os.path.join(out, f"wizard_small_{tag}.png"))
     # Tarayıcı eklentisinin simgeleri (araç çubuğu, eklentiler sayfası, mağaza)
     ext = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "browser_extension", "icons")
