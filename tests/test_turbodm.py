@@ -676,6 +676,15 @@ class ExtensionTests(unittest.TestCase):
             self.assertFalse(keys - set(msgs), lang)
         self.assertTrue(os.path.isdir(os.path.join(folder, "_locales", man["default_locale"])))
 
+    def test_extension_tab_calls_tolerate_closed_tabs(self):
+        # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı
+        with open(os.path.join(ROOT, "browser_extension", "background.js"), encoding="utf-8") as f:
+            text = f.read()
+        calls = re.findall(r"chrome\.(?:action\.setBadge\w+|tabs\.sendMessage)\([^;]*;", text)
+        self.assertTrue(calls)
+        for c in calls:
+            self.assertIn(".catch(", c, c)
+
     def test_extension_is_site_agnostic(self):
         # Eklenti hiçbir siteye özel kod içermez: sayfa adresini TurboDM'e verir, videoyu uygulama çözer
         folder = os.path.join(ROOT, "browser_extension")

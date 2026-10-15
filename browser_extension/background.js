@@ -173,8 +173,10 @@ function addMedia(tabId, entry) {
   entry.key = key;
   list.push(entry);
   media.set(tabId, list);
-  chrome.action.setBadgeBackgroundColor({ tabId, color: "#1e6fd9" });
-  chrome.action.setBadgeText({ tabId, text: String(list.length) });
+  // sekme bu arada kapanmış olabilir (ya da arka planda önceden yüklenen, henüz sekme olmayan bir sayfa):
+  // rozet konamazsa sessizce geç, "No tab with id" hatası eklentiler sayfasına düşmesin
+  chrome.action.setBadgeBackgroundColor({ tabId, color: "#1e6fd9" }).catch(() => {});
+  chrome.action.setBadgeText({ tabId, text: String(list.length) }).catch(() => {});
   chrome.tabs.sendMessage(tabId, { type: "tdm-media", count: list.length }).catch(() => {});
 }
 
@@ -206,7 +208,7 @@ chrome.tabs.onUpdated.addListener((tabId, info) => {
   if (info.url) { // yeni sayfaya gidildi → listeyi sıfırla
     media.delete(tabId);
     forgetTab(tabId);
-    chrome.action.setBadgeText({ tabId, text: "" });
+    chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
   }
 });
 chrome.tabs.onRemoved.addListener((tabId) => { media.delete(tabId); forgetTab(tabId); });
