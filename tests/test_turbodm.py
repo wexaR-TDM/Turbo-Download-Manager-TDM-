@@ -751,6 +751,18 @@ class ExtensionTests(unittest.TestCase):
         self.assertEqual(count, "1", results)  # YouTube'da düğme kaybolmamalı
         self.assertTrue(16 < int(lefts) < 1096, results)
 
+    def test_extension_popup_hides_empty_media_section(self):
+        # "Bu sayfadaki medyalar" yalnızca sayfada akış bulunduysa görünür (boş "Yok" yazısı gösterilmez)
+        folder = os.path.join(ROOT, "browser_extension")
+        with open(os.path.join(folder, "popup.html"), encoding="utf-8") as f:
+            html = f.read()
+        with open(os.path.join(folder, "popup.js"), encoding="utf-8") as f:
+            js = f.read()
+        self.assertRegex(html, r'id="media"[^>]*display:\s*none')
+        self.assertIn('if (!list || !list.length) return;', js)
+        self.assertNotIn("popupNone", html + js)
+        self.assertIn("prefers-color-scheme: dark", html)  # tarayıcının koyu/açık moduna uyar
+
     def test_extension_tab_calls_tolerate_closed_tabs(self):
         # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı
         with open(os.path.join(ROOT, "browser_extension", "background.js"), encoding="utf-8") as f:

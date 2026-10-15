@@ -5,7 +5,6 @@ for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = M(el
 const en = document.getElementById("en");
 const gr = document.getElementById("gr");
 const st = document.getElementById("st");
-const listEl = document.getElementById("list");
 
 chrome.storage.local.get({ enabled: true, grabber: true }, (v) => {
   en.checked = v.enabled;
@@ -16,21 +15,26 @@ gr.addEventListener("change", () => chrome.storage.local.set({ grabber: gr.check
 
 fetch("http://127.0.0.1:9614/ping")
   .then((r) => r.json())
-  .then(() => { st.textContent = M("popupRunning"); st.style.color = "green"; })
-  .catch(() => { st.textContent = M("popupClosed"); st.style.color = "crimson"; });
+  .then(() => { st.textContent = M("popupRunning"); st.className = "pill ok"; })
+  .catch(() => { st.textContent = M("popupClosed"); st.className = "pill bad"; });
 
 chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   if (!tab || !/^https?:/i.test(tab.url || "")) return;
   // Her sayfada: sayfanın videosunu TurboDM'de aç (kaliteler uygulamada listelenir)
   const page = document.getElementById("page");
   page.style.display = "block";
-  page.onclick = () => chrome.runtime.sendMessage(
-    { type: "tdm-page", tabId: tab.id, url: tab.url, title: tab.title || "" },
-    (r) => (page.textContent = r && r.ok ? M("pickQuality") : "✖ " + M("appDown")));
+  page.onclick = () => {
+    page.disabled = true;
+    chrome.runtime.sendMessage(
+      { type: "tdm-page", tabId: tab.id, url: tab.url, title: tab.title || "" },
+      (r) => { page.textContent = r && r.ok ? M("pickQuality") : "✖ " + M("appDown"); page.disabled = false; });
+  };
+  // Sayfanın yüklediği video/ses akışları: yalnızca bulunduysa liste görünür (yoksa bölüm hiç çıkmaz)
   chrome.runtime.sendMessage({ type: "tdm-list", tabId: tab.id }, (list) => {
     if (!list || !list.length) return;
-    listEl.className = "";
-    listEl.textContent = "";
+    const listEl = document.getElementById("list");
+    document.getElementById("media").style.display = "block";
+    document.getElementById("count").textContent = list.length;
     for (const m of list) {
       const row = document.createElement("div");
       row.className = "m";

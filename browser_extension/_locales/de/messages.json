@@ -44,9 +44,6 @@
   "popupMedia": {
     "message": "Medien auf dieser Seite"
   },
-  "popupNone": {
-    "message": "Keine. Versuchen Sie, das Video abzuspielen."
-  },
   "popupRunning": {
     "message": "✔ TurboDM läuft"
   },

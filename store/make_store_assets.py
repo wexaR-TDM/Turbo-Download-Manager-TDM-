@@ -69,6 +69,7 @@ window.chrome = {
 window.fetch = () => Promise.resolve({ json: () => Promise.resolve({ app: "TurboDM" }) });
 </script>
 """
+    html = html.replace('src="icons/', 'src="../../browser_extension/icons/')
     html = html.replace('<script src="popup.js">', stub + '<script src="../../browser_extension/popup.js">')
     path = os.path.join(DEMO, "popup_frame.html")
     with open(path, "w", encoding="utf-8") as f:

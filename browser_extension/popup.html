@@ -3,25 +3,74 @@
 <head>
 <meta charset="utf-8">
 <style>
-  body { font: 13px system-ui, sans-serif; width: 320px; margin: 12px; }
-  h3 { margin: 0 0 10px; color: #1e6fd9; }
-  label { display: block; margin: 4px 0; }
-  #st { margin: 8px 0; font-size: 12px; }
-  h4 { margin: 12px 0 6px; }
-  .m { display: flex; gap: 6px; align-items: center; padding: 5px 0; border-top: 1px solid #eee; }
+  /* TurboDM teması (uygulamayla aynı renkler); tarayıcının açık/koyu moduna kendiliğinden uyar */
+  :root {
+    --bg: #f3f5f9; --surface: #ffffff; --surface2: #eef2f7; --border: #d8dfe9; --hover: #e8eef7;
+    --text: #17202c; --muted: #5f6d80; --accent: #1f6fe0; --accent-hover: #1a62c8;
+    --ok: #1f9d57; --bad: #d93a32; --track: #c3cddb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f141b; --surface: #151b24; --surface2: #1b2330; --border: #273142; --hover: #222c3b;
+      --text: #e7ecf3; --muted: #8b97a9; --accent: #3b8cf0; --accent-hover: #5199f3;
+      --ok: #3ccf7e; --bad: #ff6b63; --track: #334055;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font: 13px "Segoe UI", system-ui, sans-serif; width: 330px; margin: 0; background: var(--bg); color: var(--text); }
+  header { display: flex; align-items: center; gap: 9px; padding: 12px 14px; background: var(--surface);
+    border-bottom: 1px solid var(--border); }
+  header img { width: 26px; height: 26px; }
+  header b { font-size: 16px; flex: 1; }
+  .pill { font-size: 11.5px; padding: 3px 9px; border-radius: 999px; background: var(--surface2); color: var(--muted);
+    white-space: nowrap; }
+  .pill.ok { color: var(--ok); }
+  .pill.bad { color: var(--bad); }
+  main { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  /* açma/kapama anahtarları */
+  .switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px;
+    cursor: pointer; }
+  .switch + .switch { border-top: 1px solid var(--border); }
+  .switch input { appearance: none; width: 34px; height: 19px; border-radius: 999px; background: var(--track);
+    position: relative; cursor: pointer; transition: background .15s; flex: none; margin: 0; }
+  .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px;
+    border-radius: 50%; background: #fff; transition: left .15s; }
+  .switch input:checked { background: var(--accent); }
+  .switch input:checked::after { left: 17px; }
+  button { font: inherit; border: 0; border-radius: 8px; cursor: pointer; }
+  #page { width: 100%; padding: 10px; background: var(--accent); color: #fff; font-weight: 600; }
+  #page:hover { background: var(--accent-hover); }
+  #page:disabled { opacity: .55; cursor: default; }
+  /* sayfanın yüklediği akışlar: yalnızca bulunduysa görünür */
+  #media h4 { margin: 0; padding: 9px 12px; font-size: 12px; color: var(--muted); font-weight: 600;
+    border-bottom: 1px solid var(--border); }
+  #media h4 #count { color: var(--accent); }
+  .m { display: flex; gap: 8px; align-items: center; padding: 7px 12px; }
+  .m + .m { border-top: 1px solid var(--border); }
   .m span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  button { background: #1e6fd9; color: #fff; border: 0; border-radius: 4px; padding: 4px 8px; cursor: pointer; }
-  .empty { color: #777; }
+  .m button { background: var(--surface2); color: var(--accent); padding: 5px 10px; font-weight: 600; }
+  .m button:hover { background: var(--hover); }
+  #list { max-height: 220px; overflow: auto; }
 </style>
 </head>
 <body>
-  <h3>TurboDM</h3>
-  <label><input type="checkbox" id="en"> <span data-i18n="popupCatch"></span></label>
-  <label><input type="checkbox" id="gr"> <span data-i18n="popupGrabber"></span></label>
-  <div id="st" data-i18n="popupChecking"></div>
-  <button id="page" data-i18n="popupPage" style="display:none; width:100%; padding:8px"></button>
-  <h4 data-i18n="popupMedia"></h4>
-  <div id="list" class="empty" data-i18n="popupNone"></div>
+  <header>
+    <img src="icons/icon32.png" alt="">
+    <b>TurboDM</b>
+    <span id="st" class="pill" data-i18n="popupChecking"></span>
+  </header>
+  <main>
+    <div class="card">
+      <label class="switch"><span data-i18n="popupCatch"></span><input type="checkbox" id="en"></label>
+      <label class="switch"><span data-i18n="popupGrabber"></span><input type="checkbox" id="gr"></label>
+    </div>
+    <button id="page" data-i18n="popupPage" style="display:none"></button>
+    <div id="media" class="card" style="display:none">
+      <h4><span data-i18n="popupMedia"></span> · <span id="count"></span></h4>
+      <div id="list"></div>
+    </div>
+  </main>
   <script src="popup.js"></script>
 </body>
 </html>

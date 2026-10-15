@@ -44,9 +44,6 @@
   "popupMedia": {
     "message": "Media on this page"
   },
-  "popupNone": {
-    "message": "None. Try playing the video."
-  },
   "popupRunning": {
     "message": "✔ TurboDM is running"
   },

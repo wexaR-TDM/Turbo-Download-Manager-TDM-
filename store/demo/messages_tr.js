@@ -44,9 +44,6 @@ window.TDM_MSGS = {
   "popupMedia": {
     "message": "Bu sayfadaki medyalar"
   },
-  "popupNone": {
-    "message": "Yok. Videoyu oynatmayı deneyin."
-  },
   "popupRunning": {
     "message": "✔ TurboDM çalışıyor"
   },
