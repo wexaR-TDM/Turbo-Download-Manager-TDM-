@@ -7,6 +7,9 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.11
+• Smooth display: percentage, downloaded amount, transfer rate and the progress bar in the download window and the list now advance smoothly instead of jumping (14.1%, 14.2%… instead of 14% → 18% → 23%); the speed no longer fluctuates on screen. Only the display changed, download speed is the same
+
 ## 1.7.10
 • Browser extension 1.5.3: after the change in 1.7.8 the "Download this video" button didn't appear at all on some big video sites; fixed (the button still appears only on the video visible on screen)
 

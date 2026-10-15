@@ -314,6 +314,36 @@ class GuiTests(unittest.TestCase):
             act.trigger()
         self.assertEqual(opened, ["https://github.com/wexaR-TDM/TurboDM/blob/main/SURUM_NOTLARI.md"])
 
+    def test_smooth_progress_is_fluid_monotonic_and_honest(self):
+        # gerçek değer yarım saniyede bir 50 MB'lık sıçramalarla gelir (video indirme gibi);
+        # ekranda saniyede ~30 kare: sıçramadan, geri gitmeden, gerçeğin fazla önüne geçmeden ilerlemeli
+        s = G.SmoothProgress()
+        size, speed = 2_000_000_000, 100e6
+        t, actual, prev, steps = 0.0, 0, None, []
+        while t < 10:
+            if int(t * 1000) % 500 < 33:
+                actual = min(size, actual + 50_000_000)
+            shown, _ = s.step(actual, speed, size, True, now=t)
+            if prev is not None:
+                self.assertGreaterEqual(shown, prev)  # geri gitmez
+                steps.append(shown - prev)
+            self.assertLessEqual(shown, actual + speed * s.LOOKAHEAD + 1)  # gerçeğin en fazla ~1 sn önünde
+            prev = shown
+            t += 0.033
+        self.assertLess(max(steps) / size, 0.005)  # kare başına %0.5'ten az (eskiden %2.5'lik sıçrama)
+        # duraklatınca/bitince gösterilen değer gerçek değere hemen eşitlenir, hız 0
+        self.assertEqual(s.step(actual, 0, size, False, now=t), (actual, 0.0))
+
+    def test_progress_values_redraw_fast(self):
+        it = self.win.mgr.add_http(self.s.url("/arsiv.zip"), os.path.join(TMP, "dl", "akici.zip"), start=False)
+        try:
+            d = G.ProgressDialog(self.win, it.id)
+            self.assertLessEqual(d.anim.interval(), 50)  # indirme penceresi: ~30 kare/sn
+            self.assertLessEqual(self.win.anim.interval(), 50)  # ana liste: ~20 kare/sn
+            d.close()
+        finally:
+            self.win.mgr.remove(it.id, False)
+
     def test_tray_hint_shown_only_once(self):
         # pencere kapatılınca tepsiye iner; "arka planda çalışıyor" bildirimi yalnızca ilk sefer
         shown = []

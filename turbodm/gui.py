@@ -733,6 +733,44 @@ class TorrentAddDialog(QDialog):
 
 
 # ------------------------------------------------------------------ indirme durumu
+class SmoothProgress:
+    """İndirilen miktar ve hız için akıcı gösterim (yalnızca görüntü; indirmeyi etkilemez).
+    Gerçek değer parça parça (ör. video indirmede birkaç MB'lık sıçramalarla) ve yarım saniyede bir gelir.
+    Gösterilen miktar, son gerçek değerden o anki hızla öngörülen noktaya yumuşakça yaklaşır: geri gitmez,
+    sıçramaz, gerçek değerin en fazla ~1 saniyelik hız kadar önüne geçer. Hız da yumuşatılır (dalgalanmasın)."""
+
+    LOOKAHEAD = 1.0   # gerçek değerin en fazla bu kadar saniyelik hız kadar önüne geçilir
+    FOLLOW = 6.0      # yaklaşma hızı (1/sn): büyük → gerçek değere daha çabuk yetişir
+    SPEED_FOLLOW = 2.5
+
+    def __init__(self):
+        self.shown = None
+        self.speed = 0.0
+        self.actual = None
+        self.actual_t = 0.0
+        self.t = None
+
+    def step(self, actual, speed, size=None, running=True, now=None):
+        now = time.monotonic() if now is None else now
+        dt = 0.0 if self.t is None else max(0.0, min(now - self.t, 0.5))
+        self.t = now
+        speed = max(0.0, speed or 0.0)
+        if actual != self.actual:
+            self.actual, self.actual_t = actual, now
+        if self.shown is None or not running or actual < self.shown - max(speed, 1) * self.LOOKAHEAD * 2:
+            # ilk değer, duraklatma/bitiş ya da geri sarma (yeniden başlatılan indirme): doğrudan gerçek değer
+            self.shown, self.speed = float(actual), (speed if running else 0.0)
+            return actual, self.speed
+        self.speed += (speed - self.speed) * min(1.0, dt * self.SPEED_FOLLOW)
+        ahead = min(now - self.actual_t, self.LOOKAHEAD) * speed
+        target = actual + ahead
+        if size:
+            target = min(target, size)
+        if target > self.shown:
+            self.shown += (target - self.shown) * min(1.0, dt * self.FOLLOW)
+        return int(self.shown), self.speed
+
+
 class ProgressDialog(QDialog):
     """IDM'deki indirme penceresi:
     üstte sekmeler (İndirme durumu · Hız sınırlayıcı · Bitince yapılacaklar), ortada düğmeler,
@@ -875,9 +913,26 @@ class ProgressDialog(QDialog):
         lay.addWidget(self.details, 1)
         self.resize(680, 600)
 
+        self.smooth = SmoothProgress()
         self.timer = QTimer(self, interval=500, timeout=self.update_view)
         self.timer.start()
+        # yüzde, indirilen ve hız saniyede ~30 kez çizilir: sıçramadan, akıcı ilerler
+        self.anim = QTimer(self, interval=33, timeout=self._animate)
+        self.anim.start()
         self.update_view()
+
+    def _animate(self):
+        it = self.mgr.items.get(self.iid)
+        if not it:
+            return
+        running = it.status in ("downloading", "connecting")
+        done, speed = self.smooth.step(it.done_bytes, it.speed, it.size, running)
+        pct = 100.0 if it.status == "completed" else min(100.0, (done / it.size * 100) if it.size else 0)
+        self.setWindowTitle(f"{fmt_pct(pct, 0)} {it.filename}")
+        self.lbl["done"].setText(f"{fmt_size(done)}  ({fmt_pct(pct, 2)})")
+        self.lbl["speed"].setText(fmt_speed(speed) or "—")
+        self.pbar.setValue(int(pct * 10))
+        self.pbar.setFormat(fmt_pct(pct, 1))
 
     # ---- olaylar
     def _toggle_details(self):
@@ -925,8 +980,6 @@ class ProgressDialog(QDialog):
         if not it:
             self.close()
             return
-        pct = min(100.0, (it.done_bytes / it.size * 100) if it.size else 0)
-        self.setWindowTitle(f"{fmt_pct(pct, 0)} {it.filename}")
         self.lbl["url"].setText(it.url if len(it.url) < 80 else it.url[:77] + "…")
         st = STATUS_TEXT.get(it.status, it.status)
         if it.error:
@@ -934,11 +987,8 @@ class ProgressDialog(QDialog):
         self.lbl["status"].setText(st)
         approx = "≈ " if it.kind in ("hls", "ytdlp") and it.status != "completed" and it.size else ""
         self.lbl["size"].setText(approx + fmt_size(it.size))
-        self.lbl["done"].setText(f"{fmt_size(it.done_bytes)}  ({fmt_pct(pct, 2)})")
-        self.lbl["speed"].setText(fmt_speed(it.speed) or "—")
         self.lbl["eta"].setText(fmt_time(it.eta()) or "—")
-        self.pbar.setValue(int(pct * 10))
-        self.pbar.setFormat(fmt_pct(pct, 1))
+        self._animate()  # yüzde, indirilen, hız: akıcı gösterim
         running = it.status in ("downloading", "connecting", "seeding")
         self.btn_toggle.setText(_t("Duraklat") if running else _t("Devam Et"))
 
@@ -1553,6 +1603,9 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(8000, self._auto_update_check)
         self.timer = QTimer(self, interval=500, timeout=self._tick)
         self.timer.start()
+        self._smooth = {}  # iid -> SmoothProgress (listedeki akıcı yüzde/hız)
+        self.anim = QTimer(self, interval=50, timeout=self._animate_rows)
+        self.anim.start()
         self.refresh(force=True)
 
     # ---------------------------------------------------------- kurulum
@@ -1845,39 +1898,62 @@ class MainWindow(QMainWindow):
                         self.table.setItem(r, c, cell)
             self._select_rows([r for r, iid in enumerate(ids) if iid in sel])
         for r, iid in enumerate(self._visible):
-            it = self.mgr.items[iid]
-            if it.status in ("downloading", "connecting") and it.size:
-                st = fmt_pct(it.done_bytes / it.size * 100, 2)
-                if it.status == "connecting" and it.error:
-                    st = it.error
-            elif it.status == "error":
-                st = _t("Hata: {0}").format(it.error or "")
-            else:
-                st = STATUS_TEXT.get(it.status, it.status)
-                if it.status in ("stopped", "queued") and it.size and it.done_bytes:
-                    st += f" ({fmt_pct(it.done_bytes / it.size * 100, 1)})"
-            if it.kind == "torrent" and it.status in ("downloading", "seeding"):
-                st += _t("  ·  {0} eş").format(it.peers)
-            frac = (it.done_bytes / it.size if it.size and it.status in ("downloading", "connecting", "stopped",
-                                                                         "queued", "error") else None)
-            tone = {"completed": "ok", "seeding": "ok", "error": "bad", "downloading": "accent",
-                    "converting": "accent"}.get(
-                it.status, "muted" if it.status in ("stopped", "queued") else "text")
-            sc = self.table.item(r, STATUS)
-            if sc.data(PROGRESS_ROLE) != frac or sc.data(TONE_ROLE) != tone:
-                sc.setData(PROGRESS_ROLE, frac)
-                sc.setData(TONE_ROLE, tone)
-            last = datetime.fromtimestamp(it.last_try).strftime("%d.%m.%Y %H:%M") if it.last_try else ""
-            vals = (it.filename, fmt_size(it.size) if it.size else "", st, fmt_time(it.eta()),
-                    fmt_speed(it.speed), last, it.description)
-            for c, v in enumerate(vals, start=NAME):
-                cell = self.table.item(r, c)
-                if cell.text() != v:
-                    cell.setText(v)
-            cell0 = self.table.item(r, NAME)
-            if cell0.data(Qt.UserRole) != it.kind + it.status:
-                cell0.setData(Qt.UserRole, it.kind + it.status)
-                cell0.setIcon(self._status_icon(it))
+            self._update_row(r, self.mgr.items[iid])
+
+    def _smoothed(self, it):
+        """İnen indirmenin akıcı gösterilen (indirilen, hız) değerleri; diğerlerinde gerçek değerler."""
+        if it.status not in ("downloading", "connecting"):
+            self._smooth.pop(it.id, None)
+            return it.done_bytes, it.speed
+        sm = self._smooth.get(it.id)
+        if sm is None:
+            sm = self._smooth[it.id] = SmoothProgress()
+        return sm.step(it.done_bytes, it.speed, it.size, True)
+
+    def _animate_rows(self):
+        """Saniyede ~20 kez: yalnızca inmekte olan satırların yüzdesi, ilerleme çizgisi ve hızı (akıcı)."""
+        if not self.isVisible() or self.isMinimized():
+            return
+        for r, iid in enumerate(self._visible):
+            it = self.mgr.items.get(iid)
+            if it and it.status in ("downloading", "connecting") and r < self.table.rowCount():
+                self._update_row(r, it)
+
+    def _update_row(self, r, it):
+        done, speed = self._smoothed(it)
+        if it.status in ("downloading", "connecting") and it.size:
+            st = fmt_pct(done / it.size * 100, 2)
+            if it.status == "connecting" and it.error:
+                st = it.error
+        elif it.status == "error":
+            st = _t("Hata: {0}").format(it.error or "")
+        else:
+            st = STATUS_TEXT.get(it.status, it.status)
+            if it.status in ("stopped", "queued") and it.size and it.done_bytes:
+                st += f" ({fmt_pct(it.done_bytes / it.size * 100, 1)})"
+        if it.kind == "torrent" and it.status in ("downloading", "seeding"):
+            st += _t("  ·  {0} eş").format(it.peers)
+        frac = (done / it.size if it.size and it.status in ("downloading", "connecting", "stopped",
+                                                                     "queued", "error") else None)
+        tone = {"completed": "ok", "seeding": "ok", "error": "bad", "downloading": "accent",
+                "converting": "accent"}.get(
+            it.status, "muted" if it.status in ("stopped", "queued") else "text")
+        sc = self.table.item(r, STATUS)
+        if sc.data(PROGRESS_ROLE) != frac or sc.data(TONE_ROLE) != tone:
+            sc.setData(PROGRESS_ROLE, frac)
+            sc.setData(TONE_ROLE, tone)
+        last = datetime.fromtimestamp(it.last_try).strftime("%d.%m.%Y %H:%M") if it.last_try else ""
+        eta = (it.size - done) / speed if it.size and speed > 1 and it.status == "downloading" else None
+        vals = (it.filename, fmt_size(it.size) if it.size else "", st, fmt_time(eta),
+                fmt_speed(speed), last, it.description)
+        for c, v in enumerate(vals, start=NAME):
+            cell = self.table.item(r, c)
+            if cell.text() != v:
+                cell.setText(v)
+        cell0 = self.table.item(r, NAME)
+        if cell0.data(Qt.UserRole) != it.kind + it.status:
+            cell0.setData(Qt.UserRole, it.kind + it.status)
+            cell0.setIcon(self._status_icon(it))
 
     def _status_icon(self, it):
         return theme.status_icon(it.status)
