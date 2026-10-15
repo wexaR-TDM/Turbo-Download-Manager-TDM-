@@ -86,6 +86,12 @@ class GuiTests(unittest.TestCase):
         it = [i for i in self.win.mgr.items.values() if i.url.endswith("arsiv.zip")][-1]
         pd = self.win.progress_dialogs.get(it.id)
         self.assertIsNotNone(pd, "ilerleme penceresi açılmadı")
+        # ana pencereye bağlı değil: ana pencere simge durumuna küçültülünce indirme penceresi açık kalır
+        self.assertIsNone(pd.parentWidget())
+        self.win.showMinimized()
+        pump(0.2)
+        self.assertTrue(pd.isVisible() and not pd.isMinimized())
+        self.win.showNormal()
         for hint in (G.Qt.WindowMinimizeButtonHint, G.Qt.WindowMaximizeButtonHint, G.Qt.WindowCloseButtonHint):
             self.assertTrue(pd.windowFlags() & hint, f"başlık çubuğunda düğme yok: {hint}")
         tabs = pd.findChild(QTabWidget)

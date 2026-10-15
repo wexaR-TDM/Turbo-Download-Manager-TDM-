@@ -733,7 +733,9 @@ class ProgressDialog(QDialog):
                         ("force", "Kapatırken açık programları zorla kapat"))
 
     def __init__(self, win, iid):
-        super().__init__(win)
+        # Sahipsiz (bağımsız) pencere: Windows'ta sahibi olan pencere, ana pencere simge durumuna
+        # küçültülünce onunla birlikte iner. İndirme penceresi kendi başına açık kalsın.
+        super().__init__(None)
         self.win, self.mgr, self.iid = win, win.mgr, iid
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setMinimumWidth(640)
@@ -2185,6 +2187,8 @@ class MainWindow(QMainWindow):
     def quit_app(self):
         self._quitting = True
         self.timer.stop()
+        for d in list(self.progress_dialogs.values()):  # bağımsız indirme pencereleri de kapansın
+            d.close()
         self.mgr.shutdown()
         if self.srv:
             self.srv.shutdown()

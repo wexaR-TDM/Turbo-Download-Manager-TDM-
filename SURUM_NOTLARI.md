@@ -3,6 +3,9 @@
 Her yeni sürümde en üste bir bölüm ekleyin. "Güncellemeleri denetle" penceresinde kullanıcıya
 o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar).
 
+## 1.6.1
+• İndirme pencereleri ana pencereden bağımsız: ana pencere simge durumuna küçültülünce onlar açık kalır
+
 ## 1.6.0
 • Biçim seçimi: indirme penceresinde "Biçim" — MP4 (olduğu gibi), MKV (kayıpsız, hızlı), AVI (eski TV/oynatıcılar için), MP3 (yalnızca ses); dönüştürme indirme bitince yapılır
 • DASH (.mpd) video akışları desteklenir
