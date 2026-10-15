@@ -6,10 +6,11 @@ turbodm/locale/<dil>.json dosyalarından (Türkçe metin → çeviri) gelir. Çe
   _t("İndirme tamamlandı")               → seçili dildeki karşılığı
   _t("{0} indirme seçili").format(n)     → yer tutucular çeviride de aynen bulunur
 
-Dil, program açılırken ayarlardan okunur (varsayılan İngilizce). Dil değişikliği anında uygulanır:
+Dil, program açılırken ayarlardan okunur (varsayılan "auto": Windows'un dili). Dil değişikliği anında uygulanır:
 modül düzeyindeki çevrilmiş tablolar on_change() ile kaydedilir ve dil değişince yeniden doldurulur,
 ana pencere menüleri/listeyi yeniden kurar (MainWindow.set_language).
 """
+import ctypes
 import json
 import os
 import sys
@@ -20,7 +21,8 @@ LANGUAGES = {
     "es": "Español", "ar": "العربية", "it": "Italiano",
 }
 RTL = {"ar"}
-DEFAULT = "en"
+# Windows dil kimliğinin (LANGID) birincil kısmı → dil kodu
+_WIN_PRIMARY = {0x1F: "tr", 0x09: "en", 0x07: "de", 0x0C: "fr", 0x0A: "es", 0x01: "ar", 0x10: "it"}
 
 _lang = "tr"
 _table = {}
@@ -36,9 +38,18 @@ def _locale_dir():
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "locale")
 
 
+def system_language():
+    """Windows'un arayüz dili desteklenenlerden biriyse o, değilse İngilizce."""
+    try:
+        langid = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+        return _WIN_PRIMARY.get(langid & 0x3FF, "en")
+    except Exception:  # noqa: BLE001 (Windows dışı)
+        return "en"
+
+
 def resolve(setting):
-    """Ayardaki dil; tanımsız ya da eski "auto" değeri → İngilizce."""
-    return setting if setting in LANGUAGES else DEFAULT
+    """Ayardaki dil; "auto" (ya da tanımsız) → Windows'un dili."""
+    return setting if setting in LANGUAGES else system_language()
 
 
 def set_language(code):
@@ -82,7 +93,7 @@ def _settings_path():
 
 def save_language_setting(code):
     """Kurulumda seçilen dili ayarlara yazar (diğer ayarlara dokunmadan). TurboDM.exe --set-language <kod>"""
-    if code not in LANGUAGES:
+    if code not in LANGUAGES and code != "auto":
         return False
     path = _settings_path()
     try:
@@ -108,9 +119,9 @@ def _initial():
     path = _settings_path()
     try:
         with open(path, encoding="utf-8") as f:
-            return resolve(json.load(f).get("language"))
+            return resolve(json.load(f).get("language", "auto"))
     except (OSError, ValueError):
-        return DEFAULT
+        return resolve("auto")
 
 
 set_language(_initial())

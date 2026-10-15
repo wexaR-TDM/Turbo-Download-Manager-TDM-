@@ -623,8 +623,8 @@ class LocaleTests(unittest.TestCase):
             self.assertEqual(manager.CATEGORIES["music"][0], "Musique")
             self.assertNotEqual(torrent.STATE_TEXT["downloading"], "İndiriliyor")
             self.assertTrue(convert.FORMATS["mp3"][0].startswith("MP3"))
-            self.assertEqual(i18n.resolve("auto"), "en")  # varsayılan İngilizce
-            self.assertEqual(i18n.resolve(None), "en")
+            self.assertEqual(i18n.resolve("auto"), i18n.system_language())  # varsayılan: Windows'un dili
+            self.assertIn(i18n.resolve(None), i18n.LANGUAGES)
             i18n.set_language("de")
             self.assertEqual(i18n._t("İndirmeyi Başlat"), "Download starten")
             i18n.set_language("ar")

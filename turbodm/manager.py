@@ -56,7 +56,7 @@ DEFAULT_SETTINGS = {
     "schedule_stop": "07:00",
     "ffmpeg_path": "",
     "auto_update_check": True,
-    "language": "en",           # tr | en | de | fr | es | ar | it (kurulumda seçilir)
+    "language": "auto",         # auto (Windows dili) | tr | en | de | fr | es | ar | it
     "theme": "auto",            # auto (Windows ile aynı) | light | dark
     "last_update_check": 0,
     "update_repo": "",      # boşsa appinfo.UPDATE_REPO kullanılır

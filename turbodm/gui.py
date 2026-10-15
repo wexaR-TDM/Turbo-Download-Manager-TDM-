@@ -1081,9 +1081,10 @@ class OptionsDialog(QDialog):
         self.rejected.connect(lambda: theme.apply(QApplication.instance(), self._theme_before))
         f.addRow(_t("Tema:"), self.theme)
         self.lang = QComboBox()
+        self.lang.addItem(_t("Sistem dili (otomatik)"), "auto")
         for code, name in i18n.LANGUAGES.items():
             self.lang.addItem(name, code)
-        self.lang.setCurrentIndex(max(0, self.lang.findData(i18n.language())))
+        self.lang.setCurrentIndex(max(0, self.lang.findData(s.get("language", "auto"))))
         f.addRow(_t("Dil / Language:"), self.lang)
         self.port = QSpinBox(maximum=65535, minimum=1024, value=s["server_port"])
         f.addRow(_t("Tarayıcı entegrasyon portu:"), self.port)
@@ -1215,7 +1216,7 @@ class OptionsDialog(QDialog):
         if restart:
             QMessageBox.information(self, APP_NAME, _t("Port değişiklikleri program yeniden başlatılınca geçerli olur."))
         self.accept()
-        if self.lang.currentData() != i18n.language():  # anında, yeniden başlatmadan
+        if self.lang.currentData() != s.get("language", "auto"):  # anında, yeniden başlatmadan
             self.parent().set_language(self.lang.currentData())
 
 
@@ -1728,13 +1729,18 @@ class MainWindow(QMainWindow):
         m = mb.addMenu("&Language")
         m.setObjectName("language")
         group = QActionGroup(m)
-        for code, name in i18n.LANGUAGES.items():
+        current = self.mgr.settings.get("language", "auto")
+        if current not in i18n.LANGUAGES:
+            current = "auto"
+        for code, name in [("auto", _t("Sistem dili (otomatik)"))] + list(i18n.LANGUAGES.items()):
             a = m.addAction(name)
             a.setCheckable(True)
-            a.setChecked(code == i18n.language())
+            a.setChecked(code == current)
             a.setData(code)
             group.addAction(a)
             a.triggered.connect(lambda _=False, c=code: self.set_language(c))
+            if code == "auto":
+                m.addSeparator()
 
     def _tray_menu(self):
         menu = QMenu()
@@ -2244,13 +2250,17 @@ class MainWindow(QMainWindow):
     def set_language(self, code):
         """Dili anında değiştirir, program kapanmaz: indirmeler sürer; menüler, araç çubuğu, liste ve açık
         indirme pencereleri yeni dille yeniden kurulur."""
-        if code not in i18n.LANGUAGES:
+        if code not in i18n.LANGUAGES and code != "auto":
             return
         self.mgr.settings["language"] = code
         self.mgr.save()
-        if code == i18n.language():
+        target = i18n.resolve(code)  # auto → Windows'un dili
+        if target == i18n.language():
+            for a in self.menuBar().findChild(QMenu, "language").actions():  # yalnızca işaret değişir
+                if a.isCheckable():
+                    a.setChecked(a.data() == code)
             return
-        i18n.set_language(code)  # çevrilmiş tablolar (durum, sütun, kategori…) yeniden dolar
+        i18n.set_language(target)  # çevrilmiş tablolar (durum, sütun, kategori…) yeniden dolar
         i18n.apply_to_app(QApplication.instance())  # Qt'nin kendi metinleri, Arapçada sağdan sola
         self._retranslate()
 

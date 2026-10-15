@@ -66,9 +66,10 @@ LZMANumBlockThreads=4
 LZMAUseSeparateProcess=yes
 CloseApplications=yes
 RestartApplications=no
-; Kurulum başında dil seçimi (varsayılan: İngilizce, listedeki ilk dil). Güncellemede önceki kurulumun dili kullanılır.
+; Kurulum başında dil seçimi: varsayılan Windows'un dili (desteklenmiyorsa listedeki ilk dil, İngilizce).
+; Güncellemede önceki kurulumun dili kullanılır.
 ShowLanguageDialog=yes
-LanguageDetectionMethod=none
+LanguageDetectionMethod=uilanguage
 UsePreviousLanguage=yes
 VersionInfoVersion={#AppVersion}.0
 VersionInfoDescription=TurboDM Setup

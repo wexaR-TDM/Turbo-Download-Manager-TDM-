@@ -7,6 +7,9 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.2
+• Varsayılan dil yeniden Windows'un dili (kurulumda ve programda); Language menüsünün başında "Sistem dili (otomatik)" seçeneği
+
 ## 1.7.1
 • Dil anında değişir: menü çubuğunda sabit "Language" menüsü; seçince program kapanmadan menüler, liste ve açık indirme pencereleri yeni dile geçer, indirmeler sürer
 • Varsayılan dil İngilizce (kurulumda ve programda); dil kurulumun başında ya da Language menüsünden seçilir

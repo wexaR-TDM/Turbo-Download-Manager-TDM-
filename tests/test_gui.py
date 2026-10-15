@@ -334,6 +334,12 @@ class GuiTests(unittest.TestCase):
             self.assertEqual(self.win.table.item(row, G.STATUS).text(), G.STATUS_TEXT[it.status])
             self.assertNotEqual(G.STATUS_TEXT["queued"], "Kuyrukta")
             self.assertIn(it.id, self.win.progress_dialogs)  # açık indirme penceresi yeniden açıldı
+            first = self.win.menuBar().findChild(G.QMenu, "language").actions()[0]
+            self.assertEqual(first.data(), "auto")  # ilk seçenek: sistem dili (varsayılan)
+            self.assertFalse(first.isChecked())
+            self.win.set_language("auto")
+            self.assertEqual(G.i18n.language(), G.i18n.system_language())
+            self.assertEqual(self.win.mgr.settings["language"], "auto")
             self.win.set_language("ar")
             self.assertEqual(APP.layoutDirection(), G.Qt.RightToLeft)
         finally:
