@@ -685,6 +685,72 @@ class ExtensionTests(unittest.TestCase):
         self.assertEqual(engine.SSL_CONTEXT.verify_mode, ssl.CERT_REQUIRED)  # doğrulama kapatılmadı
         self.assertTrue(engine.SSL_CONTEXT.check_hostname)
 
+    def test_extension_button_only_on_visible_video(self):
+        # Gerçek tarayıcıda (Edge, görünmez): "Bu videoyu indir" düğmesi yalnızca görünen videoda olmalı.
+        #  * hikâye sayfaları (Instagram vb.): yanlardaki kesilmiş ve şeffaf videolara düğme konmaz
+        #  * body'si overflow ayarlı ve yüksekliği 0 ölçülen sayfalar (YouTube): ana videoya düğme konur
+        import subprocess
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        edge = next((p for p in (os.path.join(os.environ.get(b, ""), "Microsoft", "Edge", "Application", "msedge.exe")
+                                 for b in ("ProgramFiles(x86)", "ProgramFiles")) if os.path.isfile(p)), None)
+        if not edge:
+            self.skipTest("Microsoft Edge yok")
+        results = {}
+
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_POST(self):
+                body = self.rfile.read(int(self.headers.get("Content-Length") or 0)).decode()
+                name, _, value = body.partition("=")
+                results[name] = value
+                self.send_response(204)
+                self.end_headers()
+
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        ext = "file:///" + os.path.join(ROOT, "browser_extension").replace("\\", "/") + "/"
+        stub = ("window.chrome={i18n:{getMessage:k=>k},runtime:{lastError:null,onMessage:{addListener(){}},"
+                "sendMessage(m,cb){setTimeout(()=>cb(m.type==='tdm-list'?[{url:'x',kind:'hls',label:'x'}]:{ok:true}),5)}}};")
+        pages = {
+            "hikaye": '<div style="position:absolute;left:400px;top:50px;width:500px;height:700px;overflow:hidden">'
+                      '<div style="display:flex;transform:translateX(-500px)">' +
+                      '<video style="flex:0 0 500px;height:700px"></video>' * 3 + '</div></div>'
+                      '<video style="position:absolute;left:1000px;top:100px;width:300px;height:300px;opacity:0"></video>',
+            "youtube": '<style>body{overflow:auto scroll;height:0}</style><div style="overflow:hidden;width:1080px;'
+                       'height:608px;margin:60px 16px"><video style="width:1080px;height:608px"></video></div>',
+        }
+        procs = []
+        try:
+            for name, body in pages.items():
+                html = (f'<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="{ext}content.css">'
+                        f'<script>{stub}</script></head><body style="margin:0">{body}<script src="{ext}content.js"></script>'
+                        f'<script>setTimeout(()=>{{const b=[...document.querySelectorAll(".tdm-grab")].filter(e=>'
+                        f'e.style.display==="block");fetch("http://127.0.0.1:{srv.server_port}/",{{method:"POST",'
+                        f'mode:"no-cors",body:"{name}="+b.length+"@"+b.map(e=>parseInt(e.style.left)).join(",")}})}},1500)'
+                        f'</script></body></html>')
+                path = os.path.join(TMP, f"eklenti_{name}.html")
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(html)
+                procs.append(subprocess.Popen(
+                    [edge, "--headless=new", f"--user-data-dir={os.path.join(TMP, 'edge_' + name)}",
+                     "--allow-file-access-from-files", "--window-size=1400,900", "file:///" + path.replace("\\", "/")],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+            end = time.time() + 40
+            while len(results) < len(pages) and time.time() < end:
+                time.sleep(0.2)
+        finally:
+            for p in procs:
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(p.pid)], capture_output=True)
+            srv.shutdown()
+        count, _, lefts = results.get("hikaye", "0@").partition("@")
+        self.assertEqual(count, "1", results)  # yalnızca ortadaki video
+        self.assertTrue(400 < int(lefts) < 900, results)
+        count, _, lefts = results.get("youtube", "0@").partition("@")
+        self.assertEqual(count, "1", results)  # YouTube'da düğme kaybolmamalı
+        self.assertTrue(16 < int(lefts) < 1096, results)
+
     def test_extension_tab_calls_tolerate_closed_tabs(self):
         # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı
         with open(os.path.join(ROOT, "browser_extension", "background.js"), encoding="utf-8") as f:

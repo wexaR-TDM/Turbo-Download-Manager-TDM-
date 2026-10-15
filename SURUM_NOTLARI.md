@@ -7,6 +7,9 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.10
+• Tarayıcı eklentisi 1.5.3: 1.7.8'deki değişiklikten sonra bazı büyük video sitelerinde "Bu videoyu indir" düğmesi hiç görünmüyordu; düzeltildi (düğme yine yalnızca ekranda görünen videoda çıkar)
+
 ## 1.7.9
 • Düzeltme: bazı bilgisayarlarda gofile gibi sitelerden indirirken çıkan "CERTIFICATE_VERIFY_FAILED: certificate has expired" hatası giderildi. HTTPS sertifikaları artık tarayıcılar gibi Windows'un kendi doğrulamasıyla denetleniyor (gerekli yeni kök sertifikalar Windows tarafından otomatik alınır); güvenlik denetimi gevşetilmedi
 

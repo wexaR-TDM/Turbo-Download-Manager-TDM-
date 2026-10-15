@@ -56,10 +56,13 @@
     const r = v.getBoundingClientRect();
     let top = Math.max(r.top, 0), left = Math.max(r.left, 0);
     let bottom = Math.min(r.bottom, innerHeight), right = Math.min(r.right, innerWidth);
-    for (let el = v, depth = 0; el && el !== document.documentElement && depth < 25; el = el.parentElement, depth++) {
+    // body/html'e kadar: onların overflow ayarı pencereye aktarılır, kendileri kesmez (bazı büyük video
+    // sitelerinde body'nin yüksekliği 0 ölçülür; hesaba katılırsa video görünmez sanılıyordu)
+    for (let el = v, depth = 0; el && el !== document.body && el !== document.documentElement && depth < 25;
+      el = el.parentElement, depth++) {
       const cs = getComputedStyle(el);
       if (cs.display === "none" || cs.visibility === "hidden" || parseFloat(cs.opacity) < 0.1) return null;
-      if (el !== v && cs.overflow !== "visible") {
+      if (el !== v && cs.overflow !== "visible" && cs.display !== "contents") {
         const p = el.getBoundingClientRect();
         top = Math.max(top, p.top); left = Math.max(left, p.left);
         bottom = Math.min(bottom, p.bottom); right = Math.min(right, p.right);
