@@ -7,6 +7,9 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.8
+• Browser extension 1.5.2: on pages like Instagram stories the "Download this video" button appears only on the video actually visible on screen (preloaded, hidden or clipped videos used to get buttons in empty areas)
+
 ## 1.7.7
 • The text on the setup wizard's side image appears in the language chosen in setup
 

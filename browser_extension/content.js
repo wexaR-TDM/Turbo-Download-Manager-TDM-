@@ -49,10 +49,32 @@
     return btn;
   }
 
+  // Videonun ekranda gerçekten görünen kısmı (yoksa null). Hikâye/kısa video sayfaları yan taraftaki
+  // videoları önceden yükleyip kaydırılmış bir alanın dışında (overflow ile kesilmiş), şeffaf ya da gizli
+  // tutar; bunlara düğme konmaz.
+  function visibleRect(v) {
+    const r = v.getBoundingClientRect();
+    let top = Math.max(r.top, 0), left = Math.max(r.left, 0);
+    let bottom = Math.min(r.bottom, innerHeight), right = Math.min(r.right, innerWidth);
+    for (let el = v, depth = 0; el && el !== document.documentElement && depth < 25; el = el.parentElement, depth++) {
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden" || parseFloat(cs.opacity) < 0.1) return null;
+      if (el !== v && cs.overflow !== "visible") {
+        const p = el.getBoundingClientRect();
+        top = Math.max(top, p.top); left = Math.max(left, p.left);
+        bottom = Math.min(bottom, p.bottom); right = Math.min(right, p.right);
+      }
+    }
+    const w = right - left, h = bottom - top;
+    // en az yarısı görünmüyorsa (kenardan sızan komşu video) sayma
+    if (w < 200 || h < 120 || w * h < r.width * r.height * 0.5) return null;
+    return { top, left, bottom, right, width: w, height: h };
+  }
+
   function place(btn, video) {
-    const r = video.getBoundingClientRect();
-    const visible = r.width >= 200 && r.height >= 120 && r.bottom > 0 && r.top < innerHeight;
-    btn.style.display = visible ? "block" : "none";
+    const r = visibleRect(video);
+    btn.style.display = r ? "block" : "none";
+    if (!r) return;
     btn.style.top = window.scrollY + r.top + 10 + "px";
     btn.style.left = window.scrollX + r.right - btn.offsetWidth - 10 + "px";
   }
@@ -60,8 +82,8 @@
   // Ana video: görünür ve ekranın büyük kısmını kaplıyor (izleme sayfası, dikey kısa video oynatıcısı,
   // gömülü oynatıcı). Akış listelerindeki küçük önizlemeler sayılmaz.
   function isMainVideo(v) {
-    const r = v.getBoundingClientRect();
-    if (r.width < 200 || r.height < 120 || r.bottom <= 0 || r.top >= innerHeight) return false;
+    const r = visibleRect(v);
+    if (!r) return false;
     return r.height >= innerHeight * 0.45 || r.width >= innerWidth * 0.45;
   }
 
@@ -157,8 +179,7 @@
       if (!btn) {
         const direct = v.currentSrc && /^https?:/i.test(v.currentSrc);
         if (!isMainVideo(v) && mediaCount === 0 && !direct) return;
-        const r = v.getBoundingClientRect();
-        if (r.width < 200 || r.height < 120) return; // küçük önizlemeler
+        if (!visibleRect(v)) return; // küçük önizlemeler, gizli/kesilmiş videolar
         btn = makeButton(v);
         panels.set(v, btn);
         if (direct) send({ type: "tdm-element-src", url: v.currentSrc });
