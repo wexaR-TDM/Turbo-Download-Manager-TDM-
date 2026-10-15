@@ -11,3 +11,9 @@ __pycache__/
 # Büyük ikili dosyalar (özetleri vendor/SHA256SUMS'ta, kaynakları resmi sitelerinde)
 vendor/**/*.exe
 vendor/ffmpeg/source/*.tar.gz
+
+# Yalnızca yerelde kalan belgeler
+docs/FORUM_TANITIM.txt
+
+# İndirme istatistikleri (yerel)
+stats/

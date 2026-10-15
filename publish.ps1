@@ -42,6 +42,10 @@ if ($LASTEXITCODE) { throw "gh release create başarısız" }
 Remove-Item $notesFile
 
 
+# Silinecek sürümlerin indirme sayaçları kaybolmasın (stats/sayac.json, yerel)
+python (Join-Path $root "installer\stats.py") --kaydet
+if ($LASTEXITCODE) { Write-Warning "İndirme sayaçları kaydedilemedi" }
+
 # Yalnızca son sürüm kalsın: önceki sürümler (ve etiketleri) silinir. Güncelleme denetimi her zaman
 # releases/latest adresini kullandığı için kurulu programlar bundan etkilenmez.
 $old = gh release list --repo $repo --limit 200 --json tagName --jq ".[].tagName" | Where-Object { $_ -and $_ -ne "v$version" }
