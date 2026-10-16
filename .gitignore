@@ -10,8 +10,6 @@ __pycache__/
 
 # Büyük ikili dosyalar (özetleri vendor/SHA256SUMS'ta, kaynakları resmi sitelerinde)
 vendor/**/*.exe
-vendor/msix/*.dll
-vendor/msix/*.manifest
 vendor/ffmpeg/source/*.tar.gz
 
 # Yalnızca yerelde kalan belgeler

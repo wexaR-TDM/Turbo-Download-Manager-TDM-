@@ -314,24 +314,6 @@ class GuiTests(unittest.TestCase):
             act.trigger()
         self.assertEqual(opened, ["https://github.com/wexaR-TDM/TurboDM/blob/main/SURUM_NOTLARI.md"])
 
-    def test_store_version_leaves_updates_to_store(self):
-        # Store (MSIX) sürümü: güncelleme penceresi kendi indirme/kurmasını yapmaz, Store'u söyler;
-        # açılıştaki otomatik denetim hiç çalışmaz
-        from turbodm import appinfo
-        with mock.patch.object(appinfo, "PACKAGED", True), \
-                mock.patch.object(G.updater, "check", side_effect=AssertionError("Store sürümü denetlememeli")), \
-                mock.patch.object(G.ytdlp, "update_available", side_effect=AssertionError("Store sürümü")):
-            d = G.UpdateDialog(self.win)
-            APP.processEvents()
-            self.assertIn("Microsoft Store", d.app_lbl.text())
-            self.assertTrue(d.app_btn.isHidden() and d.yt_btn.isHidden())
-            d.close()
-            self.win.mgr.settings["last_update_check"] = 0
-            self.win._auto_update_check()  # erken döner (check çağrılırsa AssertionError)
-            o = G.OptionsDialog(self.win)
-            self.assertFalse(o.autostart.isEnabled())  # Windows Ayarlar → Başlangıç
-            o.close()
-
     def test_smooth_progress_is_fluid_monotonic_and_honest(self):
         # gerçek değer yarım saniyede bir 50 MB'lık sıçramalarla gelir (video indirme gibi);
         # ekranda saniyede ~30 kare: sıçramadan, geri gitmeden, gerçeğin fazla önüne geçmeden ilerlemeli

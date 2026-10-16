@@ -137,37 +137,9 @@ def write_ico(path, sizes=(16, 20, 24, 32, 40, 48, 64, 128, 256)):
         f.write(header + entries + data)
 
 
-def msix_assets(out):
-    """Microsoft Store paketi görselleri (şeffaf zemin; Windows ölçeğe göre seçer, makepri ile eşlenir)."""
-    os.makedirs(out, exist_ok=True)
-
-    def tile(w, h, logo_frac):
-        img = QImage(w, h, QImage.Format_ARGB32)
-        img.fill(Qt.transparent)
-        p = QPainter(img)
-        side = int(min(w, h) * logo_frac)
-        p.drawImage((w - side) // 2, (h - side) // 2, render(side))
-        p.end()
-        return img
-
-    for scale in (100, 125, 150, 200, 400):
-        k = scale / 100
-        tile(int(44 * k), int(44 * k), 0.92).save(os.path.join(out, f"Square44x44Logo.scale-{scale}.png"))
-        tile(int(150 * k), int(150 * k), 0.62).save(os.path.join(out, f"Square150x150Logo.scale-{scale}.png"))
-        tile(int(310 * k), int(150 * k), 0.62).save(os.path.join(out, f"Wide310x150Logo.scale-{scale}.png"))
-        tile(int(50 * k), int(50 * k), 0.92).save(os.path.join(out, f"StoreLogo.scale-{scale}.png"))
-    for size in (16, 24, 32, 48, 256):  # görev çubuğu / Başlat listesi (arka plan plakası olmadan)
-        for alt in ("", "_altform-unplated"):
-            render(size).save(os.path.join(out, f"Square44x44Logo.targetsize-{size}{alt}.png"))
-
-
 if __name__ == "__main__":
-    app = QGuiApplication([])
-    if len(sys.argv) > 2 and sys.argv[1] == "--msix":  # python make_icon.py --msix <klasör>
-        msix_assets(sys.argv[2])
-        print("ok")
-        sys.exit(0)
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
+    app = QGuiApplication([])
     write_ico(os.path.join(out, "turbodm.ico"))
     render(256).save(os.path.join(out, "turbodm.png"))
     # Kurulum sihirbazının yan görseli (164x314) ve küçük görseli (55x55)

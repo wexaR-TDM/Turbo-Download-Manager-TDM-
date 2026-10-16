@@ -18,7 +18,6 @@ from PySide6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
-from . import appinfo
 from . import convert
 from . import hls
 from . import server
@@ -1153,9 +1152,6 @@ class OptionsDialog(QDialog):
         self.autostart = QCheckBox(_t("Windows açılışında başlat (sistem tepsisinde)"))
         self.autostart.setChecked(winassoc.autostart_enabled())
         f.addRow(self.autostart)
-        if appinfo.PACKAGED:  # Store sürümü: Windows'un başlangıç uygulamaları ayarından açılır
-            self.autostart.setEnabled(False)
-            self.autostart.setText(_t("Windows açılışında başlatma: Windows Ayarlar → Uygulamalar → Başlangıç"))
         self.autoupd = QCheckBox(_t("Açılışta güncellemeleri denetle (günde bir kez)"))
         self.autoupd.setChecked(s.get("auto_update_check", True))
         f.addRow(self.autoupd)
@@ -1229,10 +1225,9 @@ class OptionsDialog(QDialog):
         self.assoc_lbl.setWordWrap(True)
         f.addRow(self.assoc_lbl)
         arow = QHBoxLayout()
-        buttons = ((_t("Magnet ve .torrent'i TurboDM ile aç"), self._register),
-                   (_t("İlişkilendirmeyi kaldır"), self._unregister),
-                   (_t("Varsayılan uygulamalar…"), winassoc.open_default_apps))
-        for text, fn in buttons[2:] if appinfo.PACKAGED else buttons:  # Store sürümü: ilişki pakette
+        for text, fn in ((_t("Magnet ve .torrent'i TurboDM ile aç"), self._register),
+                         (_t("İlişkilendirmeyi kaldır"), self._unregister),
+                         (_t("Varsayılan uygulamalar…"), winassoc.open_default_apps)):
             b = QPushButton(text)
             b.clicked.connect(fn)
             arow.addWidget(b)
@@ -1269,9 +1264,6 @@ class OptionsDialog(QDialog):
             _t("✖ ffmpeg bulunamadı. HLS videoları yine iner ama .ts olarak kaydedilir; ayrı ses kanalı varsa ayrı dosyaya yazılır.\nKurmak için: winget install Gyan.FFmpeg"))
 
     def _assoc_status(self):
-        if appinfo.PACKAGED:
-            self.assoc_lbl.setText(_t("✔ magnet bağlantıları ve .torrent dosyaları TurboDM ile açılabilir (Store sürümünde paketle birlikte gelir). Varsayılan uygulamayı 'Varsayılan uygulamalar…' ile seçebilirsiniz."))
-            return
         if winassoc.is_registered():
             txt = _t("✔ magnet bağlantıları ve .torrent dosyaları TurboDM ile açılıyor.")
             other = winassoc.user_choice_overrides()
@@ -1436,10 +1428,6 @@ class UpdateDialog(QDialog):
         self.b_app.done.connect(self._on_app)
         self.b_app.progress.connect(self._on_app_progress)
         self.b_yt.done.connect(self._on_yt)
-        if appinfo.PACKAGED:  # Store sürümü: güncellemeleri Microsoft Store yapar (video motoru dahil)
-            self.app_lbl.setText(_t("TurboDM Microsoft Store'dan kurulduğu için güncellemeler Microsoft Store üzerinden otomatik gelir."))
-            self.yt_lbl.setText(_t("Video motoru, TurboDM güncellemeleriyle birlikte güncellenir."))
-            return
         if prefetched:
             self._on_app(prefetched, None)
         else:
@@ -2201,8 +2189,6 @@ class MainWindow(QMainWindow):
 
     def _auto_update_check(self):
         """Açılıştan kısa süre sonra, günde en fazla bir kez, sessizce denetle."""
-        if appinfo.PACKAGED:  # Store sürümünü Microsoft Store günceller
-            return
         s = self.mgr.settings
         url = updater.manifest_url(s.get("update_repo") or None)
         if not url or not s.get("auto_update_check", True) or time.time() - s.get("last_update_check", 0) < 86400:

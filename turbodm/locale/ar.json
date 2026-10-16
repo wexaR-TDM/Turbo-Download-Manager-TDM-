@@ -359,9 +359,5 @@
  "✔ ffmpeg bulundu: {0}\nHLS videoları .mp4 olarak kaydedilir, ayrı ses kanalı birleştirilir.": "✔ تم العثور على ffmpeg: {0}\nتُحفظ فيديوهات HLS بصيغة ‎.mp4 وتُدمج مسارات الصوت المنفصلة.",
  "✔ magnet bağlantıları ve .torrent dosyaları TurboDM ile açılıyor.": "✔ تُفتح روابط Magnet وملفات ‎.torrent باستخدام TurboDM.",
  "✖ ffmpeg bulunamadı. HLS videoları yine iner ama .ts olarak kaydedilir; ayrı ses kanalı varsa ayrı dosyaya yazılır.\nKurmak için: winget install Gyan.FFmpeg": "✖ لم يُعثر على ffmpeg. تُنزَّل فيديوهات HLS رغم ذلك لكنها تُحفظ بصيغة ‎.ts؛ ويُكتب مسار الصوت المنفصل في ملف خاص به.\nللتثبيت: winget install Gyan.FFmpeg",
- "Hata, yeniden deneniyor ({0}/{1})": "خطأ، جارٍ إعادة المحاولة ({0}/{1})",
- "Windows açılışında başlatma: Windows Ayarlar → Uygulamalar → Başlangıç": "التشغيل مع Windows: إعدادات Windows ← التطبيقات ← بدء التشغيل",
- "✔ magnet bağlantıları ve .torrent dosyaları TurboDM ile açılabilir (Store sürümünde paketle birlikte gelir). Varsayılan uygulamayı 'Varsayılan uygulamalar…' ile seçebilirsiniz.": "✔ يمكن فتح روابط magnet وملفات torrent باستخدام TurboDM (مضمّن في حزمة إصدار المتجر). يمكنك اختيار التطبيق الافتراضي من 'التطبيقات الافتراضية…'.",
- "TurboDM Microsoft Store'dan kurulduğu için güncellemeler Microsoft Store üzerinden otomatik gelir.": "تم تثبيت TurboDM من Microsoft Store، لذلك تصل التحديثات تلقائيًا عبر Microsoft Store.",
- "Video motoru, TurboDM güncellemeleriyle birlikte güncellenir.": "يتم تحديث محرك الفيديو مع تحديثات TurboDM."
+ "Hata, yeniden deneniyor ({0}/{1})": "خطأ، جارٍ إعادة المحاولة ({0}/{1})"
 }
