@@ -1,0 +1,7 @@
+{
+  "_not": "Partner Center → uygulama → Product management → Product identity değerleri. dev=true iken paket yalnızca bu bilgisayarda denemek içindir, Store'a gönderilmez.",
+  "dev": true,
+  "IdentityName": "TurboDM.Dev",
+  "Publisher": "CN=TurboDM-Dev",
+  "PublisherDisplayName": "TurboDM"
+}

@@ -7,6 +7,7 @@ import ctypes
 import os
 import sys
 import winreg
+from . import appinfo
 from .i18n import _t
 
 APP = "TurboDM"
@@ -73,6 +74,8 @@ def _notify_shell():
 
 
 def register(root="Software"):
+    if appinfo.PACKAGED:  # Store sürümü: ilişkilendirme paket bildiriminde (AppxManifest)
+        return
     """magnet: ve .torrent ilişkilendirmesi. `root` testler için değiştirilebilir."""
     classes = root + r"\Classes"
     cmd = launch_command('"%1"')
@@ -114,6 +117,8 @@ def owns_registration(root="Software"):
 
 
 def unregister(root="Software"):
+    if appinfo.PACKAGED:
+        return
     """Yalnızca BU exe'ye ait ilişkilendirmeleri kaldırır; başka bir kurulumunkilere dokunmaz."""
     if not owns_registration(root):
         return
@@ -131,6 +136,8 @@ def unregister(root="Software"):
 
 
 def is_registered(root="Software"):
+    if appinfo.PACKAGED:
+        return True
     return _get(root + r"\Classes\magnet\shell\open\command") == launch_command('"%1"')
 
 
@@ -147,6 +154,8 @@ def open_default_apps():
 
 
 def set_autostart(enabled):
+    if appinfo.PACKAGED:  # Store sürümü: Windows Ayarlar → Uygulamalar → Başlangıç (StartupTask)
+        return
     if enabled:
         _set(RUN_KEY, APP, launch_command("--tray"))
     else:
@@ -160,4 +169,6 @@ def remove_autostart_if_mine():
 
 
 def autostart_enabled():
+    if appinfo.PACKAGED:
+        return False
     return _get(RUN_KEY, APP) is not None

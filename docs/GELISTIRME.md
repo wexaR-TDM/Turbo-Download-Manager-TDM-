@@ -99,6 +99,19 @@ Komut satırı: `TurboDM.exe <url | magnet | dosya.torrent>` (program açıksa i
 gizli başlar), `--minimized --resume` (güncelleme sonrası), `--quit`, `--register-assoc`, `--autostart on|off`,
 `--set-language <kod>`, `--cleanup [--partials] [--downloads] [--appdata]`, `--selftest <rapor.json>`.
 
+## Microsoft Store paketi (MSIX)
+
+`powershell -ExecutionPolicy Bypass -File installer\build_msix.ps1` → `dist\TurboDM-<sürüm>.msix` (önce `build.ps1`).
+Paket imzasızdır; Store'a yüklenince Microsoft imzalar (kod imzalama sertifikası gerekmez).
+
+* Kimlik: `installer\msix\identity.json` (Partner Center → Product identity). `dev: true` iken paket yalnızca denemelik.
+* Bildirim: `installer\msix\AppxManifest.xml` — magnet/.torrent ilişkilendirmesi, açılışta başlatma (StartupTask),
+  güvenlik duvarı kuralı ve 7 dil burada tanımlıdır.
+* Paketli çalışırken (`appinfo.PACKAGED`): güncellemeleri Store yapar (program ve video motoru kendini güncellemez),
+  kayıt defterine ilişkilendirme/açılış kaydı yazılmaz, tarayıcı eklentisi pakete girmez (Edge mağazasından kurulur).
+* Bu bilgisayarda denemek: Windows Geliştirici Modu açıkken `installer\build_msix.ps1 -Register`.
+* Araçlar (MakeAppx, MakePri): `installer\fetch_tools.ps1` Microsoft'un NuGet paketinden alır, imzalarını denetler.
+
 ## Çeviriler
 
 Kaynak dil Türkçedir: arayüz metinleri kodda Türkçe yazılır ve `_t("…")` ile sarılır. Diğer diller

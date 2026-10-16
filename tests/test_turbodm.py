@@ -649,6 +649,46 @@ class LocaleTests(unittest.TestCase):
         os.remove(path)
 
 
+class StorePackageTests(unittest.TestCase):
+    """Microsoft Store (MSIX) sürümü: paket bildirimi ve paketli çalışırken değişen davranışlar."""
+
+    def _manifest(self):
+        import xml.etree.ElementTree as ET
+        with open(os.path.join(ROOT, "installer", "msix", "AppxManifest.xml"), encoding="utf-8") as f:
+            text = f.read()
+        self.assertEqual(set(re.findall(r"\{\{(\w+)\}\}", text)),
+                         {"IdentityName", "Publisher", "PublisherDisplayName", "Version"})
+        filled = (text.replace("{{IdentityName}}", "TurboDM.Test").replace("{{Publisher}}", "CN=Test")
+                  .replace("{{PublisherDisplayName}}", "TurboDM").replace("{{Version}}", "1.7.16.0"))
+        return ET.fromstring(filled.encode("utf-8"))
+
+    def test_manifest_is_valid_and_complete(self):
+        from turbodm import i18n
+        root = self._manifest()
+        ns = {"m": "http://schemas.microsoft.com/appx/manifest/foundation/windows10",
+              "uap": "http://schemas.microsoft.com/appx/manifest/uap/windows10"}
+        langs = {r.get("Language").split("-")[0] for r in root.findall("m:Resources/m:Resource", ns)}
+        self.assertEqual(langs, set(i18n.LANGUAGES))  # programın 7 dili Store sayfasında da
+        app = root.find("m:Applications/m:Application", ns)
+        self.assertEqual(app.get("Executable"), "TurboDM.exe")
+        self.assertEqual(app.get("EntryPoint"), "Windows.FullTrustApplication")
+        self.assertEqual(root.find(".//uap:Protocol", ns).get("Name"), "magnet")
+        self.assertEqual(root.find(".//uap:FileType", ns).text, ".torrent")
+
+    def test_packaged_mode_leaves_updates_and_registry_to_windows(self):
+        from turbodm import appinfo, winassoc, ytdlp
+        self.assertFalse(appinfo.PACKAGED)  # testler normal (kurulum programıyla) sürümde çalışır
+        with mock.patch.object(appinfo, "PACKAGED", True), \
+                mock.patch.object(winassoc.winreg, "CreateKeyEx", side_effect=AssertionError("kayıt defteri")):
+            winassoc.register()            # ilişkilendirme paket bildiriminde: kayıt defterine yazılmaz
+            winassoc.set_autostart(True)   # Windows Ayarlar → Başlangıç
+            self.assertTrue(winassoc.is_registered())
+            self.assertFalse(winassoc.autostart_enabled())
+            user = os.path.join(ytdlp.USER_TOOLS, "yt-dlp.exe")
+            with mock.patch("os.path.isfile", lambda p: p == user):
+                self.assertNotEqual(ytdlp.ytdlp_path(), user)  # kendi kendini güncelleyen kopya kullanılmaz
+
+
 class ExtensionTests(unittest.TestCase):
     def test_page_url_is_reduced_to_single_video(self):
         w = "https://www.youtube.com/watch?v=abcDEF12345"

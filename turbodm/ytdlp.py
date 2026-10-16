@@ -20,6 +20,7 @@ import time
 import urllib.parse
 import urllib.request
 
+from . import appinfo
 from .appinfo import install_dir
 from .engine import SSL_CONTEXT
 from .i18n import _t
@@ -62,7 +63,7 @@ def _bundled(*names):
 def ytdlp_path():
     """Kullanıcı klasöründeki güncellenmiş kopya varsa o, yoksa programla gelen."""
     user = os.path.join(USER_TOOLS, "yt-dlp.exe")
-    if os.path.isfile(user):
+    if os.path.isfile(user) and not appinfo.PACKAGED:  # Store sürümü yalnızca paketteki kopyayı kullanır
         return user
     return _bundled("yt-dlp.exe") or shutil.which("yt-dlp")
 

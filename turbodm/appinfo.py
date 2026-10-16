@@ -24,6 +24,23 @@ MUTEX_NAME = "TurboDM_SingleInstance_Mutex"
 FROZEN = getattr(sys, "frozen", False)
 
 
+def _packaged():
+    """Microsoft Store (MSIX) paketinden mi çalışıyor? Paketli uygulamaya Windows bir paket kimliği verir.
+    Store sürümünde güncellemeleri Store yapar; magnet/.torrent ilişkilendirmesi ve açılışta başlatma pakette
+    tanımlıdır (kayıt defterine yazılmaz)."""
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+        n = ctypes.c_uint32(0)
+        return ctypes.windll.kernel32.GetCurrentPackageFullName(ctypes.byref(n), None) != 15700  # NO_PACKAGE
+    except (AttributeError, OSError):
+        return False
+
+
+PACKAGED = _packaged()
+
+
 def install_dir():
     """Kurulu sürümde TurboDM.exe'nin klasörü, geliştirmede proje kökü."""
     if FROZEN:
