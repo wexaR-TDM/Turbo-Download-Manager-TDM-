@@ -782,12 +782,20 @@ class ExtensionTests(unittest.TestCase):
     def test_extension_leaves_form_post_downloads_to_browser(self):
         # form gönderimiyle (POST) gelen dosya (ör. altyazı sitelerinin "indir" düğmesi) TurboDM'e verilmez:
         # TurboDM aynı adresi form verisi olmadan isterse dosya yerine sayfa alır ("ind" adlı anlamsız dosya)
-        with open(os.path.join(ROOT, "browser_extension", "background.js"), encoding="utf-8") as f:
-            js = f.read()
-        self.assertIn('d.method !== "POST"', js)
-        handler = js[js.index("chrome.downloads.onCreated.addListener"):]
-        handler = handler[:handler.index("\n});")]
-        self.assertLess(handler.index("if (wasPosted(item)) return;"), handler.index("sendToApp("))
+        # Eklentinin gerçek kodu sahte tarayıcı olaylarıyla çalıştırılır (deno): form gönderimi + indirme başlangıcı
+        import subprocess
+        deno = os.path.join(ROOT, "vendor", "deno", "deno.exe")
+        if not os.path.isfile(deno):
+            self.skipTest("deno yok")
+        r = subprocess.run([deno, "run", "--allow-read", os.path.join(ROOT, "tests", "extension_background_sim.js"),
+                            os.path.join(ROOT, "browser_extension", "background.js")],
+                           capture_output=True, text=True, encoding="utf-8", timeout=60,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        res = json.loads(r.stdout[r.stdout.index("{"):])
+        self.assertFalse(res["form_post"]["turbodm_e_gitti"], res)   # form indirmesi tarayıcıda kalır
+        self.assertFalse(res["form_post"]["duraklatildi"], res)
+        self.assertTrue(res["normal_get"]["turbodm_e_gitti"], res)   # normal indirme yine TurboDM'e gider
+        self.assertTrue(res["normal_get"]["tarayicida_iptal"], res)
 
     def test_extension_tab_calls_tolerate_closed_tabs(self):
         # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı
