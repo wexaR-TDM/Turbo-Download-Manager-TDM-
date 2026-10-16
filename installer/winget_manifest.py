@@ -14,7 +14,7 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PKG = "wexaR-TDM.TurboDM"
 REPO = "wexaR-TDM/TurboDM"
-MANIFEST = "1.6.0"
+MANIFEST = "1.12.0"
 
 
 def main():
