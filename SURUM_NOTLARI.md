@@ -7,6 +7,9 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.17
+• Tarayıcı eklentisi 1.6.4: form düğmesiyle (ör. altyazı sitelerindeki "Altyazıyı indir") başlayan indirmeler artık tarayıcıda iner. Bu dosyaları sunucu yalnızca formdaki bilgilerle verdiği için TurboDM'e aktarılınca "ind" gibi anlamsız bir dosya iniyordu
+
 ## 1.7.16
 • Tarayıcı eklentisi 1.6.3: "Bu videoyu indir" düğmesi film izlerken göze batmıyor. Fare 3 saniye kıpırdamazsa oynatıcının kendi denetimleri gibi solar, fare oynayınca geri gelir
 • Düğmenin yanındaki × ile düğme o sayfada gizlenir; sayfa yenilenince (F5) ya da başka bir videoya geçilince yeniden görünür

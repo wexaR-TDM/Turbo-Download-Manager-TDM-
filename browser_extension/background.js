@@ -97,6 +97,24 @@ chrome.downloads.onChanged.addListener(async (d) => {
   } catch {}
 });
 
+// Form gönderimiyle (POST) başlayan indirmeler (ör. "Altyazıyı indir" gibi düğmeler): sunucu dosyayı yalnızca
+// formdaki verilerle verir. TurboDM aynı adresi verisiz isterse dosya yerine hata/sayfa alır (ör. "ind" adlı
+// anlamsız dosya). Bu indirmeler tarayıcıda bırakılır; tarayıcı doğru yanıtı zaten almıştır.
+const postedUrls = new Map();  // adres -> zaman
+chrome.webRequest.onBeforeRequest.addListener(
+  (d) => {
+    if (d.method !== "POST") return;
+    const now = Date.now();
+    postedUrls.set(d.url, now);
+    for (const [u, t] of postedUrls) if (now - t > 120000) postedUrls.delete(u);
+  },
+  { urls: ["<all_urls>"], types: ["main_frame", "sub_frame"] }
+);
+
+function wasPosted(item) {
+  return [item.url, item.finalUrl].some((u) => u && postedUrls.has(u));
+}
+
 chrome.downloads.onCreated.addListener(async (item) => {
   if (!enabled) return;
   const url = item.finalUrl || item.url;
@@ -105,6 +123,7 @@ chrome.downloads.onCreated.addListener(async (item) => {
     torrentDownloads.add(item.id);
     return;
   }
+  if (wasPosted(item)) return;  // form verisiyle istenen dosya: tarayıcı indirsin
   try { await chrome.downloads.pause(item.id); } catch {}
   try {
     const name = (item.filename || "").split(/[\\/]/).pop();

@@ -819,6 +819,16 @@ class ExtensionTests(unittest.TestCase):
         with open(os.path.join(ROOT, "store", "demo", "video.html"), encoding="utf-8") as f:
             self.assertRegex(f.read(), r"runtime:\s*\{\s*id:")
 
+    def test_extension_leaves_form_post_downloads_to_browser(self):
+        # form gönderimiyle (POST) gelen dosya (ör. altyazı sitelerinin "indir" düğmesi) TurboDM'e verilmez:
+        # TurboDM aynı adresi form verisi olmadan isterse dosya yerine sayfa alır ("ind" adlı anlamsız dosya)
+        with open(os.path.join(ROOT, "browser_extension", "background.js"), encoding="utf-8") as f:
+            js = f.read()
+        self.assertIn('d.method !== "POST"', js)
+        handler = js[js.index("chrome.downloads.onCreated.addListener"):]
+        handler = handler[:handler.index("\n});")]
+        self.assertLess(handler.index("if (wasPosted(item)) return;"), handler.index("sendToApp("))
+
     def test_extension_tab_calls_tolerate_closed_tabs(self):
         # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı
         with open(os.path.join(ROOT, "browser_extension", "background.js"), encoding="utf-8") as f:
