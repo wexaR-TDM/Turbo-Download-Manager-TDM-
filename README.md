@@ -45,9 +45,15 @@
 ### 🧩 Tarayıcı entegrasyonu (Edge / Chrome)
 - Tarayıcıda başlatılan indirmeler otomatik olarak TurboDM'e gider; sağ tık → **"TurboDM ile indir"**.
 - Sayfanın yüklediği video/ses akışlarını eklenti penceresinde listeler. Eklenti siteye özel kod içermez, her sitede aynı çalışır.
+- TurboDM kapalıysa eklenti onu kendisi açar ve indirmeyi aktarır.
 
 ### 🗂 Düzen ve arayüz
-- Kategoriler, kuyruk, zamanlayıcı; onay kutularıyla **toplu seçim ve toplu işlem**.
+- Kategoriler (kendi kategorilerinizi de ekleyebilirsiniz), **birden çok kuyruk** ve her kuyruğa ayrı zamanlayıcı; onay kutularıyla **toplu seçim ve toplu işlem**.
+- **Toplu indirme ekleme:** bağlantı listesini ya da içinde bağlantı geçen herhangi bir metni yapıştırın; dosya adları ve boyutları denetlenip hepsi birden eklenir.
+- **Dosya doğrulama:** inen dosyanın MD5 / SHA-1 / SHA-256 özetini sitenin verdiğiyle karşılaştırır.
+- İndirme sürerken bilgisayar **uyku moduna geçmez**; bağlantı sorunuyla duran indirme **kendiliğinden yeniden denenir**.
+- Vekil sunucu (proxy), özel tarayıcı kimliği (User-Agent) ve site girişleri (parolalar Windows'un şifrelemesiyle saklanır).
+- Hız sınırı tepsiden tek tıkla açılıp kapanır; istenirse yalnızca bilgisayar kullanılırken uygulanır. Listeyi dışa/içe aktarma, sütunları gizleme, eklenme ve bitiş tarihi sütunları.
 - **Windows'un açık/koyu moduna kendiliğinden uyan** TurboDM teması.
 - Program içinden tek tıkla güncelleme (*Yardım → Güncellemeleri denetle*); güncellemede inmekte olan indirmeler kaldığı yerden sürer.
 - **7 dil:** English, Türkçe, Deutsch, Français, Español, العربية, Italiano — menü çubuğundaki **Language** menüsünden anında değişir (program kapanmaz); varsayılan olarak Windows'un dili kullanılır, kurulumda da dil seçilebilir.

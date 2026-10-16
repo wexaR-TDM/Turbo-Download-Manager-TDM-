@@ -116,6 +116,13 @@ def _base_args(ffmpeg=None, cookies_file=None, url=None, headers=None):
         args += ["--ffmpeg-location", ffmpeg]
     if cookies_file:
         args += ["--cookies", cookies_file]
+    # Seçenekler → Bağlantı: vekil sunucu ve (değiştirildiyse) tarayıcı kimliği video motoruna da geçer
+    from . import engine
+    proxy = engine.proxy_for_tools()
+    if proxy is not None:
+        args += ["--proxy", proxy]
+    if engine.NET.user_agent.strip():
+        args += ["--user-agent", engine.NET.user_agent.strip()]
     return args
 
 

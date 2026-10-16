@@ -43,25 +43,52 @@ async function getFormats(url) {
   const hit = formatCache.get(url);
   if (hit && Date.now() - hit.t < 10 * 60 * 1000) return hit.data;
   const body = { url, cookies: await structuredCookies(url) };
-  const r = await fetch(API + "/formats", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-TurboDM": "1" },
-    body: JSON.stringify(body),
-  });
+  const r = await postToApp("/formats", body);
   const data = await r.json();
   if (!data.error) formatCache.set(url, { t: Date.now(), data });
   return data;
 }
 
 // page: true → bir sayfanın videosu (adres + çerezler; kalite TurboDM'de çözülür)
-async function sendToApp(info, page = false) {
-  if (page) info = { ...info, cookies: await structuredCookies(info.url) };
-  const body = { ...info, cookie: info.cookies ? "" : await cookiesFor(info.url), userAgent: navigator.userAgent };
-  const r = await fetch(API + "/add", {
+// TurboDM kapalıysa tarayıcı onu açtırır (native messaging: TurboDM'in kurulumda kaydettiği yardımcı) ve
+// açılmasını bekler. Kayıt yoksa (eski sürüm, başka bilgisayar) sessizce vazgeçilir: indirme tarayıcıda kalır.
+const NATIVE_HOST = "com.turbodm.app";
+
+async function appUp() {
+  try { return (await fetch(API + "/ping")).ok; } catch { return false; }
+}
+
+async function wakeApp() {
+  try {
+    const r = await chrome.runtime.sendNativeMessage(NATIVE_HOST, { cmd: "launch" });
+    if (!r || !r.ok) return false;
+  } catch { return false; }
+  for (let i = 0; i < 48; i++) {  // en fazla ~12 sn
+    await new Promise((res) => setTimeout(res, 250));
+    if (await appUp()) return true;
+  }
+  return false;
+}
+
+// İsteği TurboDM'e gönderir; ulaşılamazsa bir kez açtırıp yeniden dener
+async function postToApp(path, body) {
+  const send = () => fetch(API + path, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-TurboDM": "1" },
     body: JSON.stringify(body),
   });
+  try {
+    return await send();
+  } catch (e) {
+    if (await wakeApp()) return await send();
+    throw e;
+  }
+}
+
+async function sendToApp(info, page = false) {
+  if (page) info = { ...info, cookies: await structuredCookies(info.url) };
+  const body = { ...info, cookie: info.cookies ? "" : await cookiesFor(info.url), userAgent: navigator.userAgent };
+  const r = await postToApp("/add", body);
   return r.ok;
 }
 

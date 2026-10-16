@@ -221,8 +221,21 @@ def _tool_mode(args):
     return None
 
 
+def _native_host():
+    """Tarayıcı eklentisi TurboDM'i açtırıyor (native messaging): kapalıysa tepside başlat, yanıt ver, çık."""
+    from turbodm import nativehost
+    if getattr(sys, "frozen", False):
+        cmd = [sys.executable, "--tray"]
+    else:
+        exe = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+        cmd = [exe if os.path.exists(exe) else sys.executable, os.path.abspath(__file__), "--tray"]
+    return nativehost.run_host(_is_running, cmd)
+
+
 def main():
     args = sys.argv[1:]
+    if any(a.startswith("chrome-extension://") for a in args):
+        sys.exit(_native_host())
     rc = _tool_mode(args)
     if rc is not None:
         sys.exit(rc)
@@ -265,6 +278,11 @@ def main():
     from turbodm.gui import apply_theme
     apply_theme(app)
     mgr = Manager()
+    try:  # tarayıcı eklentisi kapalı TurboDM'i açabilsin (kayıt her açılışta tazelenir: kurulum yeri değişebilir)
+        from turbodm import nativehost
+        nativehost.register()
+    except OSError:
+        pass
     if "--resume" in sys.argv[1:]:  # otomatik güncelleme sonrası: inmekte olanlar kaldığı yerden sürsün
         mgr.resume_interrupted()
     win = MainWindow(mgr)

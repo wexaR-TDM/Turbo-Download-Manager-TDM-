@@ -7,6 +7,19 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.18
+• Add many downloads at once (Tasks → Add multiple downloads…, Ctrl+Shift+N): paste a list of links or any text containing links; file names and sizes are checked, and the selected ones start right away or go to the chosen queue
+• File verification: right-click a finished download → Verify file; MD5 / SHA-1 / SHA-256 are calculated and compared with the value given by the site
+• The computer doesn't go to sleep while downloading (can be turned off in Options → General)
+• Downloads stopped by a connection problem (drop, timeout, server error) are retried automatically; "not found" and disk errors are not retried
+• Exit confirmation: asked when you press Exit while downloads are running
+• Options → Connection: proxy server, custom browser identity (User-Agent), site logins (user name/password; passwords stored with Windows encryption)
+• Multiple queues: add new queues in the Scheduler window, each with its own concurrent-download count and start/stop time; right-click → Add to queue
+• Your own categories (Options → Categories): the extensions you specify are saved to their own folder
+• Export/import the list (Tasks menu); hide columns by right-clicking the column header; new "Added" and "Finished" columns; total size of selected downloads
+• Toggle the speed limit from the tray menu in one click; optionally apply the limit only while the computer is in use
+• Browser extension 1.7.0: if TurboDM is closed, the extension opens it by itself and hands over the download
+
 ## 1.7.17
 • Browser extension 1.6.4: downloads started by a form button (e.g. "Download subtitle" on subtitle sites) now stay in the browser. The server only serves these files with the form's data, so handing them to TurboDM produced a meaningless file such as "ind"
 

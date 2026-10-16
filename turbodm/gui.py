@@ -5,6 +5,7 @@ import subprocess
 import threading
 import time
 import urllib.parse
+import uuid
 from datetime import datetime
 
 from PySide6.QtCore import QObject, QPointF, QRectF, QSize, Qt, QTime, QTimer, QUrl, Signal
@@ -12,13 +13,15 @@ from PySide6.QtGui import QAction, QActionGroup, QColor, QDesktopServices, QIcon
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel,
-    QLineEdit, QMainWindow, QMenu, QMenuBar, QMessageBox, QPushButton, QSpinBox, QSplitter, QStyle,
+    QLineEdit, QMainWindow, QMenu, QMenuBar, QMessageBox, QPlainTextEdit, QPushButton, QSpinBox, QSplitter, QStyle,
     QSystemTrayIcon, QTableWidget, QTableWidgetItem, QTabWidget, QTimeEdit, QToolBar,
     QGroupBox, QProgressBar, QTextBrowser, QStyledItemDelegate, QStyleOptionViewItem,
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
 from . import convert
+from . import engine
+from . import power
 from . import hls
 from . import server
 from . import theme
@@ -1155,6 +1158,29 @@ class OptionsDialog(QDialog):
         self.autoupd = QCheckBox(_t("Açılışta güncellemeleri denetle (günde bir kez)"))
         self.autoupd.setChecked(s.get("auto_update_check", True))
         f.addRow(self.autoupd)
+        self.awake = QCheckBox(_t("İndirme sürerken bilgisayarın uyku moduna geçmesini engelle"))
+        self.awake.setChecked(s.get("keep_awake", True))
+        f.addRow(self.awake)
+        self.confirm = QCheckBox(_t("İnmekte olan dosya varken çıkışta onay sor"))
+        self.confirm.setChecked(s.get("confirm_exit", True))
+        f.addRow(self.confirm)
+        self.retry = QCheckBox(_t("Bağlantı sorunuyla duran indirmeyi otomatik yeniden dene"))
+        self.retry.setChecked(s.get("auto_retry", True))
+        self.retry_n = QSpinBox(minimum=1, maximum=20, value=s.get("auto_retry_count", 3))
+        self.retry_d = QSpinBox(minimum=5, maximum=3600, value=s.get("auto_retry_delay", 30), suffix=_t(" sn"))
+        f.addRow(self.retry)
+        rrow = QHBoxLayout()
+        rrow.setContentsMargins(24, 0, 0, 0)  # seçeneğin altında, girintili
+        rrow.addWidget(QLabel(_t("En fazla:")))
+        rrow.addWidget(self.retry_n)
+        rrow.addSpacing(12)
+        rrow.addWidget(QLabel(_t("Bekleme:")))
+        rrow.addWidget(self.retry_d)
+        rrow.addStretch()
+        f.addRow(rrow)
+        for w in (self.retry_n, self.retry_d):
+            w.setEnabled(self.retry.isChecked())
+            self.retry.toggled.connect(w.setEnabled)
         self.theme = QComboBox()
         for text, key in ((_t("Windows ile aynı (otomatik)"), "auto"), (_t("Açık"), "light"), (_t("Koyu"), "dark")):
             self.theme.addItem(text, key)
@@ -1183,6 +1209,47 @@ class OptionsDialog(QDialog):
         self.limit = QSpinBox(minimum=0, maximum=10_000_000, value=s["speed_limit_kb"], suffix=" KB/s")
         self.limit.setSpecialValueText(_t("Sınırsız"))
         f.addRow(_t("Hız sınırı (toplam):"), self.limit)
+        self.limit_active = QCheckBox(_t("Hız sınırını yalnızca bilgisayar kullanılırken uygula (boştayken tam hız)"))
+        self.limit_active.setChecked(s.get("speed_limit_when_active", False))
+        f.addRow(self.limit_active)
+        # vekil sunucu (proxy)
+        self.proxy_mode = QComboBox()
+        for key, text in (("system", _t("Windows ayarını kullan")), ("none", _t("Kullanma")),
+                          ("manual", _t("Elle (HTTP vekil sunucu)"))):
+            self.proxy_mode.addItem(text, key)
+        self.proxy_mode.setCurrentIndex(max(0, self.proxy_mode.findData(s.get("proxy_mode", "system"))))
+        self.proxy_url = QLineEdit(s.get("proxy_url", ""))
+        self.proxy_url.setPlaceholderText("http://sunucu:8080")
+        self.proxy_mode.currentIndexChanged.connect(
+            lambda: self.proxy_url.setEnabled(self.proxy_mode.currentData() == "manual"))
+        self.proxy_url.setEnabled(self.proxy_mode.currentData() == "manual")
+        f.addRow(_t("Vekil sunucu (proxy):"), self.proxy_mode)
+        f.addRow(_t("Vekil sunucu adresi:"), self.proxy_url)
+        note = QLabel(_t("Vekil sunucu HTTP/HTTPS ve video indirmelerinde kullanılır; torrent ve FTP bağlantıları doğrudan kurulur."))
+        note.setWordWrap(True)
+        note.setStyleSheet(f"color: {theme.T['muted']};")
+        f.addRow(note)
+        self.ua = QLineEdit(s.get("user_agent", ""))
+        self.ua.setPlaceholderText(_t("Varsayılan (tarayıcı gibi)"))
+        f.addRow(_t("Tarayıcı kimliği (User-Agent):"), self.ua)
+        # site girişleri (parolalar Windows'un şifrelemesiyle saklanır)
+        self.logins = [dict(x) for x in s.get("site_logins", [])]
+        self.login_table = QTableWidget(0, 2)
+        self.login_table.setHorizontalHeaderLabels([_t("Site"), _t("Kullanıcı adı")])
+        self.login_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.login_table.verticalHeader().hide()
+        self.login_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.login_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.login_table.setMaximumHeight(110)
+        lrow = QHBoxLayout()
+        for text, fn in ((_t("Ekle…"), self._add_login), (_t("Kaldır"), self._remove_login)):
+            b = QPushButton(text)
+            b.clicked.connect(fn)
+            lrow.addWidget(b)
+        lrow.addStretch()
+        f.addRow(_t("Site girişleri:"), self.login_table)
+        f.addRow("", lrow)
+        self._fill_logins()
         tabs.addTab(c, _t("Bağlantı"))
 
         v = QWidget()
@@ -1235,6 +1302,31 @@ class OptionsDialog(QDialog):
         self._assoc_status()
         tabs.addTab(t, _t("Torrent"))
 
+        # kendi kategorileriniz: uzantılarına göre kendi klasörlerine iner (yerleşik kategorilerden önce denenir)
+        k = QWidget()
+        kl = QVBoxLayout(k)
+        kinfo = QLabel(_t("Kendi kategorilerinizi ekleyin: belirttiğiniz uzantılardaki dosyalar kendi klasörüne iner. Kendi kategorileriniz yerleşik kategorilerden önce denenir."))
+        kinfo.setWordWrap(True)
+        kl.addWidget(kinfo)
+        self.cats = [dict(x) for x in s.get("custom_categories", [])]
+        self.cat_table = QTableWidget(0, 3)
+        self.cat_table.setHorizontalHeaderLabels([_t("Ad"), _t("Klasör"), _t("Uzantılar")])
+        self.cat_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.cat_table.verticalHeader().hide()
+        self.cat_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.cat_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.cat_table.doubleClicked.connect(lambda *_: self._edit_cat())
+        kl.addWidget(self.cat_table, 1)
+        krow = QHBoxLayout()
+        for text, fn in ((_t("Ekle…"), self._add_cat), (_t("Düzenle…"), self._edit_cat), (_t("Kaldır"), self._remove_cat)):
+            b = QPushButton(text)
+            b.clicked.connect(fn)
+            krow.addWidget(b)
+        krow.addStretch()
+        kl.addLayout(krow)
+        self._fill_cats()
+        tabs.addTab(k, _t("Kategoriler"))
+
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.accepted.connect(self._save)
         bb.rejected.connect(self.reject)
@@ -1256,6 +1348,64 @@ class OptionsDialog(QDialog):
         row.addWidget(edit)
         row.addWidget(b)
         return row
+
+    def _fill_logins(self):
+        self.login_table.setRowCount(len(self.logins))
+        for r, x in enumerate(self.logins):
+            self.login_table.setItem(r, 0, QTableWidgetItem(x.get("site", "")))
+            self.login_table.setItem(r, 1, QTableWidgetItem(x.get("user", "")))
+
+    def _add_login(self):
+        from . import secure
+        v = ask_fields(self, _t("Site girişi"), [(_t("Site (ör. dosya.example.com):"), "", False),
+                                                  (_t("Kullanıcı adı:"), "", False), (_t("Parola:"), "", True)])
+        if v and v[0]:
+            site = re.sub(r"^\w+://", "", v[0]).split("/")[0].lower()
+            self.logins = [x for x in self.logins if x.get("site") != site]
+            self.logins.append({"site": site, "user": v[1], "password": secure.protect(v[2])})
+            self._fill_logins()
+
+    def _remove_login(self):
+        rows = sorted({i.row() for i in self.login_table.selectedIndexes()}, reverse=True)
+        for r in rows:
+            del self.logins[r]
+        self._fill_logins()
+
+    def _fill_cats(self):
+        self.cat_table.setRowCount(len(self.cats))
+        for r, c in enumerate(self.cats):
+            for col, v in enumerate((c.get("name", ""), c.get("folder", ""), " ".join(c.get("exts", [])))):
+                self.cat_table.setItem(r, col, QTableWidgetItem(v))
+
+    def _cat_dialog(self, c=None):
+        c = c or {}
+        v = ask_fields(self, _t("Kategori"), [(_t("Ad:"), c.get("name", ""), False),
+                                              (_t("Klasör adı:"), c.get("folder", ""), False),
+                                              (_t("Uzantılar (boşlukla ayırın, ör. iso img):"), " ".join(c.get("exts", [])), False)])
+        if not v or not v[0]:
+            return None
+        exts = [e.lower().lstrip(".") for e in re.split(r"[\s,;]+", v[2]) if e.strip(" .")]
+        return {"key": c.get("key") or "c_" + uuid.uuid4().hex[:8], "name": v[0],
+                "folder": engine.sanitize_filename(v[1] or v[0]), "exts": exts}
+
+    def _add_cat(self):
+        c = self._cat_dialog()
+        if c:
+            self.cats.append(c)
+            self._fill_cats()
+
+    def _edit_cat(self):
+        rows = sorted({i.row() for i in self.cat_table.selectedIndexes()})
+        if rows:
+            c = self._cat_dialog(self.cats[rows[0]])
+            if c:
+                self.cats[rows[0]] = c
+                self._fill_cats()
+
+    def _remove_cat(self):
+        for r in sorted({i.row() for i in self.cat_table.selectedIndexes()}, reverse=True):
+            del self.cats[r]
+        self._fill_cats()
 
     def _ff_status(self):
         ff = hls.find_ffmpeg(self.ffmpeg.text().strip())
@@ -1293,8 +1443,17 @@ class OptionsDialog(QDialog):
                  speed_limit_kb=self.limit.value(), torrent_port=self.tport.value(),
                  torrent_upload_kb=self.ul.value(), seed_after_complete=self.seed.isChecked(),
                  torrent_upload_auto=self.ulauto.isChecked(), theme=self.theme.currentData(),
-                 ffmpeg_path=self.ffmpeg.text().strip(), auto_update_check=self.autoupd.isChecked())
+                 ffmpeg_path=self.ffmpeg.text().strip(), auto_update_check=self.autoupd.isChecked(),
+                 keep_awake=self.awake.isChecked(), confirm_exit=self.confirm.isChecked(),
+                 auto_retry=self.retry.isChecked(), auto_retry_count=self.retry_n.value(),
+                 auto_retry_delay=self.retry_d.value(), speed_limit_when_active=self.limit_active.isChecked(),
+                 proxy_mode=self.proxy_mode.currentData(), proxy_url=self.proxy_url.text().strip(),
+                 user_agent=self.ua.text().strip(), site_logins=self.logins)
+        cats_changed = s.get("custom_categories", []) != self.cats
+        s["custom_categories"] = self.cats
         self.mgr.apply_settings()
+        if cats_changed:  # kenar çubuğundaki kategoriler yenilensin
+            QTimer.singleShot(0, self.parent()._retranslate)
         if self.autostart.isChecked() != winassoc.autostart_enabled():
             winassoc.set_autostart(self.autostart.isChecked())
         if restart:
@@ -1305,23 +1464,40 @@ class OptionsDialog(QDialog):
 
 
 class SchedulerDialog(QDialog):
-    def __init__(self, win):
+    """Kuyruklar ve zamanlayıcı: her kuyruğun aynı anda indirme sayısı ve başlama/durma saati.
+    "Ana kuyruk" eski tek kuyruktur; yeni kuyruklar eklenebilir, silinince içindekiler Ana kuyruğa geçer."""
+
+    def __init__(self, win, qid="main"):
         super().__init__(win)
-        self.mgr = win.mgr
-        s = self.mgr.settings
-        self.setWindowTitle(_t("Zamanlayıcı"))
+        self.win, self.mgr = win, win.mgr
+        self.changed = False  # kuyruk eklendi/silindi/adı değişti → kenar çubuğu yeniden kurulur
+        self._cur = None
+        self.setWindowTitle(_t("Kuyruklar ve zamanlayıcı"))
+        self.setMinimumWidth(480)
+        self.qsel = QComboBox()
+        top = QHBoxLayout()
+        top.addWidget(QLabel(_t("Kuyruk:")))
+        top.addWidget(self.qsel, 1)
+        b_add = QPushButton(_t("Yeni kuyruk…"))
+        b_add.clicked.connect(self._add)
+        self.b_ren = QPushButton(_t("Yeniden adlandır…"))
+        self.b_ren.clicked.connect(self._rename)
+        self.b_del = QPushButton(_t("Sil"))
+        self.b_del.clicked.connect(self._delete)
+        for b in (b_add, self.b_ren, self.b_del):
+            top.addWidget(b)
         f = QFormLayout()
         self.enabled = QCheckBox(_t("Kuyruğu belirtilen saatte otomatik başlat/durdur"))
-        self.enabled.setChecked(s["schedule_enabled"])
         f.addRow(self.enabled)
-        self.start = QTimeEdit(QTime.fromString(s["schedule_start"], "HH:mm"))
-        self.stop = QTimeEdit(QTime.fromString(s["schedule_stop"], "HH:mm"))
+        self.start = QTimeEdit()
+        self.stop = QTimeEdit()
         for w in (self.start, self.stop):
             w.setDisplayFormat("HH:mm")
         f.addRow(_t("Başlama saati:"), self.start)
         f.addRow(_t("Durma saati:"), self.stop)
-        self.maxc = QSpinBox(minimum=1, maximum=20, value=s["max_concurrent"])
+        self.maxc = QSpinBox(minimum=1, maximum=20)
         f.addRow(_t("Aynı anda indirme:"), self.maxc)
+        s = self.mgr.settings
         self.qdone = QComboBox()
         for key, text in (("none", _t("Hiçbir şey yapma")), ("shutdown", _t("Bilgisayarı kapat")),
                           ("sleep", _t("Bilgisayarı uyku moduna al")), ("exit", _t("TurboDM'den çık"))):
@@ -1331,29 +1507,341 @@ class SchedulerDialog(QDialog):
         self.qforce = QCheckBox(_t("Kapatırken açık programları zorla kapat"))
         self.qforce.setChecked(s.get("queue_done_force", False))
         f.addRow(self.qforce)
-        n = sum(1 for i in self.mgr.items.values() if i.in_queue)
-        f.addRow(QLabel(_t("Kuyruktaki dosya sayısı: {0}").format(n)))
+        self.count_lbl = QLabel()
+        f.addRow(self.count_lbl)
         b_now = QPushButton(_t("Kuyruğu Şimdi Başlat"))
-        b_now.clicked.connect(lambda: (self._save(), self.mgr.start_queue(), self.accept()))
+        b_now.clicked.connect(lambda: (self._save(), self.mgr.start_queue(self._cur), self.accept()))
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.accepted.connect(lambda: (self._save(), self.accept()))
         bb.rejected.connect(self.reject)
         lay = QVBoxLayout(self)
+        lay.addLayout(top)
         lay.addLayout(f)
         row = QHBoxLayout()
         row.addWidget(b_now)
         row.addStretch()
         row.addWidget(bb)
         lay.addLayout(row)
+        self.finished.connect(lambda *_: self.changed and self.win._retranslate())
+        self._fill(qid)
+        self.qsel.currentIndexChanged.connect(self._switch)
+
+    def _fill(self, select):
+        self.qsel.blockSignals(True)
+        self.qsel.clear()
+        for q in self.mgr.queues():
+            self.qsel.addItem(q["name"], q["id"])
+        self.qsel.setCurrentIndex(max(0, self.qsel.findData(select)))
+        self.qsel.blockSignals(False)
+        self._load()
+
+    def _load(self):
+        self._cur = self.qsel.currentData() or "main"
+        q = self.mgr.queue_conf(self._cur)
+        self.enabled.setChecked(bool(q.get("schedule_enabled")))
+        self.start.setTime(QTime.fromString(q.get("schedule_start", "02:00"), "HH:mm"))
+        self.stop.setTime(QTime.fromString(q.get("schedule_stop", "07:00"), "HH:mm"))
+        self.maxc.setValue(int(q.get("max_concurrent") or 1))
+        main = self._cur == "main"
+        for w in (self.qdone, self.qforce):  # bitince kapat/uyut yalnızca Ana kuyrukta
+            w.setEnabled(main)
+        self.b_ren.setEnabled(not main)
+        self.b_del.setEnabled(not main)
+        n = sum(1 for i in self.mgr.items.values() if i.in_queue and self.mgr.queue_of(i) == self._cur)
+        self.count_lbl.setText(_t("Kuyruktaki dosya sayısı: {0}").format(n))
+
+    def _store(self):
+        if self._cur:
+            self.mgr.update_queue(self._cur, schedule_enabled=self.enabled.isChecked(),
+                                  schedule_start=self.start.time().toString("HH:mm"),
+                                  schedule_stop=self.stop.time().toString("HH:mm"), max_concurrent=self.maxc.value())
+
+    def _switch(self):
+        self._store()
+        self._load()
+
+    def _add(self):
+        name, ok = QInputDialog.getText(self, _t("Yeni kuyruk"), _t("Kuyruk adı:"))
+        if ok and name.strip():
+            self._store()
+            q = self.mgr.add_queue(name)
+            self.changed = True
+            self._fill(q["id"])
+
+    def _rename(self):
+        q = self.mgr.queue_conf(self._cur)
+        name, ok = QInputDialog.getText(self, _t("Yeniden adlandır"), _t("Kuyruk adı:"), text=q["name"])
+        if ok and name.strip():
+            self.mgr.update_queue(self._cur, name=name.strip())
+            self.changed = True
+            self._fill(self._cur)
+
+    def _delete(self):
+        q = self.mgr.queue_conf(self._cur)
+        if QMessageBox.question(self, APP_NAME, _t("'{0}' kuyruğu silinsin mi? İçindeki indirmeler Ana kuyruğa geçer.").format(q["name"])) == QMessageBox.Yes:
+            self.mgr.remove_queue(self._cur)
+            self._cur = None
+            self.changed = True
+            self._fill("main")
 
     def _save(self):
-        self.mgr.settings.update(schedule_enabled=self.enabled.isChecked(),
-                                 schedule_start=self.start.time().toString("HH:mm"),
-                                 schedule_stop=self.stop.time().toString("HH:mm"),
-                                 max_concurrent=self.maxc.value(),
-                                 queue_done_action=self.qdone.currentData(),
-                                 queue_done_force=self.qforce.isChecked())
+        self._store()
+        self.mgr.settings.update(queue_done_action=self.qdone.currentData(), queue_done_force=self.qforce.isChecked())
         self.mgr.apply_settings()
+
+
+URL_RE = re.compile(r"(?:https?|ftp)://[^\s\"'<>]+", re.I)
+
+
+def extract_urls(text):
+    """Metindeki http(s)/ftp bağlantıları (sırası korunur, tekrarlar atılır, sondaki noktalama temizlenir)."""
+    out = []
+    for u in URL_RE.findall(text or ""):
+        u = u.rstrip(".,;:!?)]}")
+        if u not in out:
+            out.append(u)
+    return out
+
+
+class BatchAddDialog(QDialog):
+    """Toplu indirme: yapıştırılan metindeki tüm bağlantılar. Her bağlantı arka planda sorgulanır (gerçek dosya adı,
+    boyut); işaretlenenler hemen başlatılır ya da seçilen kuyruğa eklenir."""
+
+    COLS = ("", "name", "size", "url")
+
+    def __init__(self, win, text=""):
+        super().__init__(win)
+        self.win, self.mgr = win, win.mgr
+        self.setWindowTitle(_t("Toplu indirme ekle"))
+        self.resize(760, 520)
+        self.info = {}  # adres -> (ad, boyut) ya da hata
+        self.bridge = Bridge()
+        self.bridge.done.connect(self._probed)
+        info = QLabel(_t("Bağlantıları yapıştırın: her satıra bir adres ya da içinde bağlantılar geçen herhangi bir metin."))
+        info.setWordWrap(True)
+        self.edit = QPlainTextEdit(text)
+        self.edit.setMaximumHeight(130)
+        self.edit.textChanged.connect(self._parse)
+        self.table = QTableWidget(0, 4)
+        self.table.setHorizontalHeaderLabels(["", _t("Dosya Adı"), _t("Boyut"), _t("Adres")])
+        self.table.verticalHeader().hide()
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionMode(QAbstractItemView.NoSelection)
+        h = self.table.horizontalHeader()
+        h.setSectionResizeMode(1, QHeaderView.Stretch)
+        self.table.setColumnWidth(0, 30)
+        self.table.setColumnWidth(2, 110)
+        self.table.setColumnWidth(3, 240)
+        self.count_lbl = QLabel()
+        self.folder = QLineEdit()
+        self.folder.setPlaceholderText(_t("Otomatik (dosya türüne göre kategori klasörü)"))
+        b = QPushButton("…")
+        b.setObjectName("browse")
+        b.setFixedWidth(32)
+        b.clicked.connect(self._pick_folder)
+        frow = QHBoxLayout()
+        frow.addWidget(self.folder)
+        frow.addWidget(b)
+        self.mode = QComboBox()
+        self.mode.addItem(_t("Hemen başlat"), "now")
+        for q in self.mgr.queues():
+            self.mode.addItem(_t("Kuyruğa ekle: {0}").format(q["name"]), q["id"])
+        f = QFormLayout()
+        f.addRow(_t("Kayıt klasörü:"), frow)
+        f.addRow(_t("Ekledikten sonra:"), self.mode)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.ok = bb.button(QDialogButtonBox.Ok)
+        self.ok.setText(_t("Ekle"))
+        bb.accepted.connect(self._add)
+        bb.rejected.connect(self.reject)
+        lay = QVBoxLayout(self)
+        lay.addWidget(info)
+        lay.addWidget(self.edit)
+        lay.addWidget(self.table, 1)
+        lay.addWidget(self.count_lbl)
+        lay.addLayout(f)
+        lay.addWidget(bb)
+        self._parse()
+
+    def _pick_folder(self):
+        p = QFileDialog.getExistingDirectory(self, _t("Kayıt klasörü"), self.folder.text() or self.mgr.settings["download_root"])
+        if p:
+            self.folder.setText(os.path.normpath(p))
+
+    def urls(self):
+        return extract_urls(self.edit.toPlainText())
+
+    def _parse(self):
+        urls = self.urls()
+        old = {self.table.item(r, 3).text(): self.table.item(r, 0).checkState()
+               for r in range(self.table.rowCount()) if self.table.item(r, 3)}
+        self.table.setRowCount(len(urls))
+        for r, u in enumerate(urls):
+            chk = QTableWidgetItem()
+            chk.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+            chk.setCheckState(old.get(u, Qt.Checked))
+            self.table.setItem(r, 0, chk)
+            self.table.setItem(r, 3, QTableWidgetItem(u))
+            self._show(r, u)
+            if u not in self.info:
+                self.info[u] = None  # sorgulanıyor
+                threading.Thread(target=self._probe, args=(u,), daemon=True).start()
+        self.count_lbl.setText(_t("{0} bağlantı bulundu").format(len(urls)))
+        self.ok.setEnabled(bool(urls))
+
+    def _probe(self, url):
+        try:
+            p = engine.probe(url)
+            self.bridge.done.emit((url, (p.get("filename") or engine.filename_from_url(url), p.get("size"))), None)
+        except Exception as e:  # noqa: BLE001
+            self.bridge.done.emit((url, None), str(e))
+
+    def _probed(self, res, err):
+        url, info = res
+        self.info[url] = info if info else ("!", err)
+        for r in range(self.table.rowCount()):
+            if self.table.item(r, 3) and self.table.item(r, 3).text() == url:
+                self._show(r, url)
+
+    def _show(self, r, url):
+        info = self.info.get(url)
+        if info is None:
+            name, size = engine.filename_from_url(url) or "download", _t("denetleniyor…")
+        elif info[0] == "!":
+            name, size = engine.filename_from_url(url) or "download", _t("bilinmiyor")
+            self.table.setItem(r, 1, QTableWidgetItem(name))
+            self.table.item(r, 1).setToolTip(info[1] or "")
+            self.table.setItem(r, 2, QTableWidgetItem(size))
+            return
+        else:
+            name, size = info[0] or "download", fmt_size(info[1]) if info[1] else _t("bilinmiyor")
+        self.table.setItem(r, 1, QTableWidgetItem(name))
+        self.table.setItem(r, 2, QTableWidgetItem(size))
+
+    def _add(self):
+        mode = self.mode.currentData()
+        n = 0
+        for r in range(self.table.rowCount()):
+            if self.table.item(r, 0).checkState() != Qt.Checked:
+                continue
+            url = self.table.item(r, 3).text()
+            info = self.info.get(url)
+            name = engine.sanitize_filename(info[0] if info and info[0] != "!" else
+                                            engine.filename_from_url(url) or "download")
+            folder = self.folder.text().strip() or self.mgr.category_dir(category_for(name))
+            os.makedirs(folder, exist_ok=True)
+            size = info[1] if info and info[0] != "!" else None
+            it = self.mgr.add_http(url, os.path.join(folder, name), start=mode == "now", size=size)
+            if mode != "now":
+                self.mgr.set_queue(it.id, True, mode)
+            n += 1
+        self.mgr.save()
+        self.win.statusBar().showMessage(_t("{0} indirme eklendi").format(n), 5000)
+        self.accept()
+
+
+class ChecksumDialog(QDialog):
+    """İndirilen dosyanın MD5 / SHA-1 / SHA-256 özetini hesaplar; sitenin verdiği değerle karşılaştırır."""
+
+    ALGOS = ("md5", "sha1", "sha256")
+
+    def __init__(self, win, path):
+        super().__init__(win)
+        self.path = path
+        self.setWindowTitle(_t("Dosya doğrulama"))
+        self.setMinimumWidth(640)
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.bridge = Bridge()
+        self.bridge.done.connect(self._done)
+        self.bridge.progress.connect(lambda a, b: self.bar.setValue(a))
+        f = QFormLayout()
+        name = QLabel(os.path.basename(path))
+        name.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        f.addRow(_t("Dosya:"), name)
+        self.out = {}
+        for a in self.ALGOS:
+            e = QLineEdit()
+            e.setReadOnly(True)
+            self.out[a] = e
+            f.addRow(a.upper().replace("SHA", "SHA-") + ":", e)
+        self.expected = QLineEdit()
+        self.expected.setPlaceholderText(_t("Sitenin verdiği özeti buraya yapıştırın (MD5, SHA-1 ya da SHA-256)"))
+        self.expected.textChanged.connect(self._compare)
+        f.addRow(_t("Beklenen:"), self.expected)
+        self.result = QLabel()
+        self.result.setWordWrap(True)
+        f.addRow(self.result)
+        self.bar = QProgressBar()
+        self.bar.setRange(0, 1000)
+        close = QDialogButtonBox(QDialogButtonBox.Close)
+        close.rejected.connect(self.close)
+        lay = QVBoxLayout(self)
+        lay.addLayout(f)
+        lay.addWidget(self.bar)
+        lay.addWidget(close)
+        self._cancel = False
+        self.finished.connect(lambda *_: setattr(self, "_cancel", True))
+        threading.Thread(target=self._work, daemon=True).start()
+
+    def _work(self):
+        import hashlib
+        hs = {a: hashlib.new(a) for a in self.ALGOS}
+        try:
+            total, done = os.path.getsize(self.path), 0
+            with open(self.path, "rb") as fh:
+                while not self._cancel:
+                    chunk = fh.read(4 * 1024 * 1024)
+                    if not chunk:
+                        break
+                    for h in hs.values():
+                        h.update(chunk)
+                    done += len(chunk)
+                    self.bridge.progress.emit(int(done * 1000 / total) if total else 0, 1000)
+            if not self._cancel:
+                self.bridge.done.emit({a: h.hexdigest() for a, h in hs.items()}, None)
+        except OSError as e:
+            self.bridge.done.emit(None, str(e))
+
+    def _done(self, res, err):
+        if err:
+            self.result.setText(_t("Dosya okunamadı: {0}").format(err))
+            return
+        for a, v in res.items():
+            self.out[a].setText(v)
+        self.bar.hide()
+        self._compare()
+
+    def _compare(self):
+        want = re.sub(r"[^0-9a-f]", "", self.expected.text().lower())
+        if not want or not self.out["sha256"].text():
+            self.result.setText(_t("Hesaplanıyor…") if not self.out["sha256"].text() else "")
+            return
+        match = next((a for a in self.ALGOS if self.out[a].text() == want), None)
+        if match:
+            self.result.setText(_t("✔ Eşleşti ({0}): dosya sağlam.").format(match.upper()))
+            self.result.setStyleSheet(f"color: {theme.T['ok']};")
+        else:
+            self.result.setText(_t("✖ Eşleşmedi: dosya bozuk ya da farklı bir dosya olabilir."))
+            self.result.setStyleSheet(f"color: {theme.T['bad']};")
+
+
+def ask_fields(parent, title, fields):
+    """Küçük form penceresi. fields: [(etiket, başlangıç değeri, parola mı)] → değerler listesi ya da None."""
+    d = QDialog(parent)
+    d.setWindowTitle(title)
+    f = QFormLayout(d)
+    edits = []
+    for label, value, secret in fields:
+        e = QLineEdit(value)
+        if secret:
+            e.setEchoMode(QLineEdit.Password)
+        f.addRow(label, e)
+        edits.append(e)
+    bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+    bb.accepted.connect(d.accept)
+    bb.rejected.connect(d.reject)
+    f.addRow(bb)
+    return [e.text().strip() for e in edits] if d.exec() == QDialog.Accepted else None
 
 
 # ------------------------------------------------------------------ güncellemeler
@@ -1529,7 +2017,8 @@ COLUMNS = []
 
 @i18n.on_change
 def _column_texts():
-    COLUMNS[:] = ["", _t("Dosya Adı"), _t("Boyut"), _t("Durum"), _t("Kalan Süre"), _t("Aktarım Hızı"), _t("Son Deneme"), _t("Açıklama")]
+    COLUMNS[:] = ["", _t("Dosya Adı"), _t("Boyut"), _t("Durum"), _t("Kalan Süre"), _t("Aktarım Hızı"), _t("Son Deneme"),
+                  _t("Açıklama"), _t("Eklenme"), _t("Bitiş")]
 SEL = 0    # onay kutusu sütunu (toplu seçim)
 NAME = 1
 STATUS = 3
@@ -1664,10 +2153,13 @@ class MainWindow(QMainWindow):
         self.a_select_all = self._act(_t("Tümünü seç"), "finished", self.select_all, "Ctrl+A")
         self.a_select_none = self._act(_t("Seçimi kaldır"), None, lambda: self.table.clearSelection(), "Esc")
         self.a_options = self._act(_t("Seçenekler"), "settings", self.open_options)
-        self.a_sched = self._act(_t("Zamanlayıcı"), "clock", lambda: SchedulerDialog(self).exec())
-        self.a_qstart = self._act(_t("Kuyruğu Başlat"), "queue_start", self.mgr.start_queue)
-        self.a_qstop = self._act(_t("Kuyruğu Durdur"), "queue_stop", self.mgr.stop_queue)
-        self.a_quit = self._act(_t("Çıkış"), "quit", self.quit_app, "Ctrl+Q")
+        self.a_sched = self._act(_t("Zamanlayıcı"), "clock", lambda: SchedulerDialog(self, self._current_queue()).exec())
+        self.a_qstart = self._act(_t("Kuyruğu Başlat"), "queue_start", lambda: self.mgr.start_queue(self._current_queue()))
+        self.a_qstop = self._act(_t("Kuyruğu Durdur"), "queue_stop", lambda: self.mgr.stop_queue(self._current_queue()))
+        self.a_batch = self._act(_t("Toplu indirme ekle…"), "add", self.batch_add_prompt, "Ctrl+Shift+N")
+        self.a_export = self._act(_t("Listeyi dışa aktar…"), None, self.export_list)
+        self.a_import = self._act(_t("Listeyi içe aktar…"), None, self.import_list)
+        self.a_quit = self._act(_t("Çıkış"), "quit", self.quit_requested, "Ctrl+Q")
         self.a_update = self._act(_t("Güncellemeleri denetle…"), "refresh", self.check_updates)
 
     def _theme_changed(self):
@@ -1694,8 +2186,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(_t("{0} — İnternet İndirme Yöneticisi").format(APP_NAME))
         mb = self.menuBar()
         m = mb.addMenu(_t("&Görevler"))
-        for a in (self.a_add, self.a_torrent, self.a_magnet):
+        for a in (self.a_add, self.a_batch, self.a_torrent, self.a_magnet):
             m.addAction(a)
+        m.addSeparator()
+        m.addAction(self.a_export)
+        m.addAction(self.a_import)
         m.addSeparator()
         m.addAction(self.a_quit)
         m = mb.addMenu(_t("&İndirmeler"))
@@ -1760,7 +2255,11 @@ class MainWindow(QMainWindow):
         self.tree.addTopLevelItem(root)
         for text, key, ic in ((_t("Bitmemiş"), "unfinished", "unfinished"), (_t("Bitmiş"), "finished", "finished"),
                               (_t("Kuyruk"), "queue", "queue")):
-            self.tree.addTopLevelItem(nav_item(text, key, ic))
+            node = nav_item(text, key, ic)
+            if key == "queue" and len(self.mgr.queues()) > 1:
+                for q in self.mgr.queues():
+                    node.addChild(nav_item(q["name"], "queue:" + q["id"], "queue"))
+            self.tree.addTopLevelItem(node)
         self.tree.expandAll()
         self.tree.setItemsExpandable(False)
         self.tree.setCurrentItem(root)
@@ -1796,8 +2295,14 @@ class MainWindow(QMainWindow):
         h = self.table.horizontalHeader()
         h.setSectionResizeMode(NAME, QHeaderView.Stretch)
         h.setSectionResizeMode(SEL, QHeaderView.Fixed)
-        for c, w in ((SEL, 30), (2, 90), (3, 150), (4, 90), (5, 100), (6, 130), (7, 150)):
+        for c, w in ((SEL, 30), (2, 90), (3, 150), (4, 90), (5, 100), (6, 130), (7, 150), (8, 130), (9, 130)):
             self.table.setColumnWidth(c, w)
+        # sütun başlığına sağ tık: sütunları göster/gizle (seçim ve dosya adı her zaman görünür)
+        h.setContextMenuPolicy(Qt.CustomContextMenu)
+        h.customContextMenuRequested.connect(self._column_menu)
+        for c in self.mgr.settings.get("hidden_columns", []):
+            if isinstance(c, int) and NAME < c < len(COLUMNS):
+                self.table.setColumnHidden(c, True)
 
         split = QSplitter()
         split.addWidget(self.tree)
@@ -1835,6 +2340,13 @@ class MainWindow(QMainWindow):
         menu.addAction(self.a_add)
         menu.addAction(self.a_stop_all)
         menu.addSeparator()
+        # genel hız sınırını tek tıkla aç/kapat (sınır Seçenekler → Bağlantı'da ayarlanır)
+        self.a_limit = menu.addAction("")
+        self.a_limit.setCheckable(True)
+        self.a_limit.toggled.connect(self._toggle_speed_limit)
+        menu.aboutToShow.connect(self._update_limit_action)
+        self._update_limit_action()
+        menu.addSeparator()
         menu.addAction(self.a_quit)
         return menu
 
@@ -1865,6 +2377,8 @@ class MainWindow(QMainWindow):
             return it.status in ("completed", "seeding")
         if f == "queue":
             return it.in_queue
+        if f.startswith("queue:"):
+            return it.in_queue and self.mgr.queue_of(it) == f[6:]
         return True
 
     def selected_ids(self):
@@ -1913,7 +2427,11 @@ class MainWindow(QMainWindow):
         n, total = len(sel), len(self._visible)
         head = self.table.horizontalHeaderItem(SEL)
         head.setText("☑" if total and n == total else "☐")
-        self.sel_lbl.setText(_t("{0} indirme seçili  ").format(n) if n > 1 else "")
+        if n > 1:
+            size = sum(self.mgr.items[self._visible[r]].size or 0 for r in sel if r < len(self._visible))
+            self.sel_lbl.setText(_t("{0} indirme seçili ({1})  ").format(n, fmt_size(size)))
+        else:
+            self.sel_lbl.setText("")
 
     def refresh(self, force=False):
         self._update_nav_counts()
@@ -1976,10 +2494,11 @@ class MainWindow(QMainWindow):
         if sc.data(PROGRESS_ROLE) != frac or sc.data(TONE_ROLE) != tone:
             sc.setData(PROGRESS_ROLE, frac)
             sc.setData(TONE_ROLE, tone)
-        last = datetime.fromtimestamp(it.last_try).strftime("%d.%m.%Y %H:%M") if it.last_try else ""
+        stamp = lambda t: datetime.fromtimestamp(t).strftime("%d.%m.%Y %H:%M") if t else ""  # noqa: E731
         eta = (it.size - done) / speed if it.size and speed > 1 and it.status == "downloading" else None
         vals = (it.filename, fmt_size(it.size) if it.size else "", st, fmt_time(eta),
-                fmt_speed(speed), last, it.description)
+                fmt_speed(speed), stamp(it.last_try), it.description, stamp(it.added),
+                stamp(it.extra.get("finished_at")))
         for c, v in enumerate(vals, start=NAME):
             cell = self.table.item(r, c)
             if cell.text() != v:
@@ -2039,7 +2558,7 @@ class MainWindow(QMainWindow):
         self.refresh()
         sp = self.mgr.total_speed()
         active = sum(1 for i in self.mgr.items.values() if i.status in ("downloading", "connecting"))
-        q = _t("  ·  Kuyruk çalışıyor") if self.mgr.queue_running else ""
+        q = _t("  ·  Kuyruk çalışıyor") if any(self.mgr.is_queue_running(x["id"]) for x in self.mgr.queues()) else ""
         self.speed_lbl.setText(_t("Etkin: {0}   ·   Toplam hız: {1}{2}").format(active, fmt_speed(sp) or '0 B/s', q))
         self.tray.setToolTip(f"{APP_NAME}\n{fmt_speed(sp) or _t("Boşta")}")
 
@@ -2068,6 +2587,7 @@ class MainWindow(QMainWindow):
             self.quit_app()
         elif action == "sleep":
             import ctypes
+            power.keep_awake(False)
             ctypes.windll.powrprof.SetSuspendState(False, False, False)
 
     def _error_dialog(self, it):
@@ -2323,7 +2843,13 @@ class MainWindow(QMainWindow):
         m.addAction(self.a_resume)
         m.addAction(self.a_stop)
         m.addSeparator()
-        m.addAction(_t("Kuyruğa ekle"), lambda: [self.mgr.set_queue(i, True) for i in ids])
+        queues = self.mgr.queues()
+        if len(queues) > 1:
+            qm = m.addMenu(_t("Kuyruğa ekle"))
+            for q in queues:
+                qm.addAction(q["name"], lambda qid=q["id"]: [self.mgr.set_queue(i, True, qid) for i in ids])
+        else:
+            m.addAction(_t("Kuyruğa ekle"), lambda: [self.mgr.set_queue(i, True) for i in ids])
         m.addAction(_t("Kuyruktan çıkar"), lambda: [self.mgr.set_queue(i, False) for i in ids])
         m.addSeparator()
         m.addAction(_t("Adresleri kopyala") if many else _t("Adresi kopyala"), lambda: QApplication.clipboard().setText(
@@ -2331,6 +2857,9 @@ class MainWindow(QMainWindow):
         if not many:
             if it.kind != "torrent":
                 m.addAction(_t("İndirme adresini yenile…"), lambda: self._refresh_address(it))
+                if it.status == "completed":
+                    m.addAction(_t("Dosyayı doğrula (MD5 / SHA-256)…"),
+                                lambda: bring_to_front(ChecksumDialog(self, self._item_path(it))))
             else:
                 m.addAction(_t("Dosya seçimi…"), lambda: self.show_progress(it.id))
         m.addSeparator()
@@ -2415,6 +2944,77 @@ class MainWindow(QMainWindow):
             nd = self.progress_dialogs.get(iid)
             if nd is not None:
                 nd.move(pos)
+
+    def quit_requested(self):
+        """Menü/tepsi/Ctrl+Q ile çıkış: inmekte olan dosya varsa onay sorulur. (Güncelleme ve kaldırma programının
+        istediği kapanış quit_app'i doğrudan çağırır, soru sormaz.)"""
+        n = self.mgr.active_count()
+        if n and self.mgr.settings.get("confirm_exit", True):
+            box = QMessageBox(QMessageBox.Question, APP_NAME,
+                              _t("{0} indirme sürüyor. TurboDM kapatılsın mı?\n(İndirmeler sonra kaldığı yerden devam edebilir.)").format(n),
+                              QMessageBox.Yes | QMessageBox.No, self)
+            box.setDefaultButton(QMessageBox.No)
+            if box.exec() != QMessageBox.Yes:
+                return
+        self.quit_app()
+
+    def _current_queue(self):
+        """Kenar çubuğunda bir kuyruk seçiliyse o, değilse Ana kuyruk."""
+        return self._filter[6:] if self._filter.startswith("queue:") else "main"
+
+    def _update_limit_action(self):
+        kb = self.mgr.settings["speed_limit_kb"]
+        self.a_limit.blockSignals(True)
+        self.a_limit.setText(_t("Hız sınırı ({0})").format(fmt_speed(kb * 1024)) if kb else _t("Hız sınırı (Seçenekler'de ayarlanmadı)"))
+        self.a_limit.setEnabled(bool(kb))
+        self.a_limit.setChecked(bool(kb) and self.mgr.settings.get("speed_limit_enabled", True))
+        self.a_limit.blockSignals(False)
+
+    def _toggle_speed_limit(self, on):
+        self.mgr.settings["speed_limit_enabled"] = bool(on)
+        self.mgr.apply_settings()
+
+    def _column_menu(self, pos):
+        m = QMenu(self)
+        hidden = set(self.mgr.settings.get("hidden_columns", []))
+        for c in range(NAME + 1, len(COLUMNS)):
+            a = m.addAction(COLUMNS[c])
+            a.setCheckable(True)
+            a.setChecked(c not in hidden)
+            a.toggled.connect(lambda on, col=c: self._set_column(col, on))
+        m.exec(self.table.horizontalHeader().mapToGlobal(pos))
+
+    def _set_column(self, col, visible):
+        hidden = [c for c in self.mgr.settings.get("hidden_columns", []) if c != col]
+        if not visible:
+            hidden.append(col)
+        self.mgr.settings["hidden_columns"] = sorted(hidden)
+        self.table.setColumnHidden(col, not visible)
+        self.mgr.save()
+
+    def batch_add_prompt(self):
+        clip = QApplication.clipboard().text()
+        d = BatchAddDialog(self, clip if extract_urls(clip) else "")
+        bring_to_front(d)
+
+    def export_list(self):
+        path, _ = QFileDialog.getSaveFileName(self, _t("Listeyi dışa aktar"),
+                                              os.path.join(os.path.expanduser("~"), "TurboDM-liste.json"), "JSON (*.json)")
+        if path:
+            ids = self.selected_ids()
+            n = self.mgr.export_list(path, set(ids) if len(ids) > 1 else None)
+            self.statusBar().showMessage(_t("{0} indirme dışa aktarıldı").format(n), 5000)
+
+    def import_list(self):
+        path, _ = QFileDialog.getOpenFileName(self, _t("Listeyi içe aktar"), os.path.expanduser("~"), "JSON (*.json)")
+        if path:
+            try:
+                n = self.mgr.import_list(path)
+            except (OSError, ValueError) as e:
+                QMessageBox.warning(self, APP_NAME, _t("Liste okunamadı: {0}").format(e))
+                return
+            self.refresh(force=True)
+            self.statusBar().showMessage(_t("{0} indirme içe aktarıldı").format(n), 5000)
 
     def quit_app(self):
         self._quitting = True

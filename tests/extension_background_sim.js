@@ -2,10 +2,13 @@
 const src = Deno.readTextFileSync(Deno.args[0]);
 const listeners = {};
 const ev = (name) => ({ addListener: (fn) => { (listeners[name] ||= []).push(fn); } });
-const calls = { fetch: [], pause: [], cancel: [] };
+const calls = { fetch: [], pause: [], cancel: [], native: [] };
+let appOnline = true;  // TurboDM açık mı (kapalıyken fetch bağlantı hatası verir)
 globalThis.chrome = {
   storage: { local: { get: (d, cb) => cb(d) }, onChanged: ev("storage") },
-  runtime: { onMessage: ev("msg"), onInstalled: ev("installed"), getManifest: () => ({ version: "x" }) },
+  runtime: { onMessage: ev("msg"), onInstalled: ev("installed"), getManifest: () => ({ version: "x" }),
+             // tarayıcının TurboDM yardımcısını çalıştırması: TurboDM açılır
+             sendNativeMessage: async (host, msg) => { calls.native.push([host, msg.cmd]); appOnline = true; return { ok: true, launched: true }; } },
   i18n: { getMessage: (k) => k },
   contextMenus: { create() {}, onClicked: ev("ctx") },
   tabs: { onUpdated: ev("tabUpd"), onRemoved: ev("tabRem"), sendMessage: () => Promise.resolve() },
@@ -19,7 +22,11 @@ globalThis.chrome = {
     erase: async () => {}, search: async () => [],
   },
 };
-globalThis.fetch = async (url, opt) => { calls.fetch.push(url); return { ok: true, status: 200, json: async () => ({ ok: true }) }; };
+globalThis.fetch = async (url, opt) => {
+  if (!appOnline) throw new TypeError("Failed to fetch");
+  calls.fetch.push(url);
+  return { ok: true, status: 200, json: async () => ({ ok: true }) };
+};
 new Function(src)();
 
 const fire = async (name, arg) => { for (const fn of listeners[name] || []) await fn(arg); };
@@ -35,5 +42,13 @@ calls.fetch.length = 0;
 await fire("beforeRequest", { method: "GET", url: "https://example.com/dosya.zip", type: "main_frame", tabId: 1 });
 await fire("created", { id: 2, url: "https://example.com/dosya.zip", finalUrl: "https://example.com/dosya.zip", filename: "dosya.zip", mime: "application/zip" });
 result.normal_get = { turbodm_e_gitti: calls.fetch.some((u) => String(u).includes("/add")), tarayicida_iptal: calls.cancel.includes(2) };
+
+// 3) TurboDM kapalı: eklenti onu açtırır (native messaging), açılınca indirmeyi aktarır
+calls.fetch.length = 0;
+appOnline = false;
+await fire("created", { id: 3, url: "https://example.com/buyuk.iso", finalUrl: "https://example.com/buyuk.iso", filename: "buyuk.iso", mime: "" });
+result.app_closed = { acildi: calls.native.length === 1 && calls.native[0][1] === "launch",
+                      turbodm_e_gitti: calls.fetch.some((u) => String(u).includes("/add")),
+                      tarayicida_iptal: calls.cancel.includes(3) };
 
 console.log(JSON.stringify(result, null, 1));

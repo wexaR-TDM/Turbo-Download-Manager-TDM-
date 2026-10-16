@@ -110,13 +110,73 @@ class ChainLimiter:
             x.consume(n)
 
 
+class NetConfig:
+    """Ağ ayarları (Seçenekler → Bağlantı). Manager ayarlardan doldurur; tüm HTTP istekleri bunu kullanır.
+      proxy_mode: "system" (Windows'un vekil sunucusu, varsayılan) | "none" | "manual" (proxy_url)
+      user_agent: boşsa tarayıcı gibi görünen varsayılan kimlik
+      logins:     {site: (kullanıcı, parola)} → o siteye (ve alt alan adlarına) Basic kimlik doğrulaması"""
+
+    def __init__(self):
+        self.proxy_mode = "system"
+        self.proxy_url = ""
+        self.user_agent = ""
+        self.logins = {}
+
+
+NET = NetConfig()
+_openers = {}
+
+
+def _opener():
+    key = (NET.proxy_mode, NET.proxy_url)
+    op = _openers.get(key)
+    if op is None:
+        if NET.proxy_mode == "none":
+            proxy = urllib.request.ProxyHandler({})
+        elif NET.proxy_mode == "manual" and NET.proxy_url:
+            proxy = urllib.request.ProxyHandler({"http": NET.proxy_url, "https": NET.proxy_url})
+        else:
+            proxy = urllib.request.ProxyHandler()  # Windows'un vekil sunucu ayarı (eski davranış)
+        op = urllib.request.build_opener(proxy, urllib.request.HTTPSHandler(context=SSL_CONTEXT))
+        _openers.clear()
+        _openers[key] = op
+    return op
+
+
+def user_agent():
+    return NET.user_agent.strip() or USER_AGENT
+
+
+def login_for(url):
+    """Bu adres için kayıtlı site girişi (kullanıcı, parola) ya da None. Alt alan adları da eşleşir."""
+    host = (urllib.parse.urlparse(url).hostname or "").lower()
+    for site, cred in NET.logins.items():
+        site = site.lower().strip(".")
+        if host == site or host.endswith("." + site):
+            return cred
+    return None
+
+
+def proxy_for_tools():
+    """yt-dlp gibi dış araçlar için: None → Windows ayarı (dokunma), "" → vekil sunucu yok, adres → elle."""
+    if NET.proxy_mode == "none":
+        return ""
+    if NET.proxy_mode == "manual" and NET.proxy_url:
+        return NET.proxy_url
+    return None
+
+
 def _open(url, headers=None, start=None, end=None, timeout=30):
-    h = {"User-Agent": USER_AGENT, "Accept": "*/*", "Accept-Encoding": "identity"}
+    h = {"User-Agent": user_agent(), "Accept": "*/*", "Accept-Encoding": "identity"}
     h.update(headers or {})
     if start is not None:
         h["Range"] = f"bytes={start}-{'' if end is None else end}"
+    cred = login_for(url)
+    if cred and not any(k.lower() == "authorization" for k in h):
+        import base64
+        h["Authorization"] = "Basic " + base64.b64encode(f"{cred[0]}:{cred[1]}".encode()).decode()
     req = urllib.request.Request(url, headers=h)
-    return urllib.request.urlopen(req, timeout=timeout, context=SSL_CONTEXT)
+    return _opener().open(req, timeout=timeout)
 
 
 class _FtpResponse:

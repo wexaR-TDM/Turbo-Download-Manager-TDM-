@@ -99,6 +99,20 @@ Komut satırı: `TurboDM.exe <url | magnet | dosya.torrent>` (program açıksa i
 gizli başlar), `--minimized --resume` (güncelleme sonrası), `--quit`, `--register-assoc`, `--autostart on|off`,
 `--set-language <kod>`, `--cleanup [--partials] [--downloads] [--appdata]`, `--selftest <rapor.json>`.
 
+## Tarayıcının TurboDM'i açması (native messaging)
+
+Eklenti TurboDM'e ulaşamazsa `chrome.runtime.sendNativeMessage("com.turbodm.app")` ile TurboDM.exe'yi çalıştırtır
+(`turbodm/nativehost.py`); program kapalıysa tepside başlar, eklenti açılmasını bekleyip isteği yeniden gönderir.
+Kayıt her açılışta tazelenir: `%APPDATA%\TurboDM\native-host.json` + `HKCU\Software\{Microsoft\Edge|Google\Chrome|…}\NativeMessagingHosts\com.turbodm.app`.
+İzinli eklenti kimlikleri: Edge mağazası + kurulum klasöründeki paketlenmemiş eklenti (kimlik, klasör yolunun
+UTF-16 SHA-256 özetinden hesaplanır). Kaldırırken `--cleanup` kaydı siler.
+
+## winget
+
+`python installer\winget_manifest.py` → `build\winget\manifests\...\<sürüm>\` (sürüm yayımlandıktan sonra; kurulum
+dosyasının SHA-256'sı dist'ten). Doğrulama: `winget validate --manifest <klasör>`. Gönderim, geliştiricinin GitHub
+hesabıyla microsoft/winget-pkgs deposuna PR'dır (ör. `wingetcreate submit <klasör>`).
+
 ## Çeviriler
 
 Kaynak dil Türkçedir: arayüz metinleri kodda Türkçe yazılır ve `_t("…")` ile sarılır. Diğer diller

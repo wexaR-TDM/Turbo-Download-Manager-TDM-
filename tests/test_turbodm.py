@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import uuid
 import time
 import unittest
 import urllib.parse
@@ -649,6 +650,207 @@ class LocaleTests(unittest.TestCase):
         os.remove(path)
 
 
+class AbParityTests(unittest.TestCase):
+    """AB Download Manager karşılaştırmasından gelen özellikler (1.7.18)."""
+
+    def setUp(self):
+        manager.DEFAULT_SETTINGS.update(download_root=os.path.join(TMP, "dl"), torrent_port=6880 + os.getpid() % 100)
+        self.m = manager.Manager()
+        self.addCleanup(lambda: self.m.torrents and self.m.torrents.shutdown())
+        saved = dict(self.m.settings)
+        self.addCleanup(lambda: (self.m.settings.clear(), self.m.settings.update(saved), self.m.apply_settings()))
+
+    def _item(self, status="stopped", **kw):
+        it = manager.DownloadItem(kind="http", url="http://127.0.0.1:9/" + uuid.uuid4().hex + ".bin",
+                                  path=os.path.join(TMP, "dl", uuid.uuid4().hex + ".bin"), status=status, **kw)
+        self.m._register(it)
+        self.addCleanup(lambda: it.id in self.m.items and self.m.remove(it.id))
+        return it
+
+    def test_keep_awake_only_while_downloading(self):
+        it = self._item()
+        with mock.patch.object(manager.power, "keep_awake") as ka:
+            it.status = "downloading"
+            self.m.tick()
+            ka.assert_called_with(True)
+            it.status = "stopped"
+            self.m.tick()
+            ka.assert_called_with(False)
+            it.status = "downloading"
+            self.m.settings["keep_awake"] = False  # ayar kapalıysa hiç uyanık tutulmaz
+            self.m.tick()
+            ka.assert_called_with(False)
+            it.status = "stopped"
+
+    def test_speed_limit_toggle_and_only_when_active(self):
+        s = self.m.settings
+        s.update(speed_limit_kb=100, speed_limit_enabled=True, speed_limit_when_active=False)
+        self.assertEqual(self.m.speed_limit_rate(), 100 * 1024)
+        s["speed_limit_enabled"] = False  # tepsiden kapatıldı
+        self.assertEqual(self.m.speed_limit_rate(), 0)
+        s.update(speed_limit_enabled=True, speed_limit_when_active=True)
+        with mock.patch.object(manager.power, "idle_seconds", return_value=10):
+            self.assertEqual(self.m.speed_limit_rate(), 100 * 1024)  # kullanılıyor: sınır var
+        with mock.patch.object(manager.power, "idle_seconds", return_value=600):
+            self.assertEqual(self.m.speed_limit_rate(), 0)            # boşta: tam hız
+            self.m._tick_speed_limit(time.time(), force=True)
+            self.assertEqual(self.m.limiter.rate, 0)
+
+    def test_auto_retry_only_for_connection_errors(self):
+        class T:
+            def __init__(self, err):
+                self.state, self.error = "error", err
+
+            def downloaded(self):
+                return 0
+        self.m.settings.update(auto_retry=True, auto_retry_count=2, auto_retry_delay=5)
+        it = self._item("downloading")
+        it.task = T("Bağlantı koptu")
+        self.m.events.clear()
+        self.m._tick_http(it, 1000.0)
+        self.assertEqual(it.status, "error")
+        self.assertEqual(it.retry_at, 1005.0)
+        self.assertFalse([e for e in self.m.events if e[0] == "error"])  # hata penceresi açılmaz
+        with mock.patch.object(self.m, "start") as start:
+            self.m._tick_retry(1004.0)
+            start.assert_not_called()
+            self.m._tick_retry(1006.0)
+            start.assert_called_once_with(it.id, auto=True)
+        it2 = self._item("downloading")
+        it2.task = T("HTTP 404 Not Found")  # bulunamadı: denemenin anlamı yok
+        self.m._tick_http(it2, 1000.0)
+        self.assertIsNone(getattr(it2, "retry_at", None))
+        self.assertTrue([e for e in self.m.events if e[0] == "error" and e[1] is it2])
+        it.extra["retry_n"] = 2  # hak doldu: artık bildirilir
+        it.status, it.task = "downloading", T("Bağlantı koptu")
+        self.m._tick_http(it, 2000.0)
+        self.assertTrue([e for e in self.m.events if e[0] == "error" and e[1] is it])
+
+    def test_multiple_queues(self):
+        q = self.m.add_queue("Gece")
+        self.addCleanup(lambda: self.m.remove_queue(q["id"]))
+        self.m.update_queue(q["id"], max_concurrent=1)
+        a, b, c = self._item(), self._item(), self._item()
+        self.m.set_queue(a.id, True, q["id"])
+        self.m.set_queue(b.id, True, q["id"])
+        self.m.set_queue(c.id, True)  # Ana kuyruk
+        self.assertEqual(self.m.queue_of(a), q["id"])
+        self.assertEqual(self.m.queue_of(c), "main")
+
+        def fake_start(iid, auto=False):
+            self.m.items[iid].status = "downloading"
+        with mock.patch.object(self.m, "start", side_effect=fake_start):
+            self.m.start_queue(q["id"])
+            self.m._tick_queue()
+        self.assertEqual([a.status, b.status, c.status], ["downloading", "queued", "queued"])  # 1 tane; Ana kuyruk durur
+        self.assertFalse(self.m.queue_running)  # Ana kuyruk başlatılmadı
+        a.status = "stopped"
+        self.m.remove_queue(q["id"])
+        self.assertEqual(self.m.queue_of(b), "main")  # silinen kuyruğun indirmeleri Ana kuyruğa geçer
+
+    def test_custom_categories(self):
+        self.m.settings["custom_categories"] = [{"key": "c_test", "name": "Kalıplar", "folder": "Kaliplar",
+                                                 "exts": ["iso", "img"]}]
+        self.m.apply_settings()
+        self.assertEqual(manager.category_for("ubuntu.iso"), "c_test")  # yerleşik "Sıkıştırılmış"tan önce
+        self.assertEqual(manager.category_for("a.zip"), "compressed")
+        self.assertTrue(self.m.category_dir("c_test").endswith("Kaliplar"))
+        self.assertIn("img", manager.CATCH_EXTS)
+        self.m.settings["custom_categories"] = []
+        self.m.apply_settings()
+        self.assertEqual(manager.category_for("ubuntu.iso"), "compressed")
+        self.assertNotIn("c_test", manager.CATEGORIES)
+
+    def test_export_import_list(self):
+        it = self._item(headers={"Cookie": "oturum=gizli", "Referer": "https://site/"})
+        path = os.path.join(TMP, "liste.json")
+        self.assertEqual(self.m.export_list(path, {it.id}), 1)
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+        self.assertNotIn("gizli", text)  # çerez dışa aktarılmaz
+        self.assertIn("Referer", text)
+        self.assertEqual(self.m.import_list(path), 0)  # aynı adres zaten listede
+        url = it.url
+        self.m.remove(it.id)
+        self.assertEqual(self.m.import_list(path), 1)
+        new = [i for i in self.m.items.values() if i.url == url]
+        self.assertEqual(len(new), 1)
+        self.addCleanup(lambda: self.m.remove(new[0].id))
+        self.assertEqual((new[0].status, new[0].segments), ("stopped", []))
+
+    def test_finished_time_recorded(self):
+        class T:
+            state, note = "completed", None
+
+            def downloaded(self):
+                return 10
+        it = self._item("downloading")
+        it.task = T()
+        self.m._tick_http(it, time.time())
+        self.assertAlmostEqual(it.extra.get("finished_at"), time.time(), delta=5)
+
+    def test_proxy_user_agent_and_site_login(self):
+        import base64
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        from turbodm import secure
+        seen = []
+
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_GET(self):
+                seen.append((self.path, self.headers.get("User-Agent"), self.headers.get("Authorization")))
+                self.send_response(200)
+                self.send_header("Content-Length", "2")
+                self.end_headers()
+                self.wfile.write(b"ok")
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.shutdown)
+        port = srv.server_port
+        self.m.settings.update(user_agent="TurboDM-Test/1", proxy_mode="none",
+                               site_logins=[{"site": "127.0.0.1", "user": "ali", "password": secure.protect("p@ss")}])
+        self.m.apply_settings()
+        with engine._open(f"http://127.0.0.1:{port}/a") as r:
+            self.assertEqual(r.read(), b"ok")
+        self.assertEqual(seen[-1][1:], ("TurboDM-Test/1", "Basic " + base64.b64encode(b"ali:p@ss").decode()))
+        # elle vekil sunucu: istek vekil sunucuya tam adresle gider
+        self.m.settings.update(proxy_mode="manual", proxy_url=f"http://127.0.0.1:{port}", site_logins=[])
+        self.m.apply_settings()
+        with engine._open("http://dosya.example.test/b.bin") as r:
+            r.read()
+        self.assertEqual(seen[-1][0], "http://dosya.example.test/b.bin")
+        self.assertEqual(engine.proxy_for_tools(), f"http://127.0.0.1:{port}")  # video motoruna da geçer
+
+    def test_password_encryption(self):
+        from turbodm import secure
+        v = secure.protect("çok gizli")
+        self.assertNotIn("gizli", v)
+        self.assertEqual(secure.unprotect(v), "çok gizli")
+        self.assertEqual(secure.unprotect("dpapi:Ym96dWs="), "")  # çözülemeyen değer boş
+
+    def test_native_host_protocol_and_extension_id(self):
+        from turbodm import nativehost
+        self.assertEqual(nativehost.unpacked_id(r"C:\Program Files\TurboDM\browser_extension"),
+                         "pbnddkgjgkbobhaoagmpoeccolebabdl")  # tarayıcının gösterdiği gerçek kimlik
+        launched = []
+        for running in (False, True):
+            rin, win_ = os.pipe()
+            rout, wout = os.pipe()
+            nativehost.write_message(win_, {"cmd": "launch"})
+            os.close(win_)
+            with mock.patch.object(nativehost, "_std", lambda w: rin if w == "in" else wout):
+                rc = nativehost.run_host(lambda: running, ["TurboDM.exe", "--tray"],
+                                         launch=lambda cmd: launched.append(cmd) or True)
+            os.close(wout)
+            self.assertEqual(rc, 0)
+            self.assertEqual(nativehost.read_message(rout), {"ok": True, "launched": not running})
+            os.close(rin)
+            os.close(rout)
+        self.assertEqual(launched, [["TurboDM.exe", "--tray"]])  # açıkken yeniden başlatılmaz
+
+
 class ExtensionTests(unittest.TestCase):
     def test_page_url_is_reduced_to_single_video(self):
         w = "https://www.youtube.com/watch?v=abcDEF12345"
@@ -796,6 +998,8 @@ class ExtensionTests(unittest.TestCase):
         self.assertFalse(res["form_post"]["duraklatildi"], res)
         self.assertTrue(res["normal_get"]["turbodm_e_gitti"], res)   # normal indirme yine TurboDM'e gider
         self.assertTrue(res["normal_get"]["tarayicida_iptal"], res)
+        # TurboDM kapalıyken: eklenti onu açtırır (native messaging) ve indirmeyi açılınca aktarır
+        self.assertEqual(res["app_closed"], {"acildi": True, "turbodm_e_gitti": True, "tarayicida_iptal": True}, res)
 
     def test_extension_tab_calls_tolerate_closed_tabs(self):
         # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı

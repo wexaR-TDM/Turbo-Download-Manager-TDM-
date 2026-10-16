@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+import re
 import shutil
 import threading
 import time
@@ -11,7 +12,7 @@ from datetime import datetime
 from . import torrent as tmod
 from .engine import ChainLimiter, HttpTask, SpeedLimiter
 from .hls import HlsTask, find_ffmpeg
-from . import convert, ytdlp
+from . import convert, engine, power, ytdlp
 from . import i18n
 from .i18n import _t
 
@@ -60,17 +61,63 @@ DEFAULT_SETTINGS = {
     "theme": "auto",            # auto (Windows ile aynı) | light | dark
     "last_update_check": 0,
     "update_repo": "",      # boşsa appinfo.UPDATE_REPO kullanılır
+    "keep_awake": True,             # indirme sürerken bilgisayar uyku moduna geçmesin
+    "speed_limit_enabled": True,    # genel hız sınırı açık mı (tepsiden açılıp kapatılır)
+    "speed_limit_when_active": False,  # sınır yalnızca bilgisayar kullanılırken (boştayken tam hız)
+    "auto_retry": True,             # bağlantı hatasıyla duran indirmeyi kendiliğinden yeniden başlat
+    "auto_retry_count": 3,
+    "auto_retry_delay": 30,         # sn
+    "confirm_exit": True,           # inen dosya varken Çıkış'ta onay sor
+    "proxy_mode": "system",         # system | none | manual
+    "proxy_url": "",                # elle: http://sunucu:port
+    "user_agent": "",               # boş: varsayılan tarayıcı kimliği
+    "site_logins": [],              # [{"site", "user", "password" (DPAPI ile şifreli)}]
+    "queues": [],                   # ana kuyruk dışındaki kuyruklar [{"id", "name", "max_concurrent", ...}]
+    "custom_categories": [],        # [{"key": "c_…", "name", "folder", "exts": [...]}]
+    "hidden_columns": [],           # listede gizlenen sütunlar
 }
+
+IDLE_AFTER = 120  # sn: bu kadar süre klavye/fare kullanılmazsa bilgisayar "boşta" sayılır
 
 CATCH_EXTS = set(e for k, v in CATEGORIES.items() for e in v[2])
 
 
 def category_for(filename):
+    """Uzantıya göre kategori. Kullanıcının tanımladığı kategoriler (c_…) önce denenir."""
     ext = os.path.splitext(filename)[1].lower().lstrip(".")
-    for key, (_, _, exts) in CATEGORIES.items():
+    for key, (_, _, exts) in sorted(CATEGORIES.items(), key=lambda kv: not kv[0].startswith("c_")):
         if ext in exts:
             return key
     return "general"
+
+
+def set_custom_categories(cats):
+    """Seçenekler → Kategoriler: kullanıcı kategorilerini CATEGORIES'e yerleştirir (yerinde günceller)."""
+    for key in [k for k in CATEGORIES if k.startswith("c_")]:
+        del CATEGORIES[key]
+    for c in cats or []:
+        key = c.get("key") or ""
+        if key.startswith("c_") and c.get("name"):
+            exts = [e.lower().lstrip(".") for e in c.get("exts", []) if e.strip(" .")]
+            CATEGORIES[key] = (c["name"], c.get("folder") or c["name"], exts)
+    CATCH_EXTS.clear()
+    CATCH_EXTS.update(e for v in CATEGORIES.values() for e in v[2])
+
+
+def _retryable(error):
+    """Otomatik yeniden denemeye değer mi? Bağlantı kopması/zaman aşımı/sunucu hatası evet;
+    "bulunamadı/yasak" (HTTP 4xx, 408 ve 429 hariç), disk dolu ya da izin hatası hayır."""
+    e = error or ""
+    m = re.search(r"\bHTTP (\d{3})\b", e)
+    if m:
+        code = int(m.group(1))
+        return code >= 500 or code in (408, 429)
+    # motorun disk hata metinleri (engine.disk_error) seçili dilde: kalıpların sabit başlangıcıyla tanınır
+    disk = (_t("Diskte yeterli boş alan yok"),
+            _t("Klasöre yazılamıyor (izin yok ya da dosya kullanımda): {0}").split("{")[0],
+            _t("Kayıt klasörüne ulaşılamıyor (sürücü çıkarılmış olabilir): {0}").split("{")[0],
+            _t("Dosya yolu çok uzun; daha kısa bir klasör seçin"))
+    return not any(d.strip(": ") and d.strip(": ") in e for d in disk)
 
 
 class DownloadItem:
@@ -147,12 +194,16 @@ class Manager:
             import random
             self.settings["torrent_port"] = random.randint(49160, 65000)
             self.settings["torrent_port_random"] = True
+        set_custom_categories(self.settings.get("custom_categories"))
+        self._apply_network()
         self._auto_ul = None    # otomatik yükleme sınırının son uygulanan değeri
         self._auto_ul_t = 0
         self.items = {}
         self.order = []
         self.limiter = SpeedLimiter(self.settings["speed_limit_kb"] * 1024)
-        self.queue_running = False
+        self._queue_running = {"main": False}
+        self._limit_rate = None   # uygulanan genel hız sınırı (bayt/sn); boşta/açık-kapalı durumuna göre
+        self._limit_t = 0
         self.events = []        # GUI'ye bildirimler: ("completed"|"error", item)
         self._last_save = 0
         self._sched_last = None
@@ -227,14 +278,48 @@ class Manager:
         self._last_save = time.time()
 
     def apply_settings(self):
-        self.limiter.set_rate(self.settings["speed_limit_kb"] * 1024)
+        set_custom_categories(self.settings.get("custom_categories"))
+        self._apply_network()
+        self._limit_rate = None
+        self._tick_speed_limit(time.time(), force=True)
         self._apply_torrent_limits()
         self.save()
+
+    def _apply_network(self):
+        """Seçenekler → Bağlantı: vekil sunucu, tarayıcı kimliği ve site girişleri motora aktarılır."""
+        from . import secure
+        s = self.settings
+        engine.NET.proxy_mode = s.get("proxy_mode") or "system"
+        engine.NET.proxy_url = (s.get("proxy_url") or "").strip()
+        engine.NET.user_agent = s.get("user_agent") or ""
+        engine.NET.logins = {x["site"].strip().lower(): (x.get("user", ""), secure.unprotect(x.get("password", "")))
+                             for x in s.get("site_logins", []) if x.get("site", "").strip()}
+
+    def speed_limit_rate(self):
+        """Şu an uygulanması gereken genel hız sınırı (bayt/sn, 0 = sınırsız): sınır kapalıysa ya da
+        "yalnızca bilgisayar kullanılırken" seçiliyken bilgisayar boştaysa sınırsız."""
+        s = self.settings
+        if not s["speed_limit_kb"] or not s.get("speed_limit_enabled", True):
+            return 0
+        if s.get("speed_limit_when_active") and power.idle_seconds() >= IDLE_AFTER:
+            return 0
+        return s["speed_limit_kb"] * 1024
+
+    def _tick_speed_limit(self, now, force=False):
+        if not force and now - self._limit_t < 2:
+            return
+        self._limit_t = now
+        rate = self.speed_limit_rate()
+        if rate != self._limit_rate:
+            self._limit_rate = rate
+            self.limiter.set_rate(rate)
+            if self.torrents:
+                self.torrents.set_limits(rate, self.upload_limit())
 
     def _apply_torrent_limits(self):
         if self.torrents:
             self._auto_ul = None
-            self.torrents.set_limits(self.settings["speed_limit_kb"] * 1024, self.upload_limit())
+            self.torrents.set_limits(self.speed_limit_rate(), self.upload_limit())
 
     AUTO_UL_MIN, AUTO_UL_MAX = 150 * 1024, 2 * 1024 * 1024
 
@@ -259,11 +344,11 @@ class Manager:
         ul = self.upload_limit()
         if self._auto_ul is None or abs(ul - self._auto_ul) > max(32 * 1024, 0.1 * self._auto_ul):
             self._auto_ul = ul
-            self.torrents.set_limits(self.settings["speed_limit_kb"] * 1024, ul)
+            self.torrents.set_limits(self.speed_limit_rate(), ul)
 
     # ------------------------------------------------------------ ekleme
     def category_dir(self, cat):
-        return os.path.join(self.settings["download_root"], CATEGORIES[cat][1])
+        return os.path.join(self.settings["download_root"], CATEGORIES.get(cat, CATEGORIES["general"])[1])
 
     def unique_path(self, path):
         taken = {it.path.lower() for it in self.items.values() if it.kind != "torrent"}
@@ -385,10 +470,13 @@ class Manager:
             it.error = msg
 
     # ------------------------------------------------------------ kontrol
-    def start(self, iid):
+    def start(self, iid, auto=False):
         it = self.items.get(iid)
         if not it or it.status in ("downloading", "connecting", "seeding", "converting"):
             return
+        it.retry_at = None
+        if not auto:
+            it.extra.pop("retry_n", None)  # elle başlatma: otomatik deneme hakkı yenilenir
         if it.status == "completed" and (it.kind != "torrent" or not self.settings["seed_after_complete"]):
             return
         it.error = None
@@ -483,27 +571,137 @@ class Manager:
                 _try_remove(it.source)
         self.save()
 
-    def set_queue(self, iid, flag):
+    # ------------------------------------------------------------ kuyruklar
+    # "main" (Ana kuyruk) eski tek kuyruktur: ayarları max_concurrent / schedule_* anahtarlarındadır.
+    # Diğer kuyruklar settings["queues"] içinde; indirmenin kuyruğu extra["queue"] (yoksa ana kuyruk).
+    @property
+    def queue_running(self):
+        return self._queue_running.get("main", False)
+
+    @queue_running.setter
+    def queue_running(self, value):
+        self._queue_running["main"] = bool(value)
+
+    def queues(self):
+        s = self.settings
+        main = {"id": "main", "name": _t("Ana kuyruk"), "max_concurrent": s["max_concurrent"],
+                "schedule_enabled": s["schedule_enabled"], "schedule_start": s["schedule_start"],
+                "schedule_stop": s["schedule_stop"]}
+        return [main] + [q for q in s.get("queues", []) if q.get("id") and q["id"] != "main"]
+
+    def queue_conf(self, qid):
+        return next((q for q in self.queues() if q["id"] == qid), self.queues()[0])
+
+    def queue_of(self, it):
+        qid = it.extra.get("queue") or "main"
+        return qid if any(q["id"] == qid for q in self.queues()) else "main"
+
+    def is_queue_running(self, qid="main"):
+        return self._queue_running.get(qid, False)
+
+    def add_queue(self, name):
+        q = {"id": "q" + uuid.uuid4().hex[:8], "name": name.strip() or _t("Yeni kuyruk"), "max_concurrent": 2,
+             "schedule_enabled": False, "schedule_start": "02:00", "schedule_stop": "07:00"}
+        self.settings.setdefault("queues", []).append(q)
+        self.save()
+        return q
+
+    def update_queue(self, qid, **values):
+        if qid == "main":
+            for k in ("max_concurrent", "schedule_enabled", "schedule_start", "schedule_stop"):
+                if k in values:
+                    self.settings[k] = values[k]
+            return
+        for q in self.settings.get("queues", []):
+            if q["id"] == qid:
+                q.update(values)
+
+    def remove_queue(self, qid):
+        """Kuyruğu siler; içindeki indirmeler Ana kuyruğa geçer."""
+        if qid == "main":
+            return
+        self.stop_queue(qid)
+        self.settings["queues"] = [q for q in self.settings.get("queues", []) if q["id"] != qid]
+        self._queue_running.pop(qid, None)
+        for it in self.items.values():
+            if it.extra.get("queue") == qid:
+                it.extra.pop("queue", None)
+        self.save()
+
+    def set_queue(self, iid, flag, qid="main"):
         it = self.items.get(iid)
         if it and it.status != "completed":
             it.in_queue = flag
+            if flag:
+                if qid == "main":
+                    it.extra.pop("queue", None)
+                else:
+                    it.extra["queue"] = qid
             if flag and it.status == "stopped":
                 it.status = "queued"
             elif not flag and it.status == "queued":
                 it.status = "stopped"
 
-    def start_queue(self):
-        self.queue_running = True
+    def start_queue(self, qid="main"):
+        self._queue_running[qid] = True
         for it in self.items.values():
-            if it.in_queue and it.status in ("stopped", "error"):
+            if it.in_queue and self.queue_of(it) == qid and it.status in ("stopped", "error"):
                 it.status = "queued"
 
-    def stop_queue(self):
-        self.queue_running = False
+    def stop_queue(self, qid="main"):
+        self._queue_running[qid] = False
         for it in self.items.values():
-            if it.in_queue and it.status in ("downloading", "connecting"):
+            if it.in_queue and self.queue_of(it) == qid and it.status in ("downloading", "connecting"):
                 self.stop(it.id)
                 it.status = "queued"
+
+    # ------------------------------------------------------------ liste dışa / içe aktarma
+    def export_list(self, path, ids=None):
+        """İndirme listesini JSON olarak kaydeder (çerez ve kimlik bilgileri yazılmaz)."""
+        out = []
+        for iid in self.order:
+            if ids and iid not in ids:
+                continue
+            d = self.items[iid].to_dict()
+            d["headers"] = {k: v for k, v in (d.get("headers") or {}).items()
+                            if k.lower() not in ("cookie", "authorization")}
+            out.append(d)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"app": "TurboDM", "version": 1, "downloads": out}, f, ensure_ascii=False, indent=1)
+        return len(out)
+
+    def import_list(self, path):
+        """Dışa aktarılmış listeyi ekler; aynı adres listede varsa atlar. Eklenen sayısını döndürür."""
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        rows = data.get("downloads") if isinstance(data, dict) else data
+        if not isinstance(rows, list):
+            raise ValueError(_t("Geçerli bir TurboDM listesi değil"))
+        have = {(it.url, it.source) for it in self.items.values()}
+        added = 0
+        for d in rows:
+            if not isinstance(d, dict) or not (d.get("url") or d.get("source")):
+                continue
+            if (d.get("url", ""), d.get("source", "")) in have:
+                continue
+            d = dict(d, id=None)
+            it = DownloadItem(**d)
+            it.extra.pop("resume_after_restart", None)
+            if it.kind == "torrent":
+                if not it.source or (not it.source.startswith("magnet:") and not os.path.isfile(it.source)):
+                    continue
+                it.status = "completed" if it.status == "completed" else "stopped"
+            elif it.status == "completed" and os.path.isfile(it.path):
+                pass
+            else:  # yarım parça dosyaları bu bilgisayarda yok: baştan inecek
+                it.status, it.segments, it.done_bytes = "stopped", [], 0
+                it.path = self.unique_path(it.path)
+            it.in_queue = False
+            self._register(it)
+            have.add((it.url, it.source))
+            added += 1
+        self.save()
+        return added
 
     # ------------------------------------------------------------ periyodik
     def tick(self):
@@ -518,8 +716,15 @@ class Manager:
         if self.torrents:
             self.torrents.pump_alerts()
         self._tick_upload_limit(now)
+        self._tick_speed_limit(now)
+        self._tick_retry(now)
         self._tick_queue()
         self._tick_schedule()
+        if self.settings.get("keep_awake", True):
+            power.keep_awake(any(i.status in ("downloading", "connecting", "converting")
+                                 for i in self.items.values()))
+        else:
+            power.keep_awake(False)
         if now - self._last_save > 5:
             if self.torrents:
                 self.torrents.request_resume_data()
@@ -547,6 +752,8 @@ class Manager:
             it.status = "downloading"
         elif t.state == "completed":
             it.status, it.task, it.speed, it.in_queue = "completed", None, 0, False
+            it.extra["finished_at"] = time.time()
+            it.extra.pop("retry_n", None)
             if getattr(t, "note", None):
                 it.description = (it.description + " " + t.note).strip()
             it.done_bytes = it.size or it.done_bytes
@@ -562,7 +769,16 @@ class Manager:
             self.start(it.id)
         elif t.state == "error":
             it.status, it.error, it.task, it.speed = "error", t.error, None, 0
-            self.events.append(("error", it))
+            n = it.extra.get("retry_n", 0) + 1
+            s = self.settings
+            if s.get("auto_retry", True) and n <= s.get("auto_retry_count", 3) and _retryable(t.error):
+                # bağlantı sorunu: biraz sonra kendiliğinden yeniden dene (hata penceresi açılmaz)
+                it.extra["retry_n"] = n
+                it.retry_at = now + max(5, s.get("auto_retry_delay", 30))
+                it.error = _t("{0} — {1} sn sonra yeniden denenecek ({2}/{3})").format(
+                    t.error, int(max(5, s.get("auto_retry_delay", 30))), n, s.get("auto_retry_count", 3))
+            else:
+                self.events.append(("error", it))
             self.save()
         elif t.state == "stopped":
             it.task, it.speed = None, 0
@@ -623,6 +839,7 @@ class Manager:
             it.error = None
             if it.status not in ("completed", "seeding"):
                 it.in_queue = False
+                it.extra["finished_at"] = time.time()
                 self.events.append(("completed", it))
                 self.torrents.request_resume_data(it.id)
                 if self.settings["seed_after_complete"]:
@@ -635,34 +852,44 @@ class Manager:
             it.status = "downloading" if st["state"] == "downloading" and it.speed > 0 else "connecting"
             it.error = st["state_text"] if it.status == "connecting" else None
 
+    def _tick_retry(self, now):
+        for it in list(self.items.values()):
+            if it.status == "error" and getattr(it, "retry_at", None) and now >= it.retry_at:
+                it.retry_at = None
+                self.start(it.id, auto=True)
+
     def _tick_queue(self):
-        if not self.queue_running:
-            return
-        active = [i for i in self.items.values()
-                  if i.in_queue and i.status in ("downloading", "connecting")]
-        free = self.settings["max_concurrent"] - len(active)
-        waiting = [self.items[i] for i in self.order
-                   if self.items[i].in_queue and self.items[i].status == "queued"]
-        for it in waiting[:max(0, free)]:
-            it.status = "stopped"
-            self.start(it.id)
-        if not waiting and not active:
-            self.queue_running = False
-            self.events.append(("queue_done", None))
+        for q in self.queues():
+            qid = q["id"]
+            if not self._queue_running.get(qid):
+                continue
+            mine = [self.items[i] for i in self.order if self.items[i].in_queue and self.queue_of(self.items[i]) == qid]
+            active = [i for i in mine if i.status in ("downloading", "connecting")]
+            free = int(q.get("max_concurrent") or 1) - len(active)
+            waiting = [i for i in mine if i.status == "queued"]
+            for it in waiting[:max(0, free)]:
+                it.status = "stopped"
+                self.start(it.id)
+            if not waiting and not active:
+                self._queue_running[qid] = False
+                # Ana kuyruk bitince "Kuyruk bitince" eylemi (kapat/uyut) çalışır; diğerleri yalnızca bildirir
+                self.events.append(("queue_done", None) if qid == "main"
+                                   else ("info", _t("Kuyruk bitti: {0}").format(q["name"])))
 
     def _tick_schedule(self):
-        if not self.settings["schedule_enabled"]:
-            return
         hm = datetime.now().strftime("%H:%M")
         if hm == self._sched_last:
             return
         self._sched_last = hm
-        if hm == self.settings["schedule_start"]:
-            self.start_queue()
-            self.events.append(("info", _t("Zamanlayıcı: kuyruk başlatıldı")))
-        elif hm == self.settings["schedule_stop"]:
-            self.stop_queue()
-            self.events.append(("info", _t("Zamanlayıcı: kuyruk durduruldu")))
+        for q in self.queues():
+            if not q.get("schedule_enabled"):
+                continue
+            if hm == q.get("schedule_start"):
+                self.start_queue(q["id"])
+                self.events.append(("info", _t("Zamanlayıcı: kuyruk başlatıldı") + f" ({q['name']})"))
+            elif hm == q.get("schedule_stop"):
+                self.stop_queue(q["id"])
+                self.events.append(("info", _t("Zamanlayıcı: kuyruk durduruldu") + f" ({q['name']})"))
 
     def total_speed(self):
         return sum(i.speed for i in self.items.values())
@@ -674,7 +901,11 @@ class Manager:
             if it.extra.pop("resume_after_restart", False):
                 self.start(iid)
 
+    def active_count(self):
+        return sum(1 for i in self.items.values() if i.status in ("downloading", "connecting", "converting"))
+
     def shutdown(self):
+        power.keep_awake(False)
         for it in self.items.values():
             # kapanırken inmekte olanlar işaretlenir: güncelleme sonrası --resume ile kaldığı yerden sürer
             if it.status in ("downloading", "connecting"):

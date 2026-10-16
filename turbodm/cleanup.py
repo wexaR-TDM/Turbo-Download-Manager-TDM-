@@ -93,6 +93,11 @@ def cleanup(registry=True, partials=True, downloads=False, appdata=True):
             winassoc.remove_autostart_if_mine()
         except OSError:
             pass
+        try:  # tarayıcıların TurboDM'i açabilmesi için yazılan kayıt (native messaging)
+            from . import nativehost
+            nativehost.unregister()
+        except OSError:
+            pass
         report.append("kayıt defteri girdileri")
 
     for it in items:

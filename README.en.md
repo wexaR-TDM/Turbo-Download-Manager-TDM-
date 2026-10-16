@@ -45,9 +45,15 @@ Multi-connection downloads · Video grabber · Torrent · Browser integration</p
 ### 🧩 Browser integration (Edge / Chrome)
 - Downloads started in the browser go to TurboDM automatically; right-click → **"Download with TurboDM"**.
 - Lists the video/audio streams loaded by the page in the extension window. The extension contains no site-specific code and works the same on every site.
+- If TurboDM is closed, the extension opens it by itself and hands over the download.
 
 ### 🗂 Organization and interface
-- Categories, queue, scheduler; **bulk selection and bulk actions** with checkboxes.
+- Categories (you can add your own), **multiple queues** each with its own scheduler; **bulk selection and bulk actions** with checkboxes.
+- **Add many downloads at once:** paste a list of links or any text containing links; file names and sizes are checked and all are added together.
+- **File verification:** compares the MD5 / SHA-1 / SHA-256 checksum of a downloaded file with the one given by the site.
+- The computer **doesn't go to sleep** while downloading; downloads stopped by connection problems are **retried automatically**.
+- Proxy server, custom browser identity (User-Agent) and site logins (passwords stored with Windows encryption).
+- Toggle the speed limit from the tray in one click; optionally apply it only while the computer is in use. Export/import the list, hide columns, added and finished date columns.
 - A TurboDM theme that **follows Windows light/dark mode automatically**.
 - One-click update from inside the program (*Help → Check for updates*); active downloads continue where they left off.
 - **7 languages:** English, Türkçe, Deutsch, Français, Español, العربية, Italiano — switch instantly from the **Language** menu in the menu bar (the program stays open); by default the Windows language is used, and the language can also be chosen during setup.

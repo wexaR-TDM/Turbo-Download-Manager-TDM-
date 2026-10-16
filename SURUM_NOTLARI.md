@@ -7,6 +7,19 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.18
+• Toplu indirme ekleme (Görevler → Toplu indirme ekle…, Ctrl+Shift+N): bağlantı listesini ya da içinde bağlantı geçen herhangi bir metni yapıştırın; dosya adları ve boyutları denetlenir, işaretlenenler hemen başlar ya da seçilen kuyruğa eklenir
+• Dosya doğrulama: biten indirmede sağ tık → Dosyayı doğrula; MD5 / SHA-1 / SHA-256 hesaplanır, sitenin verdiği değerle karşılaştırılır
+• İndirme sürerken bilgisayar uyku moduna geçmez (Seçenekler → Genel'den kapatılabilir)
+• Bağlantı sorunuyla (kopma, zaman aşımı, sunucu hatası) duran indirme kendiliğinden yeniden denenir; "bulunamadı" ya da disk hatalarında denenmez
+• Çıkışta onay: inmekte olan dosya varken Çıkış'a basılınca sorulur
+• Seçenekler → Bağlantı: vekil sunucu (proxy), özel tarayıcı kimliği (User-Agent), site girişleri (kullanıcı adı/parola; parolalar Windows'un şifrelemesiyle saklanır)
+• Birden çok kuyruk: Zamanlayıcı penceresinden yeni kuyruk eklenir, her kuyruğun ayrı aynı-anda-indirme sayısı ve başlama/durma saati olur; sağ tık → Kuyruğa ekle
+• Kendi kategorileriniz (Seçenekler → Kategoriler): belirttiğiniz uzantılar kendi klasörüne iner
+• Listeyi dışa/içe aktarma (Görevler menüsü); sütun başlığına sağ tıkla sütunları gizleme; yeni "Eklenme" ve "Bitiş" sütunları; seçili indirmelerin toplam boyutu
+• Tepsi menüsünden hız sınırını tek tıkla açma/kapama; istenirse sınır yalnızca bilgisayar kullanılırken uygulanır
+• Tarayıcı eklentisi 1.7.0: TurboDM kapalıysa eklenti onu kendisi açar ve indirmeyi aktarır
+
 ## 1.7.17
 • Tarayıcı eklentisi 1.6.4: form düğmesiyle (ör. altyazı sitelerindeki "Altyazıyı indir") başlayan indirmeler artık tarayıcıda iner. Bu dosyaları sunucu yalnızca formdaki bilgilerle verdiği için TurboDM'e aktarılınca "ind" gibi anlamsız bir dosya iniyordu
 

@@ -129,7 +129,8 @@ class GuiTests(unittest.TestCase):
             pump(0.2)
             d.close()
         tabs = G.OptionsDialog(self.win).findChild(QTabWidget)
-        self.assertEqual([tabs.tabText(i) for i in range(tabs.count())], ["Genel", "Bağlantı", "Video", "Torrent"])
+        self.assertEqual([tabs.tabText(i) for i in range(tabs.count())],
+                         ["Genel", "Bağlantı", "Video", "Torrent", "Kategoriler"])
 
     def test_update_check_download_verify_and_reject_corrupt(self):
         setup = os.urandom(500_000)
@@ -313,6 +314,87 @@ class GuiTests(unittest.TestCase):
                        if a.text() == "Sürüm notları")
             act.trigger()
         self.assertEqual(opened, ["https://github.com/wexaR-TDM/TurboDM/blob/main/SURUM_NOTLARI.md"])
+
+    def test_batch_add_probes_names_and_adds_to_queue(self):
+        self.s.files["/belge.pdf"] = b"x" * 1000
+        text = f"İndirilecekler:\n{self.s.url('/arsiv.zip')}\nşu da: {self.s.url('/belge.pdf')}, ve tekrar {self.s.url('/arsiv.zip')}"
+        d = G.BatchAddDialog(self.win, text)
+        self.assertEqual(d.table.rowCount(), 2)  # tekrar eden bağlantı bir kez
+        end = time.time() + 15
+        while time.time() < end and any(v is None for v in d.info.values()):
+            pump(0.1)
+        self.assertEqual(d.table.item(1, 2).text(), G.fmt_size(1000))  # sorgulanan gerçek boyut
+        d.mode.setCurrentIndex(1)  # Ana kuyruğa ekle (hemen başlatma)
+        before = set(self.win.mgr.items)
+        d._add()
+        new = [self.win.mgr.items[i] for i in set(self.win.mgr.items) - before]
+        names = sorted(os.path.basename(i.path) for i in new)  # aynı adlı dosya varsa "arsiv (1).zip" olur
+        self.assertTrue(names[0].startswith("arsiv") and names[0].endswith(".zip") and names[1] == "belge.pdf", names)
+        self.assertTrue(all(i.in_queue and i.status == "queued" for i in new))
+        for i in new:
+            self.win.mgr.remove(i.id)
+
+    def test_checksum_dialog_verifies_file(self):
+        import hashlib
+        path = os.path.join(TMP, "dogrula.bin")
+        with open(path, "wb") as f:
+            f.write(self.data)
+        d = G.ChecksumDialog(self.win, path)
+        end = time.time() + 15
+        while time.time() < end and not d.out["sha256"].text():
+            pump(0.1)
+        self.assertEqual(d.out["sha256"].text(), hashlib.sha256(self.data).hexdigest())
+        d.expected.setText(hashlib.md5(self.data).hexdigest().upper())  # büyük harf de olur
+        self.assertIn("✔", d.result.text())
+        d.expected.setText("0" * 64)
+        self.assertIn("✖", d.result.text())
+        d.close()
+
+    def test_exit_asks_when_downloads_running(self):
+        it = self.win.mgr.add_http(self.s.url("/arsiv.zip"), os.path.join(TMP, "dl", "cikis.zip"), start=False)
+        it.status = "downloading"
+        try:
+            with mock.patch.object(self.win, "quit_app") as quit_app, \
+                    mock.patch.object(G.QMessageBox, "exec", return_value=G.QMessageBox.No):
+                self.win.quit_requested()
+                quit_app.assert_not_called()  # "Hayır": program açık kalır
+            with mock.patch.object(self.win, "quit_app") as quit_app, \
+                    mock.patch.object(G.QMessageBox, "exec", return_value=G.QMessageBox.Yes):
+                self.win.quit_requested()
+                quit_app.assert_called_once()
+        finally:
+            it.status = "stopped"
+            self.win.mgr.remove(it.id)
+
+    def test_columns_can_be_hidden_and_dates_shown(self):
+        self.assertEqual(G.COLUMNS[-2:], ["Eklenme", "Bitiş"])
+        self.win._set_column(6, False)  # "Son Deneme"
+        self.assertTrue(self.win.table.isColumnHidden(6))
+        self.assertIn(6, self.win.mgr.settings["hidden_columns"])
+        self.win._set_column(6, True)
+        self.assertFalse(self.win.table.isColumnHidden(6))
+
+    def test_queues_dialog_and_tray_speed_limit(self):
+        d = G.SchedulerDialog(self.win)
+        with mock.patch.object(G.QInputDialog, "getText", return_value=("Gece", True)):
+            d._add()
+        q = [x for x in self.win.mgr.queues() if x["name"] == "Gece"]
+        self.assertEqual(len(q), 1)
+        with mock.patch.object(G.QMessageBox, "question", return_value=G.QMessageBox.Yes):
+            d._delete()
+        self.assertFalse([x for x in self.win.mgr.queues() if x["name"] == "Gece"])
+        d.reject()
+        s = self.win.mgr.settings
+        s["speed_limit_kb"] = 500
+        try:
+            self.win._update_limit_action()
+            self.assertTrue(self.win.a_limit.isEnabled() and self.win.a_limit.isChecked())
+            self.win.a_limit.setChecked(False)  # tepsiden kapat
+            self.assertFalse(s["speed_limit_enabled"])
+            self.assertEqual(self.win.mgr.limiter.rate, 0)
+        finally:
+            s.update(speed_limit_kb=0, speed_limit_enabled=True)
+            self.win.mgr.apply_settings()
 
     def test_smooth_progress_is_fluid_monotonic_and_honest(self):
         # gerçek değer yarım saniyede bir 50 MB'lık sıçramalarla gelir (video indirme gibi);
