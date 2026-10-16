@@ -49,9 +49,12 @@ Remove-Item $notesFile
 python (Join-Path $root "installer\stats.py") --kaydet
 if ($LASTEXITCODE) { Write-Warning "İndirme sayaçları kaydedilemedi" }
 
-# Yalnızca son sürüm kalsın: önceki sürümler (ve etiketleri) silinir. Güncelleme denetimi her zaman
-# releases/latest adresini kullandığı için kurulu programlar bundan etkilenmez.
-$old = gh release list --repo $repo --limit 200 --json tagName --jq ".[].tagName" | Where-Object { $_ -and $_ -ne "v$version" }
+# Son 3 sürüm kalır, daha eskiler (ve etiketleri) silinir. Güncelleme denetimi her zaman releases/latest adresini
+# kullandığı için kurulu programlar etkilenmez. 3 sürüm tutulur çünkü winget kayıtlı sürümün kurulum dosyasına
+# bağlantı verir: yeni sürümün winget kaydı onaylanana kadar (1-3 gün) önceki sürümün dosyası yerinde kalmalı.
+$keep = 3
+$tags = @(gh release list --repo $repo --limit 200 --json tagName,createdAt --jq "sort_by(.createdAt) | reverse | .[].tagName" | Where-Object { $_ })
+$old = $tags | Where-Object { $_ -ne "v$version" } | Select-Object -Skip ($keep - 1)
 foreach ($tag in $old) {
     gh release delete $tag --repo $repo --cleanup-tag --yes
     if ($LASTEXITCODE) { Write-Warning "$tag silinemedi" } else { Write-Host "Eski sürüm kaldırıldı: $tag" }
