@@ -725,6 +725,9 @@ class ExtensionTests(unittest.TestCase):
             "yetim": '<video style="width:1000px;height:560px"></video>'
                      '<script>setTimeout(()=>{delete chrome.runtime.id;chrome.i18n.getMessage=()=>{throw new Error('
                      '"Extension context invalidated.")}},700)</script>',
+            # × : düğme bu sayfada gizlenir (sayfa yenilenince geri gelir)
+            "kapat": '<video style="width:1000px;height:560px"></video>'
+                     '<script>setTimeout(()=>document.querySelector(".tdm-close").click(),900)</script>',
         }
         procs = []
         try:
@@ -733,7 +736,8 @@ class ExtensionTests(unittest.TestCase):
                         f'<script>{stub}</script></head><body style="margin:0">{body}<script src="{ext}content.js"></script>'
                         f'<script>setTimeout(()=>{{const b=[...document.querySelectorAll(".tdm-grab")].filter(e=>'
                         f'e.style.display==="block");fetch("http://127.0.0.1:{srv.server_port}/",{{method:"POST",'
-                        f'mode:"no-cors",body:"{name}="+b.length+"@"+b.map(e=>parseInt(e.style.left)).join(",")+"!"+__errs}})}},2500)'
+                        f'mode:"no-cors",body:"{name}="+b.length+"@"+b.map(e=>parseInt(e.style.left)).join(",")+"!"+__errs'
+                        f'+"~"+b.filter(e=>e.classList.contains("tdm-idle")).length}})}},4200)'
                         f'</script></body></html>')
                 path = os.path.join(TMP, f"eklenti_{name}.html")
                 with open(path, "w", encoding="utf-8") as f:
@@ -742,7 +746,7 @@ class ExtensionTests(unittest.TestCase):
                     [edge, "--headless=new", f"--user-data-dir={os.path.join(TMP, 'edge_' + name)}",
                      "--allow-file-access-from-files", "--window-size=1400,900", "file:///" + path.replace("\\", "/")],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
-            end = time.time() + 40
+            end = time.time() + 45
             while len(results) < len(pages) and time.time() < end:
                 time.sleep(0.2)
         finally:
@@ -755,7 +759,9 @@ class ExtensionTests(unittest.TestCase):
         count, _, lefts = results.get("youtube", "0@").partition("@")
         self.assertEqual(count, "1", results)  # YouTube'da düğme kaybolmamalı
         self.assertTrue(16 < int(lefts.split("!")[0]) < 1096, results)
-        self.assertEqual(results.get("yetim"), "0@!0", results)  # düğme kaldırıldı, hiç hata fırlatılmadı
+        self.assertEqual(results.get("yetim"), "0@!0~0", results)  # düğme kaldırıldı, hiç hata fırlatılmadı
+        self.assertEqual(results.get("kapat"), "0@!0~0", results)  # × ile gizlendi
+        self.assertTrue(results.get("youtube", "").endswith("~1"), results)  # fare kıpırdamayınca soldu
 
     def test_extension_popup_hides_empty_media_section(self):
         # "Bu sayfadaki medyalar" yalnızca sayfada akış bulunduysa görünür (boş "Yok" yazısı gösterilmez)
@@ -768,6 +774,10 @@ class ExtensionTests(unittest.TestCase):
         self.assertIn('if (!list || !list.length) return;', js)
         self.assertNotIn("popupNone", html + js)
         self.assertIn("prefers-color-scheme: dark", html)  # tarayıcının koyu/açık moduna uyar
+        # mağaza ekran görüntüsü sahnesi: sahte ortamda eklenti kimliği olmalı (yoksa eklenti "bağı koptu"
+        # sanıp durur ve görüntüde düğme/menü çıkmaz)
+        with open(os.path.join(ROOT, "store", "demo", "video.html"), encoding="utf-8") as f:
+            self.assertRegex(f.read(), r"runtime:\s*\{\s*id:")
 
     def test_extension_tab_calls_tolerate_closed_tabs(self):
         # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı

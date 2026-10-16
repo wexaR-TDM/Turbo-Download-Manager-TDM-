@@ -79,5 +79,8 @@
   },
   "popupQualities": {
     "message": "Videoqualitäten"
+  },
+  "hideButton": {
+    "message": "Auf dieser Seite ausblenden (erscheint nach dem Neuladen wieder)"
   }
 }

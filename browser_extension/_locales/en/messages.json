@@ -79,5 +79,8 @@
   },
   "popupQualities": {
     "message": "Video qualities"
+  },
+  "hideButton": {
+    "message": "Hide on this page (shows again when the page is reloaded)"
   }
 }

@@ -21,6 +21,7 @@
     window.removeEventListener("scroll", position);
     window.removeEventListener("resize", position);
     document.removeEventListener("click", closeMenus);
+    document.removeEventListener("mousemove", wake);
     document.querySelectorAll(".tdm-grab, .tdm-menu").forEach((el) => el.remove());
     window.__tdmLoaded = false;  // sayfa yenilenmeden yeni sürüm eklenirse o çalışabilsin
   }
@@ -47,21 +48,43 @@
   }
 
   function flash(btn, text) {
-    const old = btn.dataset.label || btn.textContent;
-    btn.dataset.label = old;
-    btn.textContent = text;
-    setTimeout(() => (btn.textContent = old), 2500);
+    const label = btn.querySelector(".tdm-label") || btn;
+    const old = label.dataset.label || label.textContent;
+    label.dataset.label = old;
+    label.textContent = text;
+    setTimeout(() => (label.textContent = old), 2500);
   }
+
+  // Düğmeyi kapatma (×): yalnızca bu sayfada gizlenir; sayfa yenilenince (F5) ya da başka bir videoya
+  // geçilince yeniden görünür. Kalıcı bir ayar değildir.
+  let hiddenOn = null;
+  // Fare durunca düğme, oynatıcının kendi denetimleri gibi solar (film izlerken göze batmasın)
+  const IDLE_MS = 3000;
+  let lastMove = Date.now();
 
   function makeButton(video) {
     const btn = document.createElement("div");
     btn.className = "tdm-grab";
-    btn.textContent = M("btnDownload");
+    const label = document.createElement("span");
+    label.className = "tdm-label";
+    label.textContent = M("btnDownload");
+    const close = document.createElement("span");
+    close.className = "tdm-close";
+    close.textContent = "×";
+    close.title = M("hideButton");
+    btn.append(label, close);
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if (e.target === close) {
+        hiddenOn = location.href;
+        closeMenus();
+        position();
+        return;
+      }
       openMenu(btn, video);
     });
+    ["mousedown", "dblclick"].forEach((ev) => btn.addEventListener(ev, (e) => e.stopPropagation()));
     document.body.appendChild(btn);
     return btn;
   }
@@ -92,9 +115,12 @@
   }
 
   function place(btn, video) {
-    const r = visibleRect(video);
+    const r = hiddenOn === location.href ? null : visibleRect(video);
     btn.style.display = r ? "block" : "none";
     if (!r) return;
+    // menü açıkken ya da fare düğmenin üstündeyken solmaz
+    const idle = Date.now() - lastMove > IDLE_MS && !document.querySelector(".tdm-menu") && !btn.matches(":hover");
+    btn.classList.toggle("tdm-idle", idle);
     btn.style.top = window.scrollY + r.top + 10 + "px";
     btn.style.left = window.scrollX + r.right - btn.offsetWidth - 10 + "px";
   }
@@ -221,6 +247,12 @@
   });
 
   document.addEventListener("click", closeMenus);
+  const wake = () => {
+    const was = Date.now() - lastMove > IDLE_MS;
+    lastMove = Date.now();
+    if (was) position();  // solmuş düğme hemen geri gelsin
+  };
+  document.addEventListener("mousemove", wake, { passive: true });
   window.addEventListener("scroll", position, { passive: true });
   window.addEventListener("resize", position);
   observer = new MutationObserver(() => position());

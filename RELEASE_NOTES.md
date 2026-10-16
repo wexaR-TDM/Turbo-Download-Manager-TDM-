@@ -7,6 +7,10 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.16
+• Browser extension 1.6.3: the "Download this video" button no longer gets in the way while watching. If the mouse doesn't move for 3 seconds it fades out like the player's own controls and comes back when the mouse moves
+• The × next to the button hides it on that page; it shows again when the page is reloaded (F5) or you move to another video
+
 ## 1.7.15
 • Browser extension 1.6.2: fixed the "Extension context invalidated" error entry on the extensions page after the extension was updated or reloaded with tabs open; the old copy removes its buttons and stops quietly (the new version runs once the page is reloaded)
 

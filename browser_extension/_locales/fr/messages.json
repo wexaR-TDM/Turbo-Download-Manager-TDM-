@@ -79,5 +79,8 @@
   },
   "popupQualities": {
     "message": "Qualités vidéo"
+  },
+  "hideButton": {
+    "message": "Masquer sur cette page (réapparaît après rechargement)"
   }
 }

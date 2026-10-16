@@ -20,7 +20,7 @@
 <script src="messages_tr.js"></script>
 <script>
   // Mağaza ekran görüntüsü için eklenti arka planının sahte yanıtları (ağ yok)
-  window.chrome = { i18n: { getMessage: (k) => (TDM_MSGS[k] || {}).message || "" }, runtime: { lastError: null, onMessage: { addListener() {} },
+  window.chrome = { i18n: { getMessage: (k) => (TDM_MSGS[k] || {}).message || "" }, runtime: { id: "demo", lastError: null, onMessage: { addListener() {} },
     sendMessage(msg, cb) {
       const r = msg.type === "tdm-list" ? [{ url: "https://cdn.ornekvideo.test/master.m3u8", kind: "hls", label: "Video akışı (HLS) · 1080p" }]
         : msg.type === "tdm-formats" ? { title: "Doğa Belgeseli", choices: [

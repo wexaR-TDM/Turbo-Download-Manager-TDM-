@@ -79,6 +79,9 @@ window.TDM_MSGS = {
   },
   "popupQualities": {
     "message": "Video kaliteleri"
+  },
+  "hideButton": {
+    "message": "Bu sayfada gizle (sayfa yenilenince yeniden görünür)"
   }
 }
 ;
