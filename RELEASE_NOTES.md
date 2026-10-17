@@ -7,6 +7,9 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.19
+• Fix: before taking over a browser download, TurboDM checks that it can actually reach the file. On sites with bot protection such as Cloudflare (e.g. metin2.download), when the protection blocks TurboDM the download is no longer cancelled and lost: it continues in the browser and TurboDM shows the reason. The same applies to links that return a login or verification page (browser extension 1.7.1)
+
 ## 1.7.18
 • Add many downloads at once (Tasks → Add multiple downloads…, Ctrl+Shift+N): paste a list of links or any text containing links; file names and sizes are checked, and the selected ones start right away or go to the chosen queue
 • File verification: right-click a finished download → Verify file; MD5 / SHA-1 / SHA-256 are calculated and compared with the value given by the site

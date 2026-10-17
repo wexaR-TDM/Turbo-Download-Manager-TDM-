@@ -289,16 +289,16 @@ def sanitize_filename(name):
     return (stem + ext) if stem else "download" + ext
 
 
-def probe(url, headers=None):
+def probe(url, headers=None, timeout=30):
     """Sunucuya 1 baytlık Range isteği atarak boyut, devam desteği ve dosya adını öğrenir."""
     if is_ftp(url):
         return _probe_ftp(url)
     try:
-        resp = _open(url, headers, 0, 0)
+        resp = _open(url, headers, 0, 0, timeout=timeout)
     except urllib.error.HTTPError as e:
         if e.code in (401, 403, 404, 410):
             raise
-        resp = _open(url, headers)  # Range'i sevmeyen sunucular için düz GET
+        resp = _open(url, headers, timeout=timeout)  # Range'i sevmeyen sunucular için düz GET
     try:
         final = resp.geturl()
         size, resumable = None, False
@@ -320,6 +320,15 @@ def probe(url, headers=None):
             name += ext
     return {"final_url": final, "size": size, "resumable": resumable,
             "filename": name, "content_type": ctype}
+
+
+def is_bot_challenge(e):
+    """Sitenin bot koruması (Cloudflare "Just a moment…" vb.) TurboDM'i doğrulama sayfasına mı yönlendirdi?
+    Tarayıcı doğrulamayı geçmiş olsa da koruma, programı bağlantı izinden ayırt edip yeniden doğrulama isteyebilir."""
+    if not isinstance(e, urllib.error.HTTPError) or e.code not in (403, 429, 503):
+        return False
+    h = e.headers or {}
+    return bool(h.get("cf-mitigated") or (h.get("Server", "").lower() == "cloudflare" and e.code in (403, 503)))
 
 
 TORRENT_MAX = 20 * 1024 * 1024

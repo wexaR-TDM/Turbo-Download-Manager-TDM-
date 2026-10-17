@@ -54,6 +54,16 @@ class _Handler(BaseHTTPRequestHandler):
         except ValueError:
             return self._reply(400, {"error": "bad json"})
         if self.path == "/add" and isinstance(data.get("url"), str):
+            # Tarayıcının başlattığı indirme ("check"): kabul etmeden önce TurboDM dosyaya gerçekten ulaşabiliyor mu?
+            # Ulaşamıyorsa (bot koruması, giriş, süresi dolmuş bağlantı…) reddedilir; eklenti indirmeyi tarayıcıda sürdürür.
+            if data.get("check") and "/check" in handlers:
+                try:
+                    reason = handlers["/check"](data)
+                except Exception as e:  # noqa: BLE001
+                    reason = str(e) or e.__class__.__name__
+                if reason:
+                    requests.put({"notice": reason, "url": data["url"]})
+                    return self._reply(200, {"ok": False, "reason": reason})
             requests.put(data)
             self._reply(200, {"ok": True})
         elif self.path == "/show":

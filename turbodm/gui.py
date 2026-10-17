@@ -2117,6 +2117,7 @@ class MainWindow(QMainWindow):
         try:
             self._fmt_cache = {}
             server.handlers["/formats"] = self._formats_handler
+            server.handlers["/check"] = self._check_handler
             self.srv = server.start(mgr.settings["server_port"])
         except OSError as e:
             self.srv = None
@@ -2641,6 +2642,10 @@ class MainWindow(QMainWindow):
         if req.get("quit"):
             self.quit_app()
             return
+        if req.get("notice"):  # tarayıcının indirmesi devralınamadı: neden bildirilir, indirme tarayıcıda sürer
+            self.tray.showMessage(APP_NAME, req["notice"], self.icon, 8000)
+            self.statusBar().showMessage(req["notice"], 15000)
+            return
         tf = req.get("torrent_file")
         if isinstance(tf, str) and tf.lower().endswith(".torrent") and os.path.isfile(tf):
             # Tarayıcının indirdiği .torrent (site yalnızca tarayıcıya veriyorsa): dosya seçimiyle aç
@@ -2649,15 +2654,7 @@ class MainWindow(QMainWindow):
         url = req.get("url", "")
         if isinstance(req.get("cookies"), list):  # eklentiden sayfa videosu: tek videoya indirgenir
             url = ytdlp.canonical_url(url)
-        headers = {}
-        if req.get("cookie"):
-            headers["Cookie"] = req["cookie"]
-        if req.get("referrer"):
-            headers["Referer"] = req["referrer"]
-        if req.get("userAgent"):
-            headers["User-Agent"] = req["userAgent"]
-        if isinstance(req.get("origin"), str) and re.match(r"^https?://[^/]+$", req["origin"]):
-            headers["Origin"] = req["origin"]  # gömülü oynatıcının kökeni (video sunucusu denetleyebilir)
+        headers = self._request_headers(req)
         name = os.path.basename(req.get("filename") or "") or None
         cookies = req.get("cookies") if isinstance(req.get("cookies"), list) else None
         if cookies:  # yapılandırılmış çerezler (YouTube): yt-dlp'ye çerez dosyasıyla verilir
@@ -2667,6 +2664,39 @@ class MainWindow(QMainWindow):
             self._video_from_menu(url, req["choice"], req.get("title") or "", headers, cookies)
             return
         self.add_source(url, headers, name, cookies)
+
+    @staticmethod
+    def _request_headers(req):
+        """Eklentiden gelen istek için başlıklar: tarayıcının çerezi, yönlendiren sayfa ve tarayıcı kimliği."""
+        headers = {}
+        if req.get("cookie"):
+            headers["Cookie"] = req["cookie"]
+        if req.get("referrer"):
+            headers["Referer"] = req["referrer"]
+        if req.get("userAgent"):
+            headers["User-Agent"] = req["userAgent"]
+        if isinstance(req.get("origin"), str) and re.match(r"^https?://[^/]+$", req["origin"]):
+            headers["Origin"] = req["origin"]  # gömülü oynatıcının kökeni (video sunucusu denetleyebilir)
+        return headers
+
+    def _check_handler(self, data):
+        """Köprü iş parçacığında: tarayıcının başlattığı indirmeyi devralmadan önce TurboDM dosyaya ulaşabiliyor mu?
+        None → evet (eklenti tarayıcıdaki indirmeyi iptal eder); metin → hayır, nedeni (indirme tarayıcıda sürer).
+        Ör. Cloudflare korumalı sitelerde tarayıcı doğrulamayı geçmiştir ama koruma TurboDM'i ayırt edip engelleyebilir."""
+        url = data.get("url") or ""
+        if not re.match(r"^(https?|ftp)://", url, re.I):
+            return None
+        host = urllib.parse.urlparse(url).hostname or url
+        try:
+            info = probe(url, self._request_headers(data), timeout=12)
+        except Exception as e:  # noqa: BLE001
+            if engine.is_bot_challenge(e):
+                return _t("{0} bot koruması (Cloudflare) kullanıyor ve TurboDM'in dosyaya erişmesine izin vermedi. Dosya tarayıcıda iniyor.").format(host)
+            return _t("TurboDM bu dosyaya erişemedi ({0}). Dosya tarayıcıda iniyor.").format(engine._err_text(e))
+        mime = (data.get("mime") or "").lower()
+        if info.get("content_type") == "text/html" and mime and "html" not in mime:
+            return _t("{0} TurboDM'e dosya yerine bir web sayfası gönderdi (giriş ya da doğrulama sayfası olabilir). Dosya tarayıcıda iniyor.").format(host)
+        return None
 
     # ---------------------------------------------------------- tarayıcıdaki kalite menüsü
     FORMAT_CACHE_SECONDS = 20 * 60

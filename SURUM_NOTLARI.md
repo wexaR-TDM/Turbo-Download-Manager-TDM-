@@ -7,6 +7,9 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.19
+• Düzeltme: TurboDM tarayıcının indirmesini devralmadan önce dosyaya gerçekten ulaşabildiğini denetler. Cloudflare gibi bot korumalı sitelerde (ör. metin2.download) koruma TurboDM'i engellediğinde indirme artık iptal edilip kaybolmaz, tarayıcıda sürer; TurboDM nedenini bildirir. Giriş ya da doğrulama sayfası dönen bağlantılar için de aynısı geçerli (tarayıcı eklentisi 1.7.1)
+
 ## 1.7.18
 • Toplu indirme ekleme (Görevler → Toplu indirme ekle…, Ctrl+Shift+N): bağlantı listesini ya da içinde bağlantı geçen herhangi bir metni yapıştırın; dosya adları ve boyutları denetlenir, işaretlenenler hemen başlar ya da seçilen kuyruğa eklenir
 • Dosya doğrulama: biten indirmede sağ tık → Dosyayı doğrula; MD5 / SHA-1 / SHA-256 hesaplanır, sitenin verdiği değerle karşılaştırılır

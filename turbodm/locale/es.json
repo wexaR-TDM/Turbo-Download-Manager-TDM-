@@ -437,5 +437,8 @@
  "İndirme sürerken bilgisayarın uyku moduna geçmesini engelle": "Impedir que el equipo entre en suspensión durante las descargas",
  "İnmekte olan dosya varken çıkışta onay sor": "Pedir confirmación al salir con descargas en curso",
  "✔ Eşleşti ({0}): dosya sağlam.": "✔ Coincide ({0}): el archivo está íntegro.",
- "✖ Eşleşmedi: dosya bozuk ya da farklı bir dosya olabilir.": "✖ No coincide: el archivo puede estar dañado o ser otro."
+ "✖ Eşleşmedi: dosya bozuk ya da farklı bir dosya olabilir.": "✖ No coincide: el archivo puede estar dañado o ser otro.",
+ "{0} bot koruması (Cloudflare) kullanıyor ve TurboDM'in dosyaya erişmesine izin vermedi. Dosya tarayıcıda iniyor.": "{0} usa protección contra bots (Cloudflare) y no permitió que TurboDM accediera al archivo. El archivo se descarga en el navegador.",
+ "TurboDM bu dosyaya erişemedi ({0}). Dosya tarayıcıda iniyor.": "TurboDM no pudo acceder a este archivo ({0}). El archivo se descarga en el navegador.",
+ "{0} TurboDM'e dosya yerine bir web sayfası gönderdi (giriş ya da doğrulama sayfası olabilir). Dosya tarayıcıda iniyor.": "{0} envió a TurboDM una página web en lugar del archivo (posible página de inicio de sesión o verificación). El archivo se descarga en el navegador."
 }

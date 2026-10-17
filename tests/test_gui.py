@@ -315,6 +315,59 @@ class GuiTests(unittest.TestCase):
             act.trigger()
         self.assertEqual(opened, ["https://github.com/wexaR-TDM/TurboDM/blob/main/SURUM_NOTLARI.md"])
 
+    def test_browser_download_checked_before_takeover(self):
+        # Tarayıcının indirmesi devralınmadan önce TurboDM dosyaya ulaşabiliyor mu? (metin2.download gibi Cloudflare
+        # korumalı sitelerde koruma TurboDM'i engeller: indirme tarayıcıda kalmalı, kullanıcıya nedeni söylenmeli)
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_GET(self):
+                if self.path.startswith("/korumali"):  # Cloudflare "Just a moment…" yanıtının özü
+                    body = b"<html><title>Just a moment...</title></html>"
+                    self.send_response(403)
+                    self.send_header("Server", "cloudflare")
+                    self.send_header("cf-mitigated", "challenge")
+                    self.send_header("Content-Type", "text/html")
+                elif self.path.startswith("/giris"):  # dosya yerine giriş sayfası
+                    body = b"<html>login</html>"
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/html")
+                else:
+                    body = b"PK" + b"x" * 100
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/zip")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.shutdown)
+        base = f"http://127.0.0.1:{srv.server_port}"
+        check = self.win._check_handler
+        self.assertIsNone(check({"url": base + "/dosya.zip", "mime": "application/zip"}))  # erişilebilir: devral
+        reason = check({"url": base + "/korumali/client.zip", "mime": "application/zip"})
+        self.assertIn("Cloudflare", reason)
+        self.assertIn("tarayıcıda", reason)
+        self.assertIn("web sayfası", check({"url": base + "/giris/dosya.zip", "mime": "application/zip"}))
+        # köprü: "check" istenince reddedilen indirme listeye eklenmez, eklentiye ok:false döner, kullanıcıya bildirilir
+        import json as _json
+        import urllib.request
+        while not G.server.requests.empty():
+            G.server.requests.get()
+        port = self.win.mgr.settings["server_port"]
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/add", method="POST",
+                                     data=_json.dumps({"url": base + "/korumali/a.zip", "mime": "application/zip",
+                                                       "check": True}).encode(),
+                                     headers={"Content-Type": "application/json", "X-TurboDM": "1"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            self.assertEqual(_json.loads(r.read())["ok"], False)
+        queued = G.server.requests.get(timeout=5)
+        self.assertIn("notice", queued)  # tepside nedeni gösterilir; indirme eklenmez
+        self.assertTrue(G.server.requests.empty())
+
     def test_batch_add_probes_names_and_adds_to_queue(self):
         self.s.files["/belge.pdf"] = b"x" * 1000
         text = f"İndirilecekler:\n{self.s.url('/arsiv.zip')}\nşu da: {self.s.url('/belge.pdf')}, ve tekrar {self.s.url('/arsiv.zip')}"

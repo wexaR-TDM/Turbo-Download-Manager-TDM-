@@ -1000,6 +1000,9 @@ class ExtensionTests(unittest.TestCase):
         self.assertTrue(res["normal_get"]["tarayicida_iptal"], res)
         # TurboDM kapalıyken: eklenti onu açtırır (native messaging) ve indirmeyi açılınca aktarır
         self.assertEqual(res["app_closed"], {"acildi": True, "turbodm_e_gitti": True, "tarayicida_iptal": True}, res)
+        # TurboDM dosyaya ulaşamıyor (ör. Cloudflare korumalı site): tarayıcının indirmesi iptal edilip silinmez, sürer
+        self.assertEqual(res["refused"], {"turbodm_e_soruldu": True, "tarayicida_iptal": False,
+                                          "listeden_silindi": False, "tarayicida_surdu": True}, res)
 
     def test_extension_tab_calls_tolerate_closed_tabs(self):
         # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı

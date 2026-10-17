@@ -89,7 +89,10 @@ async function sendToApp(info, page = false) {
   if (page) info = { ...info, cookies: await structuredCookies(info.url) };
   const body = { ...info, cookie: info.cookies ? "" : await cookiesFor(info.url), userAgent: navigator.userAgent };
   const r = await postToApp("/add", body);
-  return r.ok;
+  if (!r.ok) return false;
+  try {
+    return (await r.json()).ok !== false;  // TurboDM dosyaya ulaşamıyorsa reddeder (ör. bot koruması)
+  } catch { return true; }
 }
 
 // ------------------------------------------------------------------ indirme yakalama
@@ -154,7 +157,8 @@ chrome.downloads.onCreated.addListener(async (item) => {
   try { await chrome.downloads.pause(item.id); } catch {}
   try {
     const name = (item.filename || "").split(/[\\/]/).pop();
-    if (await sendToApp({ url, referrer: item.referrer || "", filename: name })) {
+    // check: TurboDM kabul etmeden önce dosyaya ulaşabildiğini denetler; ulaşamazsa indirme tarayıcıda sürer
+    if (await sendToApp({ url, referrer: item.referrer || "", filename: name, mime: item.mime || "", check: true })) {
       await chrome.downloads.cancel(item.id);
       await chrome.downloads.erase({ id: item.id });
       return;
