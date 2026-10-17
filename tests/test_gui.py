@@ -492,6 +492,32 @@ class GuiTests(unittest.TestCase):
         finally:
             self.win.mgr.remove(it.id, False)
 
+    def test_unknown_size_shows_no_fake_total(self):
+        # sunucu boyut bildirmeyince: yüzde yerine kayan çubuk, bağlantı satırında "/ 4194304 TB" gibi uydurma toplam yok
+        it = self.win.mgr.add_http(self.s.url("/arsiv.zip"), os.path.join(TMP, "dl", "boyutsuz.zip"), start=False)
+        try:
+            it.size, it.status, it.done_bytes = 0, "downloading", 150 * 1024 * 1024
+            it.segments = [[0, (1 << 62) - 1, it.done_bytes]]
+            task = G.engine.HttpTask.__new__(G.engine.HttpTask)
+            task.item, task.lock = it, threading.Lock()
+            task.active, task.conn_info = {id(it.segments[0])}, {id(it.segments[0]): "Veri alınıyor (tek bağlantı)"}
+            self.assertEqual(task.connections_snapshot()[0][2], 0)
+            it.task = mock.Mock(connections_snapshot=task.connections_snapshot,
+                                bar_data=lambda: (0, [list(s) for s in it.segments]))
+            d = G.ProgressDialog(self.win, it.id)
+            d.details.setVisible(True)
+            d._animate()
+            self.assertEqual(d.pbar.maximum(), 0)  # kayan çubuk
+            self.assertNotIn("%", d.lbl["done"].text())
+            self.assertNotIn("TB", d.table.item(0, 1).text())
+            it.size = it.done_bytes * 2  # boyut öğrenilince yüzdeye döner
+            d._animate()
+            self.assertEqual(d.pbar.maximum(), 1000)
+            d.close()
+        finally:
+            it.task, it.status = None, "stopped"
+            self.win.mgr.remove(it.id, False)
+
     def test_tray_hint_shown_only_once(self):
         # pencere kapatılınca tepsiye iner; "arka planda çalışıyor" bildirimi yalnızca ilk sefer
         shown = []

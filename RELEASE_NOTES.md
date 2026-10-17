@@ -7,6 +7,9 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.21
+• Fix: when the server doesn't report the file size (e.g. photos downloaded from iCloud as a ZIP), the details showed a meaningless total such as "151 MB / 4194304 TB" and the percentage stayed at 0%. Now only the downloaded amount is shown, and the progress bar runs as a moving bar until the size is known
+
 ## 1.7.20
 • Fix: download pages with a verification code (e.g. metin2.download) now go to TurboDM. On these sites the "Download" button submits a form and the site redirects to the file's real link; the extension wrongly left such downloads in the browser. If the file is the direct response to the form (e.g. subtitle sites), it still downloads in the browser (browser extension 1.7.2)
 

@@ -414,7 +414,9 @@ class HttpTask:
             for i, s in enumerate(self.item.segments):
                 info = self.conn_info.get(id(s))
                 if id(s) in self.active and info:
-                    out.append((i + 1, s[2] - s[0], s[1] - s[0] + 1, info))
+                    # boyut bilinmiyorsa parçanın sonu yer tutucudur (1 << 62); toplam gösterilmez
+                    total = s[1] - s[0] + 1 if self.item.size else 0
+                    out.append((i + 1, s[2] - s[0], total, info))
             return out
 
     def start(self):

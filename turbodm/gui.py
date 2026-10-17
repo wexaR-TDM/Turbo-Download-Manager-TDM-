@@ -939,11 +939,19 @@ class ProgressDialog(QDialog):
         running = it.status in ("downloading", "connecting")
         done, speed = self.smooth.step(it.done_bytes, it.speed, it.size, running)
         pct = 100.0 if it.status == "completed" else min(100.0, (done / it.size * 100) if it.size else 0)
-        self.setWindowTitle(f"{fmt_pct(pct, 0)} {it.filename}")
-        self.lbl["done"].setText(f"{fmt_size(done)}  ({fmt_pct(pct, 2)})")
         self.lbl["speed"].setText(fmt_speed(speed) or "—")
-        self.pbar.setValue(int(pct * 10))
-        self.pbar.setFormat(fmt_pct(pct, 1))
+        if running and not it.size:  # sunucu boyut bildirmedi: yüzde yok, kayan çubuk
+            self.setWindowTitle(f"{fmt_size(done)} {it.filename}")
+            self.lbl["done"].setText(fmt_size(done))
+            if self.pbar.maximum():
+                self.pbar.setRange(0, 0)
+        else:
+            if not self.pbar.maximum():
+                self.pbar.setRange(0, 1000)
+            self.setWindowTitle(f"{fmt_pct(pct, 0)} {it.filename}")
+            self.lbl["done"].setText(f"{fmt_size(done)}  ({fmt_pct(pct, 2)})")
+            self.pbar.setValue(int(pct * 10))
+            self.pbar.setFormat(fmt_pct(pct, 1))
         if not self.is_torrent and self.details.isVisible():
             self._update_details(it)
 

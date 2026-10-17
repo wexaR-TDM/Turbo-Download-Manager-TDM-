@@ -7,6 +7,9 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.21
+• Düzeltme: sunucu dosya boyutunu bildirmediğinde (ör. iCloud'dan ZIP olarak indirilen fotoğraflar) ayrıntılarda "151 MB / 4194304 TB" gibi anlamsız bir toplam görünüyor, yüzde %0'da kalıyordu. Artık yalnızca indirilen miktar gösteriliyor, ilerleme çubuğu boyut belli olana kadar kayan çubuk olarak çalışıyor
+
 ## 1.7.20
 • Düzeltme: doğrulama kodlu indirme sayfaları (ör. metin2.download) artık TurboDM'e geliyor. Bu sitelerde "İndir" düğmesi bir form gönderir, site de dosyanın asıl bağlantısına yönlendirir; eklenti bu tür indirmeleri yanlışlıkla tarayıcıda bırakıyordu. Dosya doğrudan formun yanıtıysa (ör. altyazı siteleri) yine tarayıcıda iner (tarayıcı eklentisi 1.7.2)
 
