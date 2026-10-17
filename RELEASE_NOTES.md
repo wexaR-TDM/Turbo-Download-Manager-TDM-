@@ -7,6 +7,9 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.20
+• Fix: download pages with a verification code (e.g. metin2.download) now go to TurboDM. On these sites the "Download" button submits a form and the site redirects to the file's real link; the extension wrongly left such downloads in the browser. If the file is the direct response to the form (e.g. subtitle sites), it still downloads in the browser (browser extension 1.7.2)
+
 ## 1.7.19
 • Fix: before taking over a browser download, TurboDM checks that it can actually reach the file. On sites with bot protection such as Cloudflare (e.g. metin2.download), when the protection blocks TurboDM the download is no longer cancelled and lost: it continues in the browser and TurboDM shows the reason. The same applies to links that return a login or verification page (browser extension 1.7.1)
 

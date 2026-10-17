@@ -141,8 +141,10 @@ chrome.webRequest.onBeforeRequest.addListener(
   { urls: ["<all_urls>"], types: ["main_frame", "sub_frame"] }
 );
 
+// Dosyanın kendisi formun yanıtı mı? Form gönderildikten sonra başka bir adrese yönlendirildiyse (ör. doğrulama
+// kodlu indirme sayfası → imzalı depolama bağlantısı) son adres düz bir indirmedir: TurboDM indirebilir.
 function wasPosted(item) {
-  return [item.url, item.finalUrl].some((u) => u && postedUrls.has(u));
+  return postedUrls.has(item.finalUrl || item.url);
 }
 
 chrome.downloads.onCreated.addListener(async (item) => {

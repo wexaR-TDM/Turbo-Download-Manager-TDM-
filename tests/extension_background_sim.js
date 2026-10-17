@@ -53,6 +53,20 @@ result.app_closed = { acildi: calls.native.length === 1 && calls.native[0][1] ==
                       turbodm_e_gitti: calls.fetch.some((u) => String(u).includes("/add")),
                       tarayicida_iptal: calls.cancel.includes(3) };
 
+// 5) Form + yönlendirme (metin2.download): doğrulama kodlu form /get/… adresine gider, site imzalı depolama
+//    bağlantısına yönlendirir. Son adres düz bir indirme: TurboDM'e verilmeli (son adresle)
+calls.fetch.length = 0;
+const bodies = [];
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (url, opt) => { if (opt && opt.body) bodies.push(String(opt.body)); return realFetch(url, opt); };
+await fire("beforeRequest", { method: "POST", url: "https://site.example/get/TOKEN/", type: "main_frame", tabId: 1 });
+await fire("created", { id: 5, url: "https://site.example/get/TOKEN/", finalUrl: "https://depo.example/files/TOKEN.zip?X-Amz-Signature=abc",
+                        filename: "Paket.zip", mime: "application/zip" });
+globalThis.fetch = realFetch;
+result.post_redirect = { turbodm_e_gitti: calls.fetch.some((u) => String(u).includes("/add")),
+                         son_adresle: bodies.some((b) => b.includes("depo.example/files/TOKEN.zip")),
+                         tarayicida_iptal: calls.cancel.includes(5) };
+
 // 4) TurboDM dosyaya ulaşamıyor (bot koruması): indirme tarayıcıda sürmeli, iptal edilip silinmemeli
 calls.fetch.length = 0;
 await fire("created", { id: 4, url: "https://korumali-site.example/dosya.zip", finalUrl: "https://korumali-site.example/dosya.zip", filename: "dosya.zip", mime: "application/zip" });
