@@ -440,5 +440,6 @@
  "✖ Eşleşmedi: dosya bozuk ya da farklı bir dosya olabilir.": "✖ Non corrisponde: il file potrebbe essere danneggiato o diverso.",
  "{0} bot koruması (Cloudflare) kullanıyor ve TurboDM'in dosyaya erişmesine izin vermedi. Dosya tarayıcıda iniyor.": "{0} usa una protezione anti-bot (Cloudflare) e non ha consentito a TurboDM di accedere al file. Il file viene scaricato nel browser.",
  "TurboDM bu dosyaya erişemedi ({0}). Dosya tarayıcıda iniyor.": "TurboDM non è riuscito ad accedere a questo file ({0}). Il file viene scaricato nel browser.",
- "{0} TurboDM'e dosya yerine bir web sayfası gönderdi (giriş ya da doğrulama sayfası olabilir). Dosya tarayıcıda iniyor.": "{0} ha inviato a TurboDM una pagina web invece del file (forse una pagina di accesso o di verifica). Il file viene scaricato nel browser."
+ "{0} TurboDM'e dosya yerine bir web sayfası gönderdi (giriş ya da doğrulama sayfası olabilir). Dosya tarayıcıda iniyor.": "{0} ha inviato a TurboDM una pagina web invece del file (forse una pagina di accesso o di verifica). Il file viene scaricato nel browser.",
+ "TurboDM bu dosyayı indiremedi ({0}). İndirme tarayıcıda başlatıldı.": "TurboDM non è riuscito a scaricare questo file ({0}). Il download è stato avviato nel browser."
 }

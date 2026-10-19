@@ -996,16 +996,22 @@ class ExtensionTests(unittest.TestCase):
         res = json.loads(r.stdout[r.stdout.index("{"):])
         self.assertFalse(res["form_post"]["turbodm_e_gitti"], res)   # form indirmesi tarayıcıda kalır
         self.assertFalse(res["form_post"]["duraklatildi"], res)
-        self.assertTrue(res["normal_get"]["turbodm_e_gitti"], res)   # normal indirme yine TurboDM'e gider
-        self.assertTrue(res["normal_get"]["tarayicida_iptal"], res)
+        # normal indirme TurboDM'e gider; TurboDM açıkken tarayıcıdaki indirme duraklatılıp bekletilmez, hemen iptal
+        # edilir ve tarayıcının indirme penceresi kapalıdır (indirme önce tarayıcıda belirip sonra kaybolmaz)
+        self.assertEqual(res["normal_get"], {"turbodm_e_gitti": True, "tarayicida_iptal": True,
+                                             "duraklatilmadi": True, "pencere_kapali": True}, res)
         # TurboDM kapalıyken: eklenti onu açtırır (native messaging) ve indirmeyi açılınca aktarır
         self.assertEqual(res["app_closed"], {"acildi": True, "turbodm_e_gitti": True, "tarayicida_iptal": True}, res)
         # form + yönlendirme (metin2.download): doğrulama formu imzalı depolama bağlantısına yönlendirir; son adres
         # düz bir indirmedir, TurboDM'e son adresle verilir (form indirmesi kuralı yalnızca dosya formun yanıtıysa)
         self.assertEqual(res["post_redirect"], {"turbodm_e_gitti": True, "son_adresle": True, "tarayicida_iptal": True}, res)
-        # TurboDM dosyaya ulaşamıyor (ör. Cloudflare korumalı site): tarayıcının indirmesi iptal edilip silinmez, sürer
-        self.assertEqual(res["refused"], {"turbodm_e_soruldu": True, "tarayicida_iptal": False,
-                                          "listeden_silindi": False, "tarayicida_surdu": True}, res)
+        # TurboDM dosyaya ulaşamıyor (ör. Cloudflare korumalı site): indirme tarayıcıda yeniden başlar, bu kez
+        # yakalanmaz ve tarayıcının indirme penceresinde görünür (kaybolmaz)
+        self.assertEqual(res["refused"], {"turbodm_e_soruldu": True, "tarayicida_yeniden": True,
+                                          "yeniden_yakalanmadi": True, "pencere_acildi": True}, res)
+        # TurboDM kabul etti ama indirme hiç veri alamadan düştü (ör. 403): tarayıcıya geri verilir
+        self.assertEqual(res["handoff_failed"], {"beklerken_baslatilmadi": True, "tarayicida_yeniden": True,
+                                                 "turbodm_e_bildirildi": True, "yeniden_yakalanmadi": True}, res)
 
     def test_extension_tab_calls_tolerate_closed_tabs(self):
         # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı

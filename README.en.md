@@ -46,6 +46,7 @@ Multi-connection downloads · Video grabber · Torrent · Browser integration</p
 - Downloads started in the browser go to TurboDM automatically; right-click → **"Download with TurboDM"**.
 - Lists the video/audio streams loaded by the page in the extension window. The extension contains no site-specific code and works the same on every site.
 - If TurboDM is closed, the extension opens it by itself and hands over the download.
+- Downloads don't flash in the browser: while TurboDM is running, the browser's download panel doesn't open and the download goes straight to TurboDM. If TurboDM can't get a file (bot protection, single-use link, etc.), the download isn't lost: it is started in the browser.
 
 ### 🗂 Organization and interface
 - Categories (you can add your own), **multiple queues** each with its own scheduler; **bulk selection and bulk actions** with checkboxes.

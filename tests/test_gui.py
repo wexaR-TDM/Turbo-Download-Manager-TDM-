@@ -368,6 +368,55 @@ class GuiTests(unittest.TestCase):
         self.assertIn("notice", queued)  # tepside nedeni gösterilir; indirme eklenmez
         self.assertTrue(G.server.requests.empty())
 
+    def test_handoff_failed_download_goes_back_to_browser(self):
+        # Eklenti tarayıcıdaki indirmeyi iptal edip TurboDM'e verdi; indirme TurboDM'de hiç veri alamadan erişim
+        # hatasıyla düşerse (ör. 403) eklenti bunu /handoff ile öğrenir ve indirmeyi tarayıcıda yeniden başlatır.
+        win = self.win
+        h = win._handoff_handler
+        self.assertEqual(h({"id": "yok"}), {"state": "gone"})
+        # pencere açık (kullanıcı henüz karar vermedi): bekle
+        win._handle_external({"url": self.s.url("/arsiv.zip"), "handoff": "devir-1"})
+        pump(0.3)
+        d = next(w for w in APP.topLevelWidgets() if isinstance(w, G.FileInfoDialog) and getattr(w, "handoff", "") == "devir-1")
+        self.assertEqual(h({"id": "devir-1"}), {"state": "pending"})
+        d.path_edit.setText(os.path.join(TMP, "dl"))
+        d._go(False)  # "Sonra İndir": kayıt oluşur, henüz veri yok
+        iid = win._handoffs["devir-1"]["iid"]
+        it = win.mgr.items[iid]
+        self.assertEqual(h({"id": "devir-1"})["state"], "pending")
+        # sunucu reddetti, hiç veri inmedi: hata uyarısı hemen açılmaz (eklenti geri verecek), durum "failed"
+        it.status, it.error, it.done_bytes = "error", "HTTP 403 Forbidden", 0
+        win._error_dialog(it)
+        self.assertNotIn(iid, win._error_boxes)
+        self.assertEqual(h({"id": "devir-1"}), {"state": "failed", "error": "HTTP 403 Forbidden"})
+        # eklenti tarayıcıda başlattı: TurboDM'deki başarısız kayıt kaldırılır, kullanıcıya nedeni söylenir
+        while not G.server.requests.empty():
+            G.server.requests.get()
+        self.assertEqual(h({"id": "devir-1", "returned": True}), {"state": "returned"})
+        win._handle_external(G.server.requests.get(timeout=5))
+        self.assertNotIn(iid, win.mgr.items)
+        self.assertIn("tarayıcıda", win.statusBar().currentMessage())
+        self.assertEqual(h({"id": "devir-1"}), {"state": "gone"})
+        # veri inmeye başladıysa (ya da bağlantı/disk hatası gibi başka bir hata) geri verilmez
+        win._handle_external({"url": self.s.url("/arsiv.zip"), "handoff": "devir-2"})
+        pump(0.3)
+        d = next(w for w in APP.topLevelWidgets() if isinstance(w, G.FileInfoDialog) and getattr(w, "handoff", "") == "devir-2")
+        d.path_edit.setText(os.path.join(TMP, "dl"))
+        d._go(False)
+        it = win.mgr.items[win._handoffs["devir-2"]["iid"]]
+        it.status, it.error, it.done_bytes = "error", "HTTP 403 Forbidden", 4096
+        self.assertEqual(h({"id": "devir-2"}), {"state": "ok"})
+        it.status, it.error, it.done_bytes = "error", "Bağlantı koptu", 0
+        self.assertEqual(h({"id": "devir-2"}), {"state": "pending"})
+        win.mgr.remove(it.id, False)
+        # kullanıcı pencereyi kapatıp vazgeçti: eklenti izlemeyi bırakır, tarayıcıda başlatmaz
+        win._handle_external({"url": self.s.url("/arsiv.zip"), "handoff": "devir-3"})
+        pump(0.3)
+        d = next(w for w in APP.topLevelWidgets() if isinstance(w, G.FileInfoDialog) and getattr(w, "handoff", "") == "devir-3")
+        d.reject()
+        pump(0.1)
+        self.assertEqual(h({"id": "devir-3"}), {"state": "gone"})
+
     def test_batch_add_probes_names_and_adds_to_queue(self):
         self.s.files["/belge.pdf"] = b"x" * 1000
         text = f"İndirilecekler:\n{self.s.url('/arsiv.zip')}\nşu da: {self.s.url('/belge.pdf')}, ve tekrar {self.s.url('/arsiv.zip')}"

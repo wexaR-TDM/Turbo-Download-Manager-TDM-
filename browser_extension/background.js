@@ -8,11 +8,22 @@ let grabber = true;
 chrome.storage.local.get({ enabled: true, grabber: true }, (v) => {
   enabled = v.enabled;
   grabber = v.grabber;
+  appUp();  // tarayıcının indirme penceresi buna göre açılır/kapanır (syncUi)
 });
 chrome.storage.onChanged.addListener((c) => {
   if (c.enabled) enabled = c.enabled.newValue;
   if (c.grabber) grabber = c.grabber.newValue;
+  if (c.enabled) syncUi();
 });
+
+// Tarayıcının kendi indirme penceresi: indirmeler TurboDM'e gidiyorsa kapalıdır (indirme önce tarayıcıda
+// belirip sonra kaybolmasın). Yakalama kapalıysa ya da TurboDM'e ulaşılamıyorsa açıktır.
+let appSeen = false;
+let uiForced = 0;  // tarayıcıda (yeniden) başlatılan indirme görünsün diye pencere kısa süre açık tutulur
+function syncUi() {
+  const on = !(enabled && appSeen) || Date.now() < uiForced;
+  try { Promise.resolve(chrome.downloads.setUiOptions({ enabled: on })).catch(() => {}); } catch {}
+}
 
 const M = (key) => chrome.i18n.getMessage(key) || key;  // _locales/<dil>/messages.json
 
@@ -55,7 +66,13 @@ async function getFormats(url) {
 const NATIVE_HOST = "com.turbodm.app";
 
 async function appUp() {
-  try { return (await fetch(API + "/ping")).ok; } catch { return false; }
+  let up = false;
+  try { up = (await fetch(API + "/ping")).ok; } catch {}
+  if (up !== appSeen) {
+    appSeen = up;
+    syncUi();
+  }
+  return up;
 }
 
 async function wakeApp() {
@@ -147,22 +164,101 @@ function wasPosted(item) {
   return postedUrls.has(item.finalUrl || item.url);
 }
 
+// TurboDM'in alamadığı indirmeyi tarayıcıda (yeniden) başlatır. Bu indirme yeniden yakalanmaz.
+const browserOwned = new Set();
+async function backToBrowser(url) {
+  browserOwned.add(url);
+  uiForced = Date.now() + 4000;  // tarayıcının indirme penceresi bu indirmeyi göstersin
+  syncUi();
+  try {
+    await chrome.downloads.download({ url });
+  } catch {
+    browserOwned.delete(url);
+  }
+  setTimeout(syncUi, 4500);
+}
+
+// Devralınan indirmeler: TurboDM'de hiç başlayamazsa (ör. sunucu bağlantıyı yalnızca bir kez verir, 403)
+// tarayıcıya geri verilir. Pencere açıkken kullanıcı düşünebilir: en fazla 15 dk izlenir.
+const HANDOFF_MAX = 15 * 60 * 1000;
+const handoffs = new Map();  // kimlik -> {url, t}
+let watching = false;
+const saveHandoffs = () => chrome.storage.session.set({ handoffs: [...handoffs] }).catch(() => {});
+
+async function watchHandoffs() {
+  if (watching) return;
+  watching = true;
+  try {
+    while (handoffs.size) {
+      await new Promise((res) => setTimeout(res, 1500));
+      for (const [id, h] of [...handoffs]) {
+        if (Date.now() - h.t > HANDOFF_MAX) { handoffs.delete(id); continue; }
+        let st;
+        try {
+          const r = await fetch(API + "/handoff", { method: "POST",
+            headers: { "Content-Type": "application/json", "X-TurboDM": "1" }, body: JSON.stringify({ id }) });
+          st = (await r.json()).state;
+        } catch { continue; }  // TurboDM yanıt vermedi: sonra yine sorulur
+        if (st === "pending") continue;
+        handoffs.delete(id);
+        if (st === "failed") {
+          await backToBrowser(h.url);
+          fetch(API + "/handoff", { method: "POST", headers: { "Content-Type": "application/json", "X-TurboDM": "1" },
+                                    body: JSON.stringify({ id, returned: true }) }).catch(() => {});
+        }
+      }
+      await saveHandoffs();  // eklenti API çağrısı: izleme sürerken servis çalışanı kapanmaz
+    }
+  } finally {
+    watching = false;
+  }
+}
+// servis çalışanı yeniden başladıysa yarım kalan izleme sürdürülür
+chrome.storage.session.get({ handoffs: [] }).then((v) => {
+  for (const [id, h] of v.handoffs || []) handoffs.set(id, h);
+  if (handoffs.size) watchHandoffs();
+}).catch(() => {});
+
 chrome.downloads.onCreated.addListener(async (item) => {
   if (!enabled) return;
   const url = item.finalUrl || item.url;
   if (!/^(https?|ftp):/i.test(url)) return;
+  if (browserOwned.delete(url) || browserOwned.delete(item.url)) return;  // tarayıcıya geri verilen indirme
   if (isTorrent(item)) {
     torrentDownloads.add(item.id);
     return;
   }
   if (wasPosted(item)) return;  // form verisiyle istenen dosya: tarayıcı indirsin
+  const name = (item.filename || "").split(/[\\/]/).pop();
+  const id = crypto.randomUUID();
+  // check: TurboDM kabul etmeden önce dosyaya ulaşabildiğini denetler; handoff: indirme TurboDM'de başlayamazsa
+  // tarayıcıya geri verilebilsin diye izlenir
+  const info = { url, referrer: item.referrer || "", filename: name, mime: item.mime || "", check: true, handoff: id };
+  if (await appUp()) {
+    // TurboDM açık: tarayıcıdaki indirme hemen iptal edilir (bir an bile tarayıcıda durmasın);
+    // TurboDM alamazsa aynı adres tarayıcıda yeniden başlatılır
+    try { await chrome.downloads.cancel(item.id); } catch {}
+    try { await chrome.downloads.erase({ id: item.id }); } catch {}
+    let ok = false;
+    try { ok = await sendToApp(info); } catch {}
+    if (ok) {
+      handoffs.set(id, { url, t: Date.now() });
+      saveHandoffs();
+      watchHandoffs();
+    } else {
+      await backToBrowser(url);
+    }
+    return;
+  }
+  // TurboDM kapalı: indirme duraklatılır, TurboDM açtırılır (native messaging); açılamazsa tarayıcıda sürer
   try { await chrome.downloads.pause(item.id); } catch {}
   try {
-    const name = (item.filename || "").split(/[\\/]/).pop();
-    // check: TurboDM kabul etmeden önce dosyaya ulaşabildiğini denetler; ulaşamazsa indirme tarayıcıda sürer
-    if (await sendToApp({ url, referrer: item.referrer || "", filename: name, mime: item.mime || "", check: true })) {
+    if (await sendToApp(info)) {
       await chrome.downloads.cancel(item.id);
       await chrome.downloads.erase({ id: item.id });
+      handoffs.set(id, { url, t: Date.now() });
+      saveHandoffs();
+      watchHandoffs();
       return;
     }
   } catch {}

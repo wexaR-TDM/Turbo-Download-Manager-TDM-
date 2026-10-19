@@ -46,6 +46,7 @@
 - Tarayıcıda başlatılan indirmeler otomatik olarak TurboDM'e gider; sağ tık → **"TurboDM ile indir"**.
 - Sayfanın yüklediği video/ses akışlarını eklenti penceresinde listeler. Eklenti siteye özel kod içermez, her sitede aynı çalışır.
 - TurboDM kapalıysa eklenti onu kendisi açar ve indirmeyi aktarır.
+- İndirme tarayıcıda belirip kaybolmaz: TurboDM açıkken tarayıcının indirme paneli açılmaz, indirme doğrudan TurboDM'e geçer. TurboDM bir dosyayı alamazsa (bot koruması, tek kullanımlık bağlantı vb.) indirme kaybolmaz, tarayıcıda başlatılır.
 
 ### 🗂 Düzen ve arayüz
 - Kategoriler (kendi kategorilerinizi de ekleyebilirsiniz), **birden çok kuyruk** ve her kuyruğa ayrı zamanlayıcı; onay kutularıyla **toplu seçim ve toplu işlem**.

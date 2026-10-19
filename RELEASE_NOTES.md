@@ -7,6 +7,11 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.22
+• Downloads no longer appear in the browser first and get paused: while TurboDM is running, the browser's download panel doesn't open, the browser download is cancelled right away and the file goes straight to TurboDM
+• Fix: if a download taken over by TurboDM can't start at all (e.g. the server allows the link only once and returns "HTTP 403"), the download is no longer lost: it is restarted in the browser and TurboDM shows the reason. Files TurboDM can't get at all (bot protection, etc.) also show up in the browser's download panel
+(browser extension 1.7.3)
+
 ## 1.7.21
 • Fix: when the server doesn't report the file size (e.g. photos downloaded from iCloud as a ZIP), the details showed a meaningless total such as "151 MB / 4194304 TB" and the percentage stayed at 0%. Now only the downloaded amount is shown, and the progress bar runs as a moving bar until the size is known
 

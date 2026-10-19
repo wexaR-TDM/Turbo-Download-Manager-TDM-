@@ -7,6 +7,11 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.22
+• İndirme artık önce tarayıcıda belirip duraklatılmıyor: TurboDM açıkken tarayıcının indirme paneli açılmaz, tarayıcıdaki indirme beklemeden iptal edilir ve dosya doğrudan TurboDM'e geçer
+• Düzeltme: TurboDM'in devraldığı indirme hiç başlayamazsa (ör. sunucu bağlantıyı yalnızca bir kez verip "HTTP 403" döndürürse) indirme kaybolmuyor; tarayıcıda yeniden başlatılıyor ve TurboDM nedenini bildiriyor. TurboDM'in hiç alamadığı dosyalar (bot koruması vb.) da tarayıcının indirme panelinde görünüyor
+(tarayıcı eklentisi 1.7.3)
+
 ## 1.7.21
 • Düzeltme: sunucu dosya boyutunu bildirmediğinde (ör. iCloud'dan ZIP olarak indirilen fotoğraflar) ayrıntılarda "151 MB / 4194304 TB" gibi anlamsız bir toplam görünüyor, yüzde %0'da kalıyordu. Artık yalnızca indirilen miktar gösteriliyor, ilerleme çubuğu boyut belli olana kadar kayan çubuk olarak çalışıyor
 

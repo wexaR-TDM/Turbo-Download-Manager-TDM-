@@ -583,6 +583,9 @@ class FileInfoDialog(QDialog):
         path = os.path.join(folder, getattr(self, "name", "") or "download")
         fmt = self.fmt.currentData() if self.form.isRowVisible(self.fmt) else ""
         it = self._create(path, start)
+        h = getattr(self.win, "_handoffs", {}).get(getattr(self, "handoff", None))
+        if h is not None:
+            h["iid"] = it.id
         if fmt:
             it.extra["convert"] = fmt  # indirme bitince ffmpeg ile dönüştürülür
         if start:
@@ -2124,8 +2127,11 @@ class MainWindow(QMainWindow):
 
         try:
             self._fmt_cache = {}
+            self._handoffs = {}  # tarayıcıdan devralınan indirmeler: kimlik -> {"iid", "closed", "t"}
+            self._error_boxes = {}  # açık hata uyarıları: iid -> QMessageBox
             server.handlers["/formats"] = self._formats_handler
             server.handlers["/check"] = self._check_handler
+            server.handlers["/handoff"] = self._handoff_handler
             self.srv = server.start(mgr.settings["server_port"])
         except OSError as e:
             self.srv = None
@@ -2599,9 +2605,19 @@ class MainWindow(QMainWindow):
             power.keep_awake(False)
             ctypes.windll.powrprof.SetSuspendState(False, False, False)
 
-    def _error_dialog(self, it):
+    def _error_dialog(self, it, waited=False):
         """İndirme hatası: IDM gibi önde bir uyarı, tek tıkla yeniden deneme."""
+        if not waited and self._handoff_failed(it) and any(
+                h["iid"] == it.id for h in getattr(self, "_handoffs", {}).values()):
+            # tarayıcıdan devralınmıştı: eklenti indirmeyi birkaç saniye içinde tarayıcıya geri verecek;
+            # vermezse (eklenti kapalı/eski) uyarı yine gösterilir
+            iid = it.id
+            QTimer.singleShot(8000, lambda: self._error_dialog(self.mgr.items[iid], True)
+                              if self._handoff_failed(self.mgr.items.get(iid)) else None)
+            return
         box = QMessageBox(self)
+        self._error_boxes[it.id] = box
+        box.destroyed.connect(lambda _=None, i=it.id: self._error_boxes.pop(i, None))
         box.setWindowTitle(_t("İndirme hatası"))
         box.setIcon(QMessageBox.Warning)
         box.setText(_t("<b>{0}</b><br><br>{1}").format(it.filename, it.error or _t('Bilinmeyen hata')))
@@ -2630,7 +2646,7 @@ class MainWindow(QMainWindow):
         if ok and url.strip():
             self.add_source(url.strip())
 
-    def add_source(self, src, headers=None, suggested=None, cookies=None):
+    def add_source(self, src, headers=None, suggested=None, cookies=None, handoff=None):
         if is_magnet(src) or (src.lower().endswith(".torrent") and os.path.isfile(src)):
             if not self.mgr.torrents:
                 QMessageBox.warning(self, APP_NAME, _t("Torrent desteği yok: {0}").format(self.mgr.torrent_error))
@@ -2638,6 +2654,9 @@ class MainWindow(QMainWindow):
             d = TorrentAddDialog(self, src)
         elif re.match(r"^(https?|ftp)://", src, re.I):
             d = FileInfoDialog(self, src, headers, suggested, cookies)
+            if handoff:
+                d.handoff = handoff
+                d.finished.connect(lambda _r, t=handoff: self._handoffs.get(t, {}).update(closed=True))
         else:
             QMessageBox.warning(self, APP_NAME, _t("Geçersiz adres. http(s)://, ftp:// ya da magnet: bağlantısı girin."))
             return
@@ -2653,6 +2672,9 @@ class MainWindow(QMainWindow):
         if req.get("notice"):  # tarayıcının indirmesi devralınamadı: neden bildirilir, indirme tarayıcıda sürer
             self.tray.showMessage(APP_NAME, req["notice"], self.icon, 8000)
             self.statusBar().showMessage(req["notice"], 15000)
+            return
+        if req.get("handoff_returned"):
+            self._handoff_returned(req["handoff_returned"])
             return
         tf = req.get("torrent_file")
         if isinstance(tf, str) and tf.lower().endswith(".torrent") and os.path.isfile(tf):
@@ -2671,7 +2693,15 @@ class MainWindow(QMainWindow):
             # Kalite tarayıcıdaki menüden seçildi (IDM gibi): kayıt yeri penceresi, kalite seçili gelir
             self._video_from_menu(url, req["choice"], req.get("title") or "", headers, cookies)
             return
-        self.add_source(url, headers, name, cookies)
+        token = req.get("handoff")
+        if isinstance(token, str) and 0 < len(token) <= 64:
+            # eklenti tarayıcıdaki indirmeyi iptal etti: indirme hiç başlayamazsa tarayıcıya geri verebilsin diye izlenir
+            self._handoffs[token] = {"iid": None, "closed": False, "t": time.time()}
+            for k in [k for k, h in self._handoffs.items() if time.time() - h["t"] > 3 * 3600]:
+                del self._handoffs[k]
+        else:
+            token = None
+        self.add_source(url, headers, name, cookies, handoff=token)
 
     @staticmethod
     def _request_headers(req):
@@ -2705,6 +2735,54 @@ class MainWindow(QMainWindow):
         if info.get("content_type") == "text/html" and mime and "html" not in mime:
             return _t("{0} TurboDM'e dosya yerine bir web sayfası gönderdi (giriş ya da doğrulama sayfası olabilir). Dosya tarayıcıda iniyor.").format(host)
         return None
+
+    # Devralınan indirme hiç veri alamadan bu hatalardan biriyle düşerse tarayıcıya geri verilir: ön denetim geçse de
+    # bazı sunucular bağlantıyı yalnızca bir kez ya da tek bağlantıyla verir (ör. süreli/imzalı depolama bağlantıları).
+    HANDOFF_FAIL = re.compile(r"\bHTTP (401|403|404|410)\b")
+
+    def _handoff_failed(self, it):
+        return (it is not None and it.status == "error" and not it.done_bytes
+                and bool(self.HANDOFF_FAIL.search(it.error or "")))
+
+    def _handoff_handler(self, data):
+        """Köprü iş parçacığında (/handoff): eklenti, iptal ettiği tarayıcı indirmesinin TurboDM'de başlayıp
+        başlamadığını sorar. pending: pencere açık ya da indirme henüz veri almadı · ok: indiriliyor/bitti ·
+        failed: hiç başlayamadı (eklenti tarayıcıda yeniden başlatır) · gone: kullanıcı vazgeçti ya da silindi.
+        returned: eklenti indirmeyi tarayıcıda başlattı; TurboDM'deki başarısız kayıt kaldırılır."""
+        token = data.get("id")
+        h = self._handoffs.get(token) if isinstance(token, str) else None
+        if h is None:
+            return {"state": "gone"}
+        if data.get("returned"):
+            server.requests.put({"handoff_returned": token})
+            return {"state": "returned"}
+        if h["iid"] is None:
+            return {"state": "gone" if h["closed"] else "pending"}
+        it = self.mgr.items.get(h["iid"])
+        if it is None:
+            return {"state": "gone"}
+        if it.done_bytes or it.status == "completed":
+            return {"state": "ok"}
+        if self._handoff_failed(it):
+            return {"state": "failed", "error": it.error}
+        return {"state": "pending"}
+
+    def _handoff_returned(self, token):
+        h = self._handoffs.pop(token, None)
+        it = self.mgr.items.get(h["iid"]) if h else None
+        if not self._handoff_failed(it):
+            return
+        msg = _t("TurboDM bu dosyayı indiremedi ({0}). İndirme tarayıcıda başlatıldı.").format(it.error)
+        for d in (self._error_boxes.pop(it.id, None), self.progress_dialogs.get(it.id)):
+            try:
+                if d is not None:
+                    d.close()
+            except RuntimeError:  # pencere zaten kapanmış
+                pass
+        self.mgr.remove(it.id, False)  # hiç veri inmedi: yalnızca TurboDM'in yarım dosya kayıtları silinir
+        self.refresh(force=True)
+        self.tray.showMessage(APP_NAME, msg, self.icon, 8000)
+        self.statusBar().showMessage(msg, 15000)
 
     # ---------------------------------------------------------- tarayıcıdaki kalite menüsü
     FORMAT_CACHE_SECONDS = 20 * 60
