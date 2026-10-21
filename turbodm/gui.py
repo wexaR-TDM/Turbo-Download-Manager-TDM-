@@ -406,6 +406,9 @@ class FileInfoDialog(QDialog):
         self._fallback = fallback_info
         self.size_lbl.setText(_t("Video inceleniyor…") if ytdlp.is_youtube(self.url)
                               else _t("Sayfadaki video aranıyor…"))
+        # inceleme bitene kadar indirme başlatılamaz: yoksa video yerine sitenin web sayfası iner
+        for b in self.go_buttons:
+            b.setEnabled(False)
 
         def work():
             try:
@@ -419,9 +422,13 @@ class FileInfoDialog(QDialog):
             fb = getattr(self, "_fallback", None)
             if fb:  # video yok: normal sayfa/dosya olarak indir
                 self._apply_probe(fb)
-            else:
+                for b in self.go_buttons:
+                    b.setEnabled(True)
+            else:  # video sitesi/akışı ama video alınamadı: sayfanın kendisi indirilmesin, düğmeler kapalı kalır
                 self.size_lbl.setText(_t("Video bilgisi alınamadı: {0}").format(err or _t('indirilebilir biçim yok')))
             return
+        for b in self.go_buttons:
+            b.setEnabled(True)
         self.video_info = info
         self._update_format_row()
         self.quality.blockSignals(True)

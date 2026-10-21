@@ -17,6 +17,7 @@ Chrome / Edge / Brave / Opera:
   5. Pin TurboDM from the puzzle icon in the toolbar.
 
 Notes:
-  * While TurboDM is closed, downloads continue normally in the browser.
+  * If TurboDM is closed, the extension opens it by itself and hands over the download.
+  * If TurboDM can't get a file (bot protection, single-use link, etc.), the download is started in the browser.
   * Click the extension icon to turn download capturing and the video grabber on or off.
   * When you uninstall TurboDM, also remove the extension with "Remove" on the browser's extensions page.

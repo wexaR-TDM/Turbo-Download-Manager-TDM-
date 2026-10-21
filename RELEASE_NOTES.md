@@ -7,6 +7,10 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.23
+• Fix: when adding a video site link (e.g. a video address pasted by hand), pressing "Start Download" while the video was still being checked, or when no video was found, downloaded the site's web page instead of the video. The buttons now stay disabled until the video is found; if it can't be found, the reason is shown
+• Updated the browser extension setup guide
+
 ## 1.7.22
 • Downloads no longer appear in the browser first and get paused: while TurboDM is running, the browser's download panel doesn't open, the browser download is cancelled right away and the file goes straight to TurboDM
 • Fix: if a download taken over by TurboDM can't start at all (e.g. the server allows the link only once and returns "HTTP 403"), the download is no longer lost: it is restarted in the browser and TurboDM shows the reason. Files TurboDM can't get at all (bot protection, etc.) also show up in the browser's download panel

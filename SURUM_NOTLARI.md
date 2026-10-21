@@ -7,6 +7,10 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.23
+• Düzeltme: video sitesi bağlantısı (ör. elle yapıştırılan bir video adresi) eklenirken video incelenirken ya da video bulunamadığında "İndirmeyi Başlat"a basılırsa video yerine sitenin web sayfası iniyordu. Artık düğmeler video bulunana kadar kapalı; bulunamazsa nedeni yazıyor
+• Tarayıcı eklentisi kurulum rehberi güncellendi
+
 ## 1.7.22
 • İndirme artık önce tarayıcıda belirip duraklatılmıyor: TurboDM açıkken tarayıcının indirme paneli açılmaz, tarayıcıdaki indirme beklemeden iptal edilir ve dosya doğrudan TurboDM'e geçer
 • Düzeltme: TurboDM'in devraldığı indirme hiç başlayamazsa (ör. sunucu bağlantıyı yalnızca bir kez verip "HTTP 403" döndürürse) indirme kaybolmuyor; tarayıcıda yeniden başlatılıyor ve TurboDM nedenini bildiriyor. TurboDM'in hiç alamadığı dosyalar (bot koruması vb.) da tarayıcının indirme panelinde görünüyor

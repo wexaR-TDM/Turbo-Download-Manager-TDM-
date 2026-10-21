@@ -17,6 +17,7 @@ Chrome / Edge / Brave / Opera:
   5. Araç çubuğundaki yapboz simgesinden TurboDM'i sabitleyin.
 
 Notlar:
-  * TurboDM kapalıyken indirmeler tarayıcıda normal şekilde devam eder.
+  * TurboDM kapalıyken eklenti onu kendisi açar ve indirmeyi aktarır.
+  * TurboDM bir dosyayı alamazsa (bot koruması, tek kullanımlık bağlantı vb.) indirme tarayıcıda başlatılır.
   * Eklenti simgesine tıklayarak indirme yakalamayı ve video yakalayıcıyı açıp kapatabilirsiniz.
   * TurboDM'i kaldırdığınızda eklentiyi de tarayıcının eklentiler sayfasından "Kaldır" ile silin.

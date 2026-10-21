@@ -368,6 +368,38 @@ class GuiTests(unittest.TestCase):
         self.assertIn("notice", queued)  # tepside nedeni gösterilir; indirme eklenmez
         self.assertTrue(G.server.requests.empty())
 
+    def test_video_link_cannot_start_until_video_found(self):
+        # YouTube bağlantısı elle eklendi: video incelenirken ya da inceleme başarısız olursa "Başlat" kapalı kalmalı;
+        # yoksa video yerine sitenin web sayfası iner (forumdaki "indirdiği şey video değildi" bildirimi)
+        gate = threading.Event()
+        outcome = {}
+
+        def fake_inspect(url, ffmpeg=None, cookies=None, headers=None):
+            gate.wait(10)
+            if "err" in outcome:
+                raise RuntimeError(outcome["err"])
+            return {"title": "Örnek", "duration": 10, "extractor": "Youtube", "choices": [
+                {"label": "1080p · mp4", "format": "137+140", "ext": "mp4", "size": 1000, "height": 1080, "streams": None}]}
+        with mock.patch.object(G.ytdlp, "inspect", fake_inspect), mock.patch.object(G.ytdlp, "available", lambda: True):
+            for err in ("Sign in to confirm you're not a bot", None):
+                gate.clear()
+                outcome.clear()
+                if err:
+                    outcome["err"] = err
+                d = G.FileInfoDialog(self.win, "https://www.youtube.com/watch?v=abcdefghijk")
+                d.show()
+                pump(0.2)
+                self.assertFalse(any(b.isEnabled() for b in d.go_buttons))  # incelenirken başlatılamaz
+                gate.set()
+                pump(1.0, lambda: d.video_info or "alınamadı" in d.size_lbl.text())
+                if err:
+                    self.assertIn("alınamadı", d.size_lbl.text())
+                    self.assertFalse(any(b.isEnabled() for b in d.go_buttons))  # sayfa indirilmesin
+                else:
+                    self.assertTrue(d.video_info)
+                    self.assertTrue(all(b.isEnabled() for b in d.go_buttons))
+                d.close()
+
     def test_handoff_failed_download_goes_back_to_browser(self):
         # Eklenti tarayıcıdaki indirmeyi iptal edip TurboDM'e verdi; indirme TurboDM'de hiç veri alamadan erişim
         # hatasıyla düşerse (ör. 403) eklenti bunu /handoff ile öğrenir ve indirmeyi tarayıcıda yeniden başlatır.
