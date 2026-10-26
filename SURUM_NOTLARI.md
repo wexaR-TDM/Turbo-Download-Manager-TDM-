@@ -7,6 +7,11 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.24
+• Tarayıcı eklentisi artık Microsoft Edge Eklentileri mağazasında: TurboDM kurulunca Edge eklentiyi kendisi önerir, güncellemeler mağazadan gelir (https://microsoftedge.microsoft.com/addons/detail/dpeakjonbfgodlhkbpeekljfgnpbbjai)
+• Eklenti iki kez kuruluysa (mağazadan ve elle) indirme artık TurboDM'e iki kez gelmiyor; TurboDM'in alamayıp tarayıcıya bıraktığı indirmeyi iki kopya birbirinden kapıp sürekli yeniden başlatmıyor (tarayıcı eklentisi 1.7.4)
+• Eklenti kurulum rehberi mağaza bağlantısıyla güncellendi
+
 ## 1.7.23
 • Düzeltme: video sitesi bağlantısı (ör. elle yapıştırılan bir video adresi) eklenirken video incelenirken ya da video bulunamadığında "İndirmeyi Başlat"a basılırsa video yerine sitenin web sayfası iniyordu. Artık düğmeler video bulunana kadar kapalı; bulunamazsa nedeni yazıyor
 • Tarayıcı eklentisi kurulum rehberi güncellendi

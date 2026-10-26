@@ -1012,6 +1012,42 @@ class ExtensionTests(unittest.TestCase):
         # TurboDM kabul etti ama indirme hiç veri alamadan düştü (ör. 403): tarayıcıya geri verilir
         self.assertEqual(res["handoff_failed"], {"beklerken_baslatilmadi": True, "tarayicida_yeniden": True,
                                                  "turbodm_e_bildirildi": True, "yeniden_yakalanmadi": True}, res)
+        # eklenti iki kez kurulu (mağaza + elle): indirme TurboDM'e bir kez gider; TurboDM alamazsa tarayıcıda bir kez
+        # yeniden başlar (kopyalar birbirinin indirmesini kapıp döngüye girmez)
+        self.assertEqual(res["two_copies"], {"turbodm_e_bir_kez": True, "tarayicida_iptal": True}, res)
+        self.assertEqual(res["two_copies_refused"], {"tarayicida_bir_kez": True, "turbodm_e_bir_kez": True}, res)
+
+    def test_bridge_download_ownership(self):
+        # turbodm/server.py: tarayıcı indirmesini yalnızca bir eklenti kopyası üstlenir; tarayıcıya bırakılan
+        # indirmeye hiçbir kopya dokunmaz; /claim bilmeyen eski eklentinin ikinci isteği ikinci pencere açmaz
+        from turbodm import server as S
+        S._owners.clear()
+        u = "https://example.com/sahiplik.zip"
+        self.assertEqual(S.claim(u), {"handle": True})
+        self.assertEqual(S.claim(u), {"handle": False, "reason": "app"})
+        S.leave_to_browser(u)
+        self.assertEqual(S.claim(u), {"handle": False, "reason": "browser"})
+        srv = S.start(0)
+        self.addCleanup(srv.shutdown)
+        port = srv.server_address[1]
+
+        def add(body):
+            req = urllib.request.Request(f"http://127.0.0.1:{port}/add", method="POST", data=json.dumps(body).encode(),
+                                         headers={"Content-Type": "application/json", "X-TurboDM": "1"})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return json.loads(r.read())
+        while not S.requests.empty():
+            S.requests.get()
+        self.assertEqual(add({"url": u, "check": True, "claimed": True}), {"ok": False, "reason": "browser"})
+        v = "https://example.com/eski-eklenti.zip"  # /claim bilmeyen eski eklenti, iki kopya
+        self.assertEqual(add({"url": v, "check": True}), {"ok": True})
+        self.assertEqual(add({"url": v, "check": True}), {"ok": True, "duplicate": True})
+        self.assertEqual(S.requests.qsize(), 1)  # tek pencere
+        # süre dolunca aynı adres yeniden indirilebilir
+        with S._owners_lock:
+            S._owners[v] = (S._owners[v][0] - S.CLAIM_WINDOW - 1, "app")
+        self.assertEqual(S.claim(v), {"handle": True})
+        S._owners.clear()
 
     def test_extension_tab_calls_tolerate_closed_tabs(self):
         # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı

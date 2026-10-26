@@ -2761,6 +2761,7 @@ class MainWindow(QMainWindow):
         if h is None:
             return {"state": "gone"}
         if data.get("returned"):
+            server.leave_to_browser(data.get("url"))  # yeniden başlatılan indirmeyi hiçbir eklenti kopyası yakalamasın
             server.requests.put({"handoff_returned": token})
             return {"state": "returned"}
         if h["iid"] is None:

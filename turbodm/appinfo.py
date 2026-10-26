@@ -3,7 +3,7 @@ import os
 import sys
 
 APP_NAME = "TurboDM"
-VERSION = "1.7.23"   # build.ps1 kurulum dosyasının sürümünü buradan alır
+VERSION = "1.7.24"   # build.ps1 kurulum dosyasının sürümünü buradan alır
 
 # Güncellemelerin yayımlandığı GitHub deposu ("kullanıcı/depo"). Boşsa "Güncellemeleri denetle"
 # sunucunun ayarlanmadığını söyler. Program şu adresi okur:
@@ -16,8 +16,8 @@ LEGACY_REPO = "wexaR-TDM/Turbo-Download-Manager-TDM-"
 
 # Edge Add-ons mağazasındaki eklentinin kimliği (CRX ID). Mağaza onaylayınca doldurulur: kurulum programı
 # Edge'e eklentiyi önerir. Onaydan önce boş kalmalı (yayımlanmamış kimlik Edge'de hata verir).
-# Mağaza kimliği: dpeakjonbfgodlhkbpeekljfgnpbbjai (2026-10-14 itibarıyla incelemede)
-EDGE_EXTENSION_ID = ""
+# 2026-10-26'da yayımlandı: https://microsoftedge.microsoft.com/addons/detail/dpeakjonbfgodlhkbpeekljfgnpbbjai
+EDGE_EXTENSION_ID = "dpeakjonbfgodlhkbpeekljfgnpbbjai"
 APP_USER_MODEL_ID = "TurboDM.DownloadManager"
 MUTEX_NAME = "TurboDM_SingleInstance_Mutex"
 

@@ -7,6 +7,11 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.24
+• The browser extension is now in the Microsoft Edge Add-ons store: after TurboDM is installed, Edge offers the extension by itself and updates come from the store (https://microsoftedge.microsoft.com/addons/detail/dpeakjonbfgodlhkbpeekljfgnpbbjai)
+• If the extension is installed twice (from the store and manually), downloads no longer reach TurboDM twice, and a download that TurboDM can't get and leaves to the browser is no longer grabbed and restarted over and over by the two copies (browser extension 1.7.4)
+• Updated the extension setup guide with the store link
+
 ## 1.7.23
 • Fix: when adding a video site link (e.g. a video address pasted by hand), pressing "Start Download" while the video was still being checked, or when no video was found, downloaded the site's web page instead of the video. The buttons now stay disabled until the video is found; if it can't be found, the reason is shown
 • Updated the browser extension setup guide

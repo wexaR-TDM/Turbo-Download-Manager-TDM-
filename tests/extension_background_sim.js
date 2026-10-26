@@ -32,18 +32,32 @@ globalThis.chrome = {
                              return id; },
   },
 };
+// Sahte TurboDM köprüsü (turbodm/server.py'deki sahiplik kurallarıyla aynı): ilk soran kopya üstlenir,
+// TurboDM'in alamadığı ya da geri verdiği adres "browser" olur ve hiçbir kopya onu yakalamaz.
+const owners = {};  // adres -> "app" | "browser"
+const reply = (obj) => ({ ok: true, status: 200, json: async () => obj });
 globalThis.fetch = async (url, opt) => {
   if (!appOnline) throw new TypeError("Failed to fetch");
   calls.fetch.push(url);
   const body = opt && opt.body ? String(opt.body) : "";
   if (body) calls.bodies.push(body);
-  if (String(url).endsWith("/handoff")) {
-    const b = JSON.parse(body);
-    return { ok: true, status: 200, json: async () => ({ state: b.returned ? "returned" : (handoffState[b.id] || "ok") }) };
+  const b = body ? JSON.parse(body) : {};
+  if (String(url).endsWith("/claim")) {
+    if (owners[b.url]) return reply({ handle: false, reason: owners[b.url] });
+    owners[b.url] = "app";
+    return reply({ handle: true });
   }
-  // TurboDM dosyaya ulaşamıyor (ör. Cloudflare): köprü {ok:false} döner
-  const refused = body.includes("korumali-site");
-  return { ok: true, status: 200, json: async () => (refused ? { ok: false, reason: "bot koruması" } : { ok: true }) };
+  if (String(url).endsWith("/handoff")) {
+    if (b.returned) owners[b.url] = "browser";
+    return reply({ state: b.returned ? "returned" : (handoffState[b.id] || "ok") });
+  }
+  if (String(url).endsWith("/add") && b.check) {
+    if (owners[b.url] === "browser") return reply({ ok: false, reason: "browser" });
+    if (!b.claimed) { if (owners[b.url] === "app") return reply({ ok: true, duplicate: true }); owners[b.url] = "app"; }
+    // TurboDM dosyaya ulaşamıyor (ör. Cloudflare): köprü {ok:false} döner, adres tarayıcıya bırakılır
+    if (b.url.includes("korumali")) { owners[b.url] = "browser"; return reply({ ok: false, reason: "bot koruması" }); }
+  }
+  return reply({ ok: true });
 };
 new Function(src)();
 
@@ -112,6 +126,23 @@ result.handoff_failed = { beklerken_baslatilmadi: beklerken === 0,
                           tarayicida_yeniden: calls.download.includes("https://depo.example/tek-kullanimlik.bin"),
                           turbodm_e_bildirildi: calls.bodies.some((b) => b.includes('"returned":true')),
                           yeniden_yakalanmadi: added() === 1 };
+
+// 7) Eklenti iki kez kurulu (mağaza + elle): ikinci kopya aynı tarayıcıya yüklenir, iki kopya da her indirmeyi görür
+new Function(src)();
+await sleep(50);
+calls.fetch.length = 0;
+calls.cancel.length = 0;
+await fire("created", { id: 7, url: "https://example.com/iki-kopya.zip", finalUrl: "https://example.com/iki-kopya.zip", filename: "a.zip", mime: "" });
+await sleep(100);
+result.two_copies = { turbodm_e_bir_kez: added() === 1, tarayicida_iptal: calls.cancel.includes(7) };
+
+// 8) İki kopya + TurboDM dosyayı alamıyor: indirme tarayıcıda bir kez yeniden başlar ve orada kalır
+//    (kopyalar birbirinin yeniden başlattığı indirmeyi kapıp döngüye girmez)
+calls.fetch.length = 0;
+calls.download.length = 0;
+await fire("created", { id: 8, url: "https://korumali-iki.example/dosya.zip", finalUrl: "https://korumali-iki.example/dosya.zip", filename: "dosya.zip", mime: "" });
+await sleep(400);
+result.two_copies_refused = { tarayicida_bir_kez: calls.download.length === 1, turbodm_e_bir_kez: added() === 1 };
 
 console.log(JSON.stringify(result, null, 1));
 Deno.exit(0);

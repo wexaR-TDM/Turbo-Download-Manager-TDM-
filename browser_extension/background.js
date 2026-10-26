@@ -65,14 +65,35 @@ async function getFormats(url) {
 // açılmasını bekler. Kayıt yoksa (eski sürüm, başka bilgisayar) sessizce vazgeçilir: indirme tarayıcıda kalır.
 const NATIVE_HOST = "com.turbodm.app";
 
-async function appUp() {
-  let up = false;
-  try { up = (await fetch(API + "/ping")).ok; } catch {}
+function setAppSeen(up) {
   if (up !== appSeen) {
     appSeen = up;
     syncUi();
   }
+}
+
+async function appUp() {
+  let up = false;
+  try { up = (await fetch(API + "/ping")).ok; } catch {}
+  setAppSeen(up);
   return up;
+}
+
+// Tarayıcıdaki indirmeye dokunmadan önce TurboDM'e sorulur: eklenti iki kez kuruluysa (mağaza + elle) yalnızca
+// biri üstlenir; TurboDM'in tarayıcıya bıraktığı indirmeye hiçbir kopya dokunmaz.
+// null: TurboDM'e ulaşılamadı · {handle:true}: bu kopya üstlenir · {handle:false}: dokunma
+async function claimFor(url) {
+  let r;
+  try {
+    r = await fetch(API + "/claim", { method: "POST",
+      headers: { "Content-Type": "application/json", "X-TurboDM": "1" }, body: JSON.stringify({ url }) });
+  } catch {
+    setAppSeen(false);
+    return null;
+  }
+  setAppSeen(true);
+  if (!r.ok) return { handle: true, legacy: true };  // /claim'i bilmeyen eski TurboDM
+  try { return await r.json(); } catch { return { handle: true, legacy: true }; }
 }
 
 async function wakeApp() {
@@ -202,9 +223,12 @@ async function watchHandoffs() {
         if (st === "pending") continue;
         handoffs.delete(id);
         if (st === "failed") {
+          // önce TurboDM'e bildirilir (adres tarayıcıya bırakılmış sayılır), sonra tarayıcıda başlatılır
+          try {
+            await fetch(API + "/handoff", { method: "POST", headers: { "Content-Type": "application/json", "X-TurboDM": "1" },
+                                            body: JSON.stringify({ id, returned: true, url: h.url }) });
+          } catch {}
           await backToBrowser(h.url);
-          fetch(API + "/handoff", { method: "POST", headers: { "Content-Type": "application/json", "X-TurboDM": "1" },
-                                    body: JSON.stringify({ id, returned: true }) }).catch(() => {});
         }
       }
       await saveHandoffs();  // eklenti API çağrısı: izleme sürerken servis çalışanı kapanmaz
@@ -234,7 +258,10 @@ chrome.downloads.onCreated.addListener(async (item) => {
   // check: TurboDM kabul etmeden önce dosyaya ulaşabildiğini denetler; handoff: indirme TurboDM'de başlayamazsa
   // tarayıcıya geri verilebilsin diye izlenir
   const info = { url, referrer: item.referrer || "", filename: name, mime: item.mime || "", check: true, handoff: id };
-  if (await appUp()) {
+  const claim = await claimFor(url);
+  if (claim && !claim.handle) return;  // öteki eklenti kopyası üstlendi ya da indirme tarayıcıya bırakılmış
+  if (claim && !claim.legacy) info.claimed = true;
+  if (claim) {
     // TurboDM açık: tarayıcıdaki indirme hemen iptal edilir (bir an bile tarayıcıda durmasın);
     // TurboDM alamazsa aynı adres tarayıcıda yeniden başlatılır
     try { await chrome.downloads.cancel(item.id); } catch {}

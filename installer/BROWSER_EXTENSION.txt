@@ -4,10 +4,15 @@ TurboDM BROWSER EXTENSION — SETUP
 The extension sends downloads started in the browser to TurboDM, catches videos on pages
 (the "⬇ Download this video" button) and adds "Download with TurboDM" to the right-click menu.
 
-Chrome / Edge / Brave / Opera:
+Microsoft Edge (recommended):
+  The extension is in the Microsoft Edge Add-ons store. After TurboDM is installed, Edge shows a
+  notice that a new extension was added; turn it on there. If you missed it, install it from the store:
+       https://microsoftedge.microsoft.com/addons/detail/dpeakjonbfgodlhkbpeekljfgnpbbjai
+  Updates come from the store automatically.
+
+Chrome / Brave / Opera (not in their stores yet; manual install):
   1. Type in the address bar:
        Chrome : chrome://extensions
-       Edge   : edge://extensions
        Brave  : brave://extensions
   2. Turn on "Developer mode" (top right or bottom left corner).
   3. Click "Load unpacked".
@@ -20,4 +25,6 @@ Notes:
   * If TurboDM is closed, the extension opens it by itself and hands over the download.
   * If TurboDM can't get a file (bot protection, single-use link, etc.), the download is started in the browser.
   * Click the extension icon to turn download capturing and the video grabber on or off.
+  * Install the extension only once: if you added it manually in Edge before, remove the manual copy
+    ("Remove" on edge://extensions) after installing it from the store.
   * When you uninstall TurboDM, also remove the extension with "Remove" on the browser's extensions page.
