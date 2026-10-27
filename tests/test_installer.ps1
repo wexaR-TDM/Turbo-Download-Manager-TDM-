@@ -101,3 +101,4 @@ if ($realExe) {
     Start-Process $realExe -ArgumentList "--minimized", "--resume"
     "   (gerçek TurboDM görev çubuğunda yeniden açıldı)"
 }
+"   KURULUM TESTİ SONA ERDİ"

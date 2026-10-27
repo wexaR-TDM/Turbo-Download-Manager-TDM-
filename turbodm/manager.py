@@ -12,7 +12,7 @@ from datetime import datetime
 from . import torrent as tmod
 from .engine import ChainLimiter, HttpTask, SpeedLimiter
 from .hls import HlsTask, find_ffmpeg
-from . import convert, engine, power, ytdlp
+from . import convert, engine, power, secure, ytdlp
 from . import i18n
 from .i18n import _t
 
@@ -104,6 +104,28 @@ def set_custom_categories(cats):
     CATCH_EXTS.update(e for v in CATEGORIES.values() for e in v[2])
 
 
+SECRET_HEADERS = ("cookie", "authorization")
+
+
+def _seal_headers(headers):
+    """Diske yazılacak başlıklar: oturum çerezi ve kimlik bilgisi açık metin kalmaz (DPAPI; yalnızca aynı
+    Windows kullanıcısı çözebilir). Çerez yine de saklanır: program yeniden açılınca oturum isteyen indirme
+    kaldığı yerden sürebilsin."""
+    return {k: secure.protect(v) if k.lower() in SECRET_HEADERS and isinstance(v, str) and v else v
+            for k, v in (headers or {}).items()}
+
+
+def _unseal_headers(headers):
+    out = {}
+    for k, v in (headers or {}).items():
+        if k.lower() in SECRET_HEADERS and isinstance(v, str) and v.startswith((secure.PREFIX, "b64:")):
+            v = secure.unprotect(v)
+            if not v:  # başka kullanıcı/bilgisayarda çözülemedi: başlık hiç gönderilmez
+                continue
+        out[k] = v
+    return out
+
+
 def _retryable(error):
     """Otomatik yeniden denemeye değer mi? Bağlantı kopması/zaman aşımı/sunucu hatası evet;
     "bulunamadı/yasak" (HTTP 4xx, 408 ve 429 hariç), disk dolu ya da izin hatası hayır."""
@@ -135,7 +157,7 @@ class DownloadItem:
         self.size = kw.get("size")
         self.resumable = kw.get("resumable", True)
         self.segments = kw.get("segments") or []
-        self.headers = kw.get("headers") or {}
+        self.headers = _unseal_headers(kw.get("headers") or {})
         self.description = kw.get("description", "")
         self.added = kw.get("added") or time.time()
         self.last_try = kw.get("last_try")
@@ -163,12 +185,15 @@ class DownloadItem:
 
     def to_dict(self):
         d = {k: getattr(self, k) for k in self.FIELDS}
+        d["headers"] = _seal_headers(self.headers)
         d["extra"] = copy.deepcopy(self.extra)
         for k in ("cookies", "streams", "streams_t"):  # oturum çerezleri / geçici akış adresleri diske yazılmaz
             d["extra"].pop(k, None)
         d["name"] = self.name
         if self.status in ("seeding", "converting"):  # yarıda kalan dönüştürme: asıl dosya duruyor
             d["status"] = "completed"
+            if self.status == "converting":
+                d["in_queue"] = False
         elif self.status in ("downloading", "connecting"):
             d["status"] = "queued" if self.in_queue else "stopped"
         return d
@@ -751,6 +776,7 @@ class Manager:
         if t.state == "downloading" and it.status == "connecting":
             it.status = "downloading"
         elif t.state == "completed":
+            queued = it.in_queue
             it.status, it.task, it.speed, it.in_queue = "completed", None, 0, False
             it.extra["finished_at"] = time.time()
             it.extra.pop("retry_n", None)
@@ -758,6 +784,7 @@ class Manager:
                 it.description = (it.description + " " + t.note).strip()
             it.done_bytes = it.size or it.done_bytes
             if it.extra.get("convert") in convert.FORMATS and it.extra.get("convert"):
+                it.in_queue = queued  # kuyruk, dönüştürme bitmeden "bitti" sayılmaz
                 self._start_convert(it)  # "tamamlandı" bildirimi dönüştürme bitince
                 return
             self.events.append(("completed", it))
@@ -804,7 +831,7 @@ class Manager:
             return
         it._conv = None
         dst, err = res
-        it.status = "completed"
+        it.status, it.in_queue = "completed", False
         it.extra.pop("convert", None)
         if dst:
             it.path = dst
@@ -870,7 +897,11 @@ class Manager:
             for it in waiting[:max(0, free)]:
                 it.status = "stopped"
                 self.start(it.id)
-            if not waiting and not active:
+            # Kuyruk ancak hiçbir iş sürmüyorken biter: dönüştürülen ya da otomatik yeniden denemeyi bekleyen
+            # indirme varken "bitti" denirse "Kuyruk bitince kapat/uyut" bilgisayarı yarıda kapatır
+            busy = [i for i in mine if i.status == "converting" or getattr(i, "pending_start", False)
+                    or (i.status == "error" and getattr(i, "retry_at", None))]
+            if not waiting and not active and not busy:
                 self._queue_running[qid] = False
                 # Ana kuyruk bitince "Kuyruk bitince" eylemi (kapat/uyut) çalışır; diğerleri yalnızca bildirir
                 self.events.append(("queue_done", None) if qid == "main"

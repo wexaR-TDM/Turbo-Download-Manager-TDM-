@@ -441,5 +441,8 @@
  "{0} bot koruması (Cloudflare) kullanıyor ve TurboDM'in dosyaya erişmesine izin vermedi. Dosya tarayıcıda iniyor.": "يستخدم {0} حماية من الروبوتات (Cloudflare) ولم يسمح لـ TurboDM بالوصول إلى الملف. يتم تنزيل الملف في المتصفح.",
  "TurboDM bu dosyaya erişemedi ({0}). Dosya tarayıcıda iniyor.": "تعذّر على TurboDM الوصول إلى هذا الملف ({0}). يتم تنزيل الملف في المتصفح.",
  "{0} TurboDM'e dosya yerine bir web sayfası gönderdi (giriş ya da doğrulama sayfası olabilir). Dosya tarayıcıda iniyor.": "أرسل {0} إلى TurboDM صفحة ويب بدلًا من الملف (ربما صفحة تسجيل دخول أو تحقق). يتم تنزيل الملف في المتصفح.",
- "TurboDM bu dosyayı indiremedi ({0}). İndirme tarayıcıda başlatıldı.": "تعذّر على TurboDM تنزيل هذا الملف ({0}). بدأ التنزيل في المتصفح."
+ "TurboDM bu dosyayı indiremedi ({0}). İndirme tarayıcıda başlatıldı.": "تعذّر على TurboDM تنزيل هذا الملف ({0}). بدأ التنزيل في المتصفح.",
+ "Dosya sunucuda değişmiş": "تغيّر الملف على الخادم",
+ "Sunucu parçanın yerini (Content-Range) bildirmedi": "لم يُبلغ الخادم عن موضع الجزء (Content-Range)",
+ "Sunucu istenenden farklı bir parça gönderdi": "أرسل الخادم جزءًا غير الجزء المطلوب"
 }

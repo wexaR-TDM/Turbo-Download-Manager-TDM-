@@ -24,7 +24,12 @@ if ($Installer) {
     if (-not (Test-Path $stage)) { Write-Warning "Önce build.ps1 çalıştırın"; $failed++ }
     else {
         $out = powershell -NoProfile -ExecutionPolicy Bypass -File "$PSScriptRoot\test_installer.ps1" -Project $root -Stage $stage
+        $code = $LASTEXITCODE
         $out
+        # Betik yarıda kalırsa (hata, erken çıkış) aranan satırlar hiç yazılmaz: çıkış kodu ve son satır da denetlenir
+        if ($code -or -not ($out -match "KURULUM TESTİ SONA ERDİ")) {
+            Write-Host "Kurulum testi yarıda kaldı (çıkış kodu $code)" -ForegroundColor Red; $failed++
+        }
         $bad = $out | Where-Object { $_ -match "kaldı mı: True|hepsi tamam: False|exit=[1-9]|korunmuş mu: False|başlatma kaydı: True|dosya sayısı: 0$|klasöründe: False|ayarlarda: False|BROWSER_EXTENSION.txt\): False" }
         if ($bad) { Write-Host "Kurulum testinde sorun:" -ForegroundColor Red; $bad; $failed++ }
         Remove-Item -LiteralPath (Join-Path $root "build\test") -Recurse -Force -ErrorAction SilentlyContinue

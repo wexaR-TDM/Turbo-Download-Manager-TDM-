@@ -15,7 +15,7 @@ import urllib.error
 import urllib.parse
 
 from .appinfo import bundled_ffmpeg
-from .engine import CHUNK, MAX_RETRIES, _err_text, _open
+from .engine import CHUNK, MAX_RETRIES, _err_text, _open, scoped_headers
 from .i18n import _t
 
 try:
@@ -39,9 +39,10 @@ def find_ffmpeg(custom=None):
     return bundled_ffmpeg() or shutil.which("ffmpeg")
 
 
-def fetch(url, headers=None, rng=None):
+def fetch(url, headers=None, rng=None, origin=None):
+    """origin: başlıkların (çerezin) alındığı adres; başka siteye çerez gönderilmez."""
     start, end = rng if rng else (None, None)
-    with _open(url, headers, start, end) as r:
+    with _open(url, scoped_headers(headers, origin, url), start, end) as r:
         return r.read(), r.geturl()
 
 
@@ -235,7 +236,7 @@ class HlsTask:
             self.inits, self.counts = {}, {}
             jobs = []
             for name, url in tracks:
-                data, final = fetch(url, it.headers)
+                data, final = fetch(url, it.headers, origin=it.url)
                 text = data.decode("utf-8", "replace")
                 if "#EXT-X-STREAM-INF" in text:  # ana liste verilmiş → en iyi kaliteyi seç
                     v = parse_master(text, final)[0]
@@ -243,7 +244,7 @@ class HlsTask:
                     if v.get("audio_url") and not ex.get("audio_url"):
                         ex["audio_url"] = v["audio_url"]
                         tracks.append(("a", v["audio_url"]))
-                    data, final = fetch(v["url"], it.headers)
+                    data, final = fetch(v["url"], it.headers, origin=it.url)
                     text = data.decode("utf-8", "replace")
                 m = parse_media(text, final)
                 if not m["endlist"]:
@@ -305,7 +306,8 @@ class HlsTask:
                 self.conn_info[key] = _t("{0} parçası {1}").format(_t('Ses') if name == 'a' else _t('Görüntü'), idx + 1)
                 try:
                     buf = bytearray()
-                    with _open(s["url"], self.item.headers, *(s["range"] or (None, None))) as r:
+                    with _open(s["url"], scoped_headers(self.item.headers, self.item.url, s["url"]),
+                               *(s["range"] or (None, None))) as r:
                         while True:
                             chunk = r.read(CHUNK)
                             if not chunk:
@@ -347,7 +349,7 @@ class HlsTask:
         with self.lock:
             if uri in self.keys:
                 return self.keys[uri]
-        data, _ = fetch(uri, self.item.headers)
+        data, _ = fetch(uri, self.item.headers, origin=self.item.url)
         with self.lock:
             self.keys[uri] = data
         return data
@@ -381,7 +383,7 @@ class HlsTask:
             with open(out, "wb") as f:
                 init = self.inits.get(name)
                 if init:
-                    f.write(fetch(init["url"], it.headers, init["range"])[0])
+                    f.write(fetch(init["url"], it.headers, init["range"], origin=it.url)[0])
                 for i in range(count):
                     with open(os.path.join(self.parts_dir, f"{name}{i:06d}"), "rb") as src:
                         shutil.copyfileobj(src, f, 1 << 20)

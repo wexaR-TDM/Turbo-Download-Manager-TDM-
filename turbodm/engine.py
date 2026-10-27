@@ -126,6 +126,55 @@ class NetConfig:
 NET = NetConfig()
 _openers = {}
 
+# İkinci düzey alan adları (ornek.com.tr, ornek.co.uk): site kısmı son üç etiketten oluşur
+_SLD = {"co", "com", "net", "org", "gov", "edu", "ac", "gen", "web", "bel", "k12", "av", "biz", "info",
+        "tv", "or", "ne", "go", "mil", "nom", "pol", "tsk", "bbs"}
+
+
+def _site(host):
+    """Alan adının site kısmı (yaklaşık "kayıtlı alan adı"): cdn.ornek.com.tr → ornek.com.tr. IP olduğu gibi kalır."""
+    host = (host or "").lower().rstrip(".")
+    if not host or ":" in host or re.fullmatch(r"[\d.]+", host):
+        return host
+    parts = host.split(".")
+    if len(parts) >= 3 and len(parts[-1]) == 2 and parts[-2] in _SLD:
+        return ".".join(parts[-3:])
+    return ".".join(parts[-2:])
+
+
+def scoped_headers(headers, origin, url):
+    """`origin` adresi için alınmış başlıklar `url`e gönderilecekse: tarayıcı gibi çerez yalnızca aynı siteye
+    (https'ten http'ye inilmeden), Authorization yalnızca aynı sunucuya gider. Böylece bir sitenin oturum
+    çerezi, indirmenin yönlendirildiği başka bir sunucuya (CDN, dosya barındırma) sızmaz."""
+    if not headers or not origin or origin == url:
+        return headers
+    a, b = urllib.parse.urlsplit(origin), urllib.parse.urlsplit(url)
+    drop = set()
+    try:
+        same_server = (a.scheme, a.hostname, a.port) == (b.scheme, b.hostname, b.port)
+    except ValueError:
+        same_server = False
+    if not same_server:
+        drop.add("authorization")
+    if _site(a.hostname) != _site(b.hostname) or (a.scheme == "https" and b.scheme != "https"):
+        drop.add("cookie")
+    if not drop:
+        return headers
+    return {k: v for k, v in headers.items() if k.lower() not in drop}
+
+
+class _SafeRedirect(urllib.request.HTTPRedirectHandler):
+    """Python'un yönlendirme işleyicisi Cookie/Authorization başlıklarını yeni sunucuya da taşır; bu sürüm
+    başka siteye geçerken onları düşürür (tarayıcı davranışı)."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        new = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new is not None:
+            kept = scoped_headers(dict(new.headers), req.full_url, new.full_url)
+            for k in [k for k in new.headers if k not in kept]:
+                new.remove_header(k)
+        return new
+
 
 def _opener():
     key = (NET.proxy_mode, NET.proxy_url)
@@ -137,7 +186,7 @@ def _opener():
             proxy = urllib.request.ProxyHandler({"http": NET.proxy_url, "https": NET.proxy_url})
         else:
             proxy = urllib.request.ProxyHandler()  # Windows'un vekil sunucu ayarı (eski davranış)
-        op = urllib.request.build_opener(proxy, urllib.request.HTTPSHandler(context=SSL_CONTEXT))
+        op = urllib.request.build_opener(proxy, urllib.request.HTTPSHandler(context=SSL_CONTEXT), _SafeRedirect())
         _openers.clear()
         _openers[key] = op
     return op
@@ -319,7 +368,24 @@ def probe(url, headers=None, timeout=30):
         if ext and ctype not in ("text/plain", "application/octet-stream"):
             name += ext
     return {"final_url": final, "size": size, "resumable": resumable,
-            "filename": name, "content_type": ctype}
+            "filename": name, "content_type": ctype,
+            "etag": resp.headers.get("ETag"), "last_modified": resp.headers.get("Last-Modified")}
+
+
+def validator(info):
+    """Dosyanın sunucudaki kimliği (If-Range için): güçlü ETag, yoksa Last-Modified. Zayıf ETag (W/)
+    If-Range'de kullanılamaz."""
+    etag = (info.get("etag") or "").strip()
+    if etag and not etag.startswith("W/"):
+        return etag
+    return (info.get("last_modified") or "").strip() or None
+
+
+class FileChanged(IOError):
+    """Sunucudaki dosya, indirmenin başladığı dosya değil (If-Range tutmadı ya da toplam boyut farklı)."""
+
+
+_CONTENT_RANGE = re.compile(r"\s*bytes\s+(\d+)-(\d+)/(\d+|\*)\s*", re.I)
 
 
 def is_bot_challenge(e):
@@ -389,6 +455,8 @@ class HttpTask:
         self.retired = 0           # sunucu sınırı yüzünden kapanan bağlantı sayısı
         self.last_retire = 0.0
         self._user_stop = False    # kullanıcı durdurdu (otomatik adres yenileme yapılmaz)
+        self._changed = False      # bir bağlantı sunucudaki dosyanın değiştiğini gördü (FileChanged)
+        self._restarted = False    # değişen dosya için baştan başlandı (bir kez)
         self._run_thread = None
 
     # ---------------------------------------------------------------- dış API
@@ -438,19 +506,33 @@ class HttpTask:
         return not self.alive
 
     # ---------------------------------------------------------------- iç işleyiş
+    def _headers(self, url=None):
+        """İstek başlıkları: çerezler indirmenin eklendiği adres içindir; yönlendirilen başka bir siteye gitmez."""
+        it = self.item
+        extra = getattr(it, "extra", None)
+        origin = extra.get("origin_url") if isinstance(extra, dict) else None
+        return scoped_headers(it.headers, origin or it.url, url or it.url)
+
     def _run(self):
         it = self.item
         try:
             extra = getattr(it, "extra", None)
             if it.size is None or not it.segments:
-                info = probe(it.url, it.headers)
+                info = probe(it.url, self._headers())
                 if info["final_url"] != it.url and isinstance(extra, dict):
                     # Yönlendirilen (çoğu zaman süreli, imzalı) adres: süresi dolarsa asıl adresten yenilenir
                     extra.setdefault("origin_url", it.url)
                 it.url = info["final_url"]
-                if it.size is not None and info["size"] not in (None, it.size):
+                new_v = validator(info)
+                old_v = extra.get("validator") if isinstance(extra, dict) else None
+                if it.size is not None and info["size"] not in (None, it.size) or old_v and new_v and old_v != new_v:
                     # Dosya sunucuda değişmiş → baştan başla
                     it.segments = []
+                if isinstance(extra, dict):
+                    if new_v:
+                        extra["validator"] = new_v
+                    else:
+                        extra.pop("validator", None)
                 it.size = info["size"]
                 it.resumable = info["resumable"]
             if self.stop_event.is_set():
@@ -501,6 +583,24 @@ class HttpTask:
                         self._failed, self.error = False, None
                         self.stop_event.clear()
                         continue
+                if self._changed and not self._restarted and not self._user_stop:
+                    # Sunucudaki dosya indirme sürerken (ya da duraklatılmışken) değişmiş: eski parçalar yeni
+                    # dosyayla birleşip bozuk bir dosya "tamamlandı" sayılmasın diye bir kez daha sorgulanır
+                    self._restarted = True
+                    info = probe(origin or it.url, self._headers(origin or it.url))
+                    same = info["size"] == it.size and validator(info) == (extra or {}).get("validator")
+                    self._failed, self.error, self._changed = False, None, False
+                    self.stop_event.clear()
+                    if same and isinstance(extra, dict) and not extra.get("no_if_range"):
+                        # Dosya aynı; sunucu If-Range'i yanlış yanıtlıyor → onsuz devam
+                        extra["no_if_range"] = True
+                        continue
+                    with self.lock:
+                        it.segments = []
+                    it.size = None
+                    if origin:
+                        it.url = origin
+                    return self._run()  # baştan: yeniden sorgu, yeni parça dosyası
                 break
 
             # "error"/"stopped" yalnızca TÜM bağlantılar kapandıktan sonra yayımlanır: aksi hâlde yeni bir görev
@@ -651,10 +751,16 @@ class HttpTask:
             req_end = min(end, start + self.max_request - 1) if self.max_request else end
             try:
                 self.conn_info[key] = _t("Bağlanıyor…")
-                resp = open_url(self.item.url, self.item.headers, start, req_end)
+                headers, if_range = self._headers(), self._if_range()
+                if if_range:
+                    headers = dict(headers or {}, **{"If-Range": if_range})
+                resp = open_url(self.item.url, headers, start, req_end)
                 if resp.status != 206:
                     resp.close()
+                    if if_range and resp.status == 200:  # If-Range tutmadı: sunucu artık başka bir dosya veriyor
+                        raise FileChanged(_t("Dosya sunucuda değişmiş"))
                     raise IOError(_t("Sunucu parça (Range) isteğini reddetti"))
+                req_end = self._check_range(resp, start, req_end)
                 self.conn_info[key] = _t("Veri alınıyor")
                 with self.lock:
                     self.receiving += 1
@@ -689,6 +795,10 @@ class HttpTask:
             except Exception as e:  # noqa: BLE001
                 if self.stop_event.is_set():
                     return
+                if isinstance(e, FileChanged):
+                    self._changed = True
+                    self._fail(e)
+                    return
                 if _fatal(e):
                     self._fail(e)
                     return
@@ -704,6 +814,30 @@ class HttpTask:
                 self.conn_info[key] = _t("Yeniden deneniyor ({0}/{1}): {2}").format(retries, MAX_RETRIES, _err_text(e))
                 self.stop_event.wait(_retry_delay(e, retries))
 
+    def _if_range(self):
+        extra = getattr(self.item, "extra", None)
+        if not isinstance(extra, dict) or extra.get("no_if_range") or is_ftp(self.item.url):
+            return None
+        return extra.get("validator")
+
+    def _check_range(self, resp, start, req_end):
+        """206 yanıtının gerçekten istenen baytları taşıdığını doğrular (Content-Range); son baytı döndürür.
+        Yanlış konumdan gelen veri dosyaya yazılırsa indirme bozuk hâlde "tamamlandı" sayılır."""
+        if isinstance(resp, _FtpResponse):
+            return req_end
+        m = _CONTENT_RANGE.fullmatch(resp.headers.get("Content-Range") or "")
+        if not m:
+            resp.close()
+            raise IOError(_t("Sunucu parçanın yerini (Content-Range) bildirmedi"))
+        first, last, total = int(m.group(1)), int(m.group(2)), m.group(3)
+        if total != "*" and self.item.size and int(total) != self.item.size:
+            resp.close()
+            raise FileChanged(_t("Dosya sunucuda değişmiş"))
+        if first != start or last < first:
+            resp.close()
+            raise IOError(_t("Sunucu istenenden farklı bir parça gönderdi"))
+        return min(req_end, last)
+
     def _single_stream(self):
         """Range desteklemeyen / boyutu bilinmeyen sunucular: tek bağlantı, devam yok."""
         it = self.item
@@ -715,7 +849,7 @@ class HttpTask:
             self.conn_info[id(seg)] = _t("Veri alınıyor (tek bağlantı)")
             self.state = "downloading"
             try:
-                with open_url(it.url, it.headers) as resp, open(self.part_path, "wb") as f:
+                with open_url(it.url, self._headers()) as resp, open(self.part_path, "wb") as f:
                     # Beklenen boyut: Content-Length ya da ön sorgudan. Bağlantı erken kapanırsa read() hata
                     # vermeden b"" döndürür; yarım dosyanın "tamamlandı" sayılmaması için sonda karşılaştırılır.
                     cl = getattr(resp, "headers", None) and resp.headers.get("Content-Length")
@@ -749,10 +883,22 @@ class HttpTask:
         self.state = "stopped"
 
     def _finalize(self):
-        final = self.item.path
-        if os.path.exists(final):
-            os.remove(final)
-        os.replace(self.part_path, final)
+        # Hedef ad indirme başlarken boştu (unique_path). Sonradan aynı adla bir dosya oluştuysa o dosya
+        # silinmez; indirilen dosya "ad (1).uzantı" gibi boş bir adla kaydedilir. os.rename var olan dosyanın
+        # üzerine yazmaz (Windows), böylece denetimle taşıma arasında oluşan dosya da korunur.
+        part, final = self.part_path, self.item.path
+        base, ext = os.path.splitext(final)
+        n = 0
+        while True:
+            if n == 0 or not os.path.exists(final + ".tdm"):  # başka bir indirmenin ayırdığı ad atlanır
+                try:
+                    os.rename(part, final)
+                    break
+                except FileExistsError:
+                    pass
+            n += 1
+            final = f"{base} ({n}){ext}"
+        self.item.path = final
         with self.lock:
             size = self.item.size or 0
             self.item.segments = [[0, size - 1, size]] if size else []

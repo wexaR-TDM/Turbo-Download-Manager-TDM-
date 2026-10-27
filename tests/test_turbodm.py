@@ -51,6 +51,10 @@ class FakeServer:
         self.cd = {}               # yol -> Content-Disposition
         self.lie_length = {}       # yol -> (ilan edilen boyut) sonra erken kapat
         self.max_conns = 0         # >0: aynı anda bundan fazla indirme bağlantısını 503 ile reddet (gofile gibi)
+        self.etag = {}             # yol -> ETag (If-Range tutmazsa 200 ile tüm dosya)
+        self.bad_range = 0         # kaç parça yanıtı yanlış konumdan (bir bayt kaymış) gönderilsin
+        self.no_content_range = 0  # kaç parça yanıtı Content-Range olmadan gönderilsin
+        self.log = []              # (Host, yol, başlıklar)
         self.open_conns = 0
         self.requests = []
         outer = self
@@ -64,6 +68,7 @@ class FakeServer:
 
             def do_GET(self):
                 outer.requests.append((self.path, self.headers.get("Range")))
+                outer.log.append((self.headers.get("Host"), self.path, dict(self.headers)))
                 path = self.path.split("?")[0]
                 if self.path in outer.forbidden:
                     return self._send(403, b"")
@@ -93,6 +98,8 @@ class FakeServer:
                     self.close_connection = True
                     return
                 rng = self.headers.get("Range") if outer.range else None
+                if rng and self.headers.get("If-Range") and self.headers["If-Range"] != outer.etag.get(path):
+                    rng = None  # dosya değişti: RFC 7233 gereği parça yerine tüm dosya (200)
                 a, b = 0, len(data) - 1
                 if rng:
                     m = re.match(r"bytes=(\d+)-(\d*)", rng)
@@ -119,14 +126,22 @@ class FakeServer:
                         finally:
                             with conn_lock:
                                 outer.open_conns -= 1
+                    if b - a > 0 and outer.bad_range > 0 and a + 1 < len(data):
+                        outer.bad_range -= 1  # bozuk sunucu: bir bayt kaymış veri (başlık da bunu söyler)
+                        a += 1
                     self.send_response(206)
-                    self.send_header("Content-Range", f"bytes {a}-{b}/{len(data)}")
+                    if b - a > 0 and outer.no_content_range > 0:
+                        outer.no_content_range -= 1
+                    else:
+                        self.send_header("Content-Range", f"bytes {a}-{b}/{len(data)}")
                 else:
                     self.send_response(200)
                 self._body(path, data, a, b)
 
             def _body(self, path, data, a, b):
                 self.send_header("Content-Length", str(b - a + 1))
+                if path in outer.etag:
+                    self.send_header("ETag", outer.etag[path])
                 if path in outer.cd:
                     self.send_header("Content-Disposition", outer.cd[path])
                 self.end_headers()
@@ -203,7 +218,9 @@ class EngineTests(unittest.TestCase):
     def setUp(self):
         s = self.s
         s.range, s.delay, s.drop_after, s.drop_budget = True, 0.0, None, 0
+        s.bad_range = s.no_content_range = 0
         s.requests.clear()
+        s.log.clear()
 
     def run_item(self, it, lim=None, timeout=60):
         t = HttpTask(it, lim or SpeedLimiter(0))
@@ -386,6 +403,118 @@ class EngineTests(unittest.TestCase):
         self.s.forbidden.clear()
         self.assertEqual(t.state, "completed", t.error)
         self.assertGreaterEqual(state["n"], 2)
+        self.assertEqual(md5(open(it.path, "rb").read()), md5(self.big))
+
+    def _pause_midway(self, it):
+        """İndirmeyi yarıda durdurur; segmentler diske yazılıp okunmuş gibi döner."""
+        self.s.delay = 0.01
+        t = HttpTask(it, SpeedLimiter(2 * 1048576))
+        t.start()
+        time.sleep(1.2)
+        t.stop()
+        t.join(10)
+        self.assertEqual(t.state, "stopped")
+        self.assertGreater(t.downloaded(), 0)
+        self.assertLess(t.downloaded(), it.size, "test geçersiz: dosya durdurulmadan bitti")
+        it.segments = json.loads(json.dumps(it.segments))
+        self.s.delay = 0
+
+    def test_file_changed_on_server_is_restarted_not_merged(self):
+        """Duraklatılan indirmenin dosyası sunucuda değişti (ETag farklı): eski parçalar yeni dosyayla
+        birleşip bozuk bir dosya "tamamlandı" sayılmamalı; indirme yeni dosyayla baştan yapılmalı."""
+        old, new = b"A" * (6 * 1048576), b"B" * (6 * 1048576)
+        self.s.files["/v.bin"], self.s.etag["/v.bin"] = old, '"v1"'
+        it = Item(self.s.url("/v.bin"), os.path.join(newdir(), "v.bin"))
+        self._pause_midway(it)
+        self.assertEqual(it.extra.get("validator"), '"v1"')
+        self.s.files["/v.bin"], self.s.etag["/v.bin"] = new, '"v2"'
+        t = self.run_item(it)
+        self.assertEqual(t.state, "completed", t.error)
+        self.assertEqual(md5(open(it.path, "rb").read()), md5(new), "eski ve yeni dosya birleşti")
+
+    def test_file_size_changed_on_server_is_restarted(self):
+        """ETag'siz sunucu: devam ederken Content-Range'deki toplam boyut farklıysa dosya değişmiş sayılır."""
+        self.s.files["/w.bin"] = b"A" * (6 * 1048576)
+        it = Item(self.s.url("/w.bin"), os.path.join(newdir(), "w.bin"))
+        self._pause_midway(it)
+        new = b"B" * (7 * 1048576)
+        self.s.files["/w.bin"] = new
+        t = self.run_item(it)
+        self.assertEqual(t.state, "completed", t.error)
+        self.assertEqual(md5(open(it.path, "rb").read()), md5(new))
+
+    def test_server_ignoring_if_range_still_completes(self):
+        """If-Range'i hep 200 ile yanıtlayan (bozuk) sunucu: dosya aynıysa If-Range bırakılıp indirme sürmeli."""
+        data = os.urandom(6 * 1048576)
+        self.s.files["/i.bin"], self.s.etag["/i.bin"] = data, '"x"'
+        it = Item(self.s.url("/i.bin"), os.path.join(newdir(), "i.bin"))
+        self._pause_midway(it)
+        it.extra["validator"] = '"eski-bicim"'  # sunucu bu değeri hiç tutturamıyor
+        with mock.patch.object(engine, "validator", return_value='"eski-bicim"'):
+            t = self.run_item(it)
+        self.assertEqual(t.state, "completed", t.error)
+        self.assertTrue(it.extra.get("no_if_range"))
+        self.assertEqual(md5(open(it.path, "rb").read()), md5(data))
+
+    def test_wrong_range_response_is_not_written(self):
+        """Sunucu istenenden farklı konumdan veri ya da Content-Range'siz 206 gönderirse o veri dosyaya
+        yazılmamalı (yeniden denenir); sonuç dosyası birebir doğru olmalı."""
+        self.s.bad_range, self.s.no_content_range = 3, 2
+        it = Item(self.s.url("/big.bin"), os.path.join(newdir(), "r.bin"))
+        t = self.run_item(it, timeout=120)
+        self.assertEqual(t.state, "completed", t.error)
+        self.assertEqual(self.s.bad_range + self.s.no_content_range, 0, "test geçersiz: bozuk yanıt gönderilmedi")
+        self.assertEqual(md5(open(it.path, "rb").read()), md5(self.big))
+
+    def test_cookies_not_sent_to_other_site_after_redirect(self):
+        """Yönlendirme başka siteye giderse oturum çerezi ve Authorization oraya gönderilmemeli (tarayıcı gibi);
+        aynı sunucu içindeki yönlendirmede çerez korunur."""
+        self.s.files["/cdn.bin"] = os.urandom(3 * 1048576)
+        other = self.s.url("/cdn.bin").replace("127.0.0.1", "localhost")
+        self.s.redirects["/login-dl"] = other
+        it = Item(self.s.url("/login-dl"), os.path.join(newdir(), "c.bin"),
+                  headers={"Cookie": "oturum=gizli", "Authorization": "Bearer gizli"})
+        t = self.run_item(it)
+        self.assertEqual(t.state, "completed", t.error)
+        to_cdn = [h for host, _p, h in self.s.log if host.startswith("localhost")]
+        self.assertTrue(to_cdn)
+        for h in to_cdn:
+            self.assertNotIn("Cookie", h)
+            self.assertNotIn("Authorization", h)
+        first = [h for host, p, h in self.s.log if p == "/login-dl"]
+        self.assertTrue(all(h.get("Cookie") == "oturum=gizli" for h in first))
+        # aynı sunucuda yönlendirme: çerez gider
+        self.s.log.clear()
+        self.s.redirects["/same"] = "/cdn.bin"
+        probe(self.s.url("/same"), {"Cookie": "oturum=gizli"})
+        self.assertTrue(all(h.get("Cookie") == "oturum=gizli" for _h, _p, h in self.s.log))
+
+    def test_scoped_headers_rules(self):
+        h = {"Cookie": "c", "Authorization": "a", "Referer": "r"}
+        sh = engine.scoped_headers
+        self.assertEqual(sh(h, "https://www.ornek.com.tr/x", "https://www.ornek.com.tr/y"), h)
+        self.assertEqual(sh(h, "https://www.ornek.com.tr/x", "https://cdn.ornek.com.tr/y"),
+                         {"Cookie": "c", "Referer": "r"})                 # aynı site: çerez gider
+        self.assertEqual(sh(h, "https://ornek.com/x", "https://baska.com/y"), {"Referer": "r"})
+        self.assertEqual(sh(h, "https://ornek.com/x", "http://ornek.com/y"), {"Referer": "r"})  # https → http
+        self.assertEqual(sh(h, "https://a.ornek.co.uk/x", "https://b.ornek.co.uk/y"), {"Cookie": "c", "Referer": "r"})
+        self.assertEqual(sh(h, "https://a.ornek.co.uk/x", "https://b.baska.co.uk/y"), {"Referer": "r"})
+
+    def test_file_created_meanwhile_is_not_overwritten(self):
+        """İndirme sürerken hedef adla başka bir dosya oluştu: o dosya silinmemeli, indirilen dosya yeni adla
+        kaydedilmeli."""
+        d = newdir()
+        it = Item(self.s.url("/big.bin"), os.path.join(d, "f.bin"))
+        self.s.delay = 0.01
+        t = HttpTask(it, SpeedLimiter(0))
+        t.start()
+        time.sleep(0.3)
+        with open(os.path.join(d, "f.bin"), "wb") as f:
+            f.write(b"kullanicinin dosyasi")
+        wait(t)
+        self.assertEqual(t.state, "completed", t.error)
+        self.assertEqual(open(os.path.join(d, "f.bin"), "rb").read(), b"kullanicinin dosyasi")
+        self.assertEqual(it.path, os.path.join(d, "f (1).bin"))
         self.assertEqual(md5(open(it.path, "rb").read()), md5(self.big))
 
     def test_not_enough_disk_space(self):
@@ -725,6 +854,59 @@ class AbParityTests(unittest.TestCase):
         it.status, it.task = "downloading", T("Bağlantı koptu")
         self.m._tick_http(it, 2000.0)
         self.assertTrue([e for e in self.m.events if e[0] == "error" and e[1] is it])
+
+    def test_queue_not_done_while_retry_or_conversion_pending(self):
+        """"Kuyruk bitince kapat/uyut" bilgisayarı yarıda kapatmasın: otomatik yeniden denemeyi bekleyen ya da
+        dönüştürülen indirme varken ana kuyruk "bitti" sayılmamalı."""
+        def done():
+            return [e for e in self.m.events if e[0] == "queue_done"]
+        it = self._item("error", in_queue=True)
+        it.retry_at = time.time() + 30
+        self.m._queue_running["main"] = True
+        self.addCleanup(self.m._queue_running.pop, "main", None)
+        self.m.events.clear()
+        self.m._tick_queue()
+        self.assertFalse(done(), "yeniden deneme beklenirken kuyruk bitti dendi")
+
+        class T:
+            state, error, note = "completed", None, None
+
+            def downloaded(self):
+                return 10
+        it.retry_at, it.status, it.task = None, "downloading", T()
+        it.extra["convert"] = next(k for k in manager.convert.FORMATS if k)
+        with mock.patch.object(self.m, "_start_convert", side_effect=lambda i: setattr(i, "status", "converting")):
+            self.m._tick_http(it, time.time())
+        self.assertEqual(it.status, "converting")
+        self.assertTrue(it.in_queue)
+        self.m._tick_queue()
+        self.assertFalse(done(), "dönüştürme sürerken kuyruk bitti dendi")
+        self.assertFalse(it.to_dict()["in_queue"])  # yarıda kalan dönüştürme kayıtta kuyrukta kalmaz
+        it._conv = (None, "deneme")
+        self.m._tick_convert(it)
+        self.assertEqual((it.status, it.in_queue), ("completed", False))
+        self.m._tick_queue()
+        self.assertTrue(done())
+
+    def test_session_cookie_encrypted_on_disk(self):
+        """İndirme listesi (ve yedeği) oturum çerezini açık metin tutmamalı; yeniden açılınca çerez çözülüp
+        kullanılabilmeli (oturum isteyen indirme kaldığı yerden sürsün)."""
+        it = self._item(headers={"Cookie": "oturum=cok-gizli", "Authorization": "Basic gizli-parola",
+                                 "Referer": "https://ornek.com/sayfa"})
+        self.m.save()
+        self.m.save()  # .bak da yeni biçimde olsun
+        for name in ("downloads.json", "downloads.json.bak"):
+            raw = open(os.path.join(manager.APP_DIR, name), encoding="utf-8").read()
+            self.assertNotIn("cok-gizli", raw, name)
+            self.assertNotIn("gizli-parola", raw, name)
+            self.assertIn("https://ornek.com/sayfa", raw, name)
+        d = next(x for x in json.load(open(os.path.join(manager.APP_DIR, "downloads.json"), encoding="utf-8"))
+                 if x["id"] == it.id)
+        it2 = manager.DownloadItem(**d)
+        self.assertEqual(it2.headers["Cookie"], "oturum=cok-gizli")
+        self.assertEqual(it2.headers["Authorization"], "Basic gizli-parola")
+        # eski sürümün açık metin kaydı da okunur (sonraki kayıtta şifrelenir)
+        self.assertEqual(manager.DownloadItem(headers={"Cookie": "eski=1"}).headers, {"Cookie": "eski=1"})
 
     def test_multiple_queues(self):
         q = self.m.add_queue("Gece")

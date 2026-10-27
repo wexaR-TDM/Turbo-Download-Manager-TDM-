@@ -7,6 +7,13 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.26
+• Düzeltme: duraklatılan bir indirmenin dosyası sunucuda değişirse (yeni sürüm yüklenmesi gibi) eski ve yeni dosyanın parçaları birleşip bozuk bir dosya "tamamlandı" görünebiliyordu. Artık değişiklik fark ediliyor ve dosya baştan indiriliyor; sunucunun yanlış yerden gönderdiği parçalar da dosyaya yazılmıyor
+• Güvenlik: bir indirme başka bir siteye yönlendirildiğinde (ör. dosya barındırma sunucusu) tarayıcıdan gelen oturum çerezi artık oraya gönderilmiyor; tarayıcı da göndermez
+• Güvenlik: oturum isteyen indirmelerin çerezleri indirme listesinde artık Windows şifrelemesiyle saklanıyor (yalnızca aynı Windows kullanıcısı çözebilir)
+• Düzeltme: "Kuyruk bitince bilgisayarı kapat/uyut" seçiliyken, otomatik yeniden denemeyi bekleyen ya da biçimi dönüştürülen bir indirme varken kuyruk bitmiş sayılıp bilgisayar kapatılabiliyordu
+• Düzeltme: indirme sürerken klasörde aynı adla başka bir dosya oluşursa, indirme bitince o dosyanın üzerine yazılıyordu. Artık o dosya korunuyor, indirilen dosya "ad (1)" olarak kaydediliyor
+
 ## 1.7.25
 • Düzeltme: bazı sitelerde (ör. Twitch, Kick) site oynatıcıyı yeniden yükleyince eski videonun "Bu videoyu indir" düğmesi ekranda kalıyor, birden çok düğme görünüyor ve kalan düğme × ile kapanmıyordu. Artık ekranda tek düğme var: en büyük görünen videoda
 • Video düğmesi sürüklenerek videonun istenen yerine taşınabiliyor; seçilen yer hatırlanıyor

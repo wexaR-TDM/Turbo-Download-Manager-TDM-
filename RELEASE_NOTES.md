@@ -7,6 +7,13 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.26
+• Fix: if the file of a paused download changed on the server (e.g. a new version was uploaded), parts of the old and new file could be joined and a corrupted file shown as "completed". The change is now detected and the file is downloaded again from the start; parts that the server sends from the wrong position are no longer written to the file
+• Security: when a download is redirected to another site (e.g. a file hosting server), the session cookie from the browser is no longer sent there; browsers don't send it either
+• Security: cookies of downloads that need a login are now stored in the download list with Windows encryption (only the same Windows user can read them)
+• Fix: with "Shut down/sleep when the queue finishes" selected, the queue could be treated as finished, and the computer shut down, while a download was waiting for an automatic retry or being converted
+• Fix: if a file with the same name appeared in the folder while a download was running, it was overwritten when the download finished. That file is now kept and the download is saved as "name (1)"
+
 ## 1.7.25
 • Fix: on some sites (e.g. Twitch, Kick), when the site reloaded its player, the old video's "Download this video" button stayed on screen, several buttons appeared and the leftover button couldn't be closed with ×. Now there is a single button, on the largest visible video
 • The video button can be dragged to any spot on the video; the chosen spot is remembered

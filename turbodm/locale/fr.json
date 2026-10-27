@@ -441,5 +441,8 @@
  "{0} bot koruması (Cloudflare) kullanıyor ve TurboDM'in dosyaya erişmesine izin vermedi. Dosya tarayıcıda iniyor.": "{0} utilise une protection anti-bot (Cloudflare) et n'a pas autorisé TurboDM à accéder au fichier. Le fichier se télécharge dans le navigateur.",
  "TurboDM bu dosyaya erişemedi ({0}). Dosya tarayıcıda iniyor.": "TurboDM n'a pas pu accéder à ce fichier ({0}). Le fichier se télécharge dans le navigateur.",
  "{0} TurboDM'e dosya yerine bir web sayfası gönderdi (giriş ya da doğrulama sayfası olabilir). Dosya tarayıcıda iniyor.": "{0} a envoyé à TurboDM une page web au lieu du fichier (page de connexion ou de vérification ?). Le fichier se télécharge dans le navigateur.",
- "TurboDM bu dosyayı indiremedi ({0}). İndirme tarayıcıda başlatıldı.": "TurboDM n'a pas pu télécharger ce fichier ({0}). Le téléchargement a été lancé dans le navigateur."
+ "TurboDM bu dosyayı indiremedi ({0}). İndirme tarayıcıda başlatıldı.": "TurboDM n'a pas pu télécharger ce fichier ({0}). Le téléchargement a été lancé dans le navigateur.",
+ "Dosya sunucuda değişmiş": "Le fichier a changé sur le serveur",
+ "Sunucu parçanın yerini (Content-Range) bildirmedi": "Le serveur n'a pas indiqué la position de la partie (Content-Range)",
+ "Sunucu istenenden farklı bir parça gönderdi": "Le serveur a envoyé une autre partie que celle demandée"
 }
