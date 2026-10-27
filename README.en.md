@@ -32,7 +32,7 @@ Multi-connection downloads · Video grabber · Torrent · Browser integration</p
 - An IDM-style download window: segmented progress bar of the connections, **speed limiter**, **"when done: shut down / sleep / exit"**.
 
 ### 🎬 Video downloads
-- The browser extension places a **"Download this video"** button over the video on the page; clicking it lists the qualities (4K, 1080p, audio only…) and the chosen quality comes ready in TurboDM's save window.
+- The browser extension places a **"Download this video"** button over the video on the page; clicking it lists the qualities (4K, 1080p, audio only…) and the chosen quality comes ready in TurboDM's save window. The button can be dragged to any spot on the video; it doesn't appear on live streams.
 - Hundreds of video sites are supported (via yt-dlp). HLS (m3u8), DASH (mpd) and encrypted (AES-128) streams are downloaded and merged into a single file.
 - Embedded players (video served from another site) are supported: the video is requested with the player's own address.
 - **Format choice:** when the download finishes it is kept as MP4 or saved as **MKV** (lossless, takes seconds), **AVI** (for older TVs/players) or **MP3** (audio only).

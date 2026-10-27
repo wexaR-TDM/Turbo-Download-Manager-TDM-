@@ -82,5 +82,8 @@
   },
   "hideButton": {
     "message": "Nascondi in questa pagina (riappare ricaricando la pagina)"
+  },
+  "moveHint": {
+    "message": "Trascinalo per spostarlo in un altro punto del video"
   }
 }

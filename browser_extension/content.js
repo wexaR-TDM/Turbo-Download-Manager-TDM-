@@ -26,7 +26,7 @@
     window.__tdmLoaded = false;  // sayfa yenilenmeden yeni sürüm eklenirse o çalışabilsin
   }
   let mediaCount = 0;
-  const panels = new WeakMap();
+  const panels = new Map();  // video -> düğme (video sayfadan kalkınca düğmesi de kaldırılır)
   let lastHref = location.href;
 
   function send(msg) {
@@ -62,9 +62,18 @@
   const IDLE_MS = 3000;
   let lastMove = Date.now();
 
+  // Düğmenin videodaki yeri: kullanıcı sürükleyerek taşıyabilir; yer videonun görünen alanına göre oran olarak
+  // (0..1) saklanır, her sitede ve her video boyutunda aynı köşede durur. Varsayılan: sağ üst.
+  let btnPos = null;  // {x, y} ya da null
+  try {
+    chrome.storage.local.get({ btnPos: null }, (v) => { btnPos = v && v.btnPos; position(); });
+  } catch {}
+  const clamp = (n, lo, hi) => Math.min(Math.max(n, lo), Math.max(lo, hi));
+
   function makeButton(video) {
     const btn = document.createElement("div");
     btn.className = "tdm-grab";
+    btn.title = M("moveHint");
     const label = document.createElement("span");
     label.className = "tdm-label";
     label.textContent = M("btnDownload");
@@ -73,9 +82,44 @@
     close.textContent = "×";
     close.title = M("hideButton");
     btn.append(label, close);
+    // sürükleme: 5 pikselden az hareket tıklama sayılır
+    let drag = null, dragged = false;
+    btn.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || e.target === close) return;
+      const b = btn.getBoundingClientRect();
+      drag = { sx: e.clientX, sy: e.clientY, bx: b.left, by: b.top };
+      dragged = false;
+      try { btn.setPointerCapture(e.pointerId); } catch {}
+      e.stopPropagation();
+    });
+    btn.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+      if (!dragged && Math.hypot(dx, dy) < 5) return;
+      dragged = true;
+      closeMenus();
+      const r = visibleRect(video);
+      if (!r) return;
+      const w = btn.offsetWidth, h = btn.offsetHeight;
+      const x = clamp(drag.bx + dx, r.left, r.right - w), y = clamp(drag.by + dy, r.top, r.bottom - h);
+      btnPos = { x: r.width > w ? (x - r.left) / (r.width - w) : 1, y: r.height > h ? (y - r.top) / (r.height - h) : 0 };
+      btn.style.left = window.scrollX + x + "px";
+      btn.style.top = window.scrollY + y + "px";
+    });
+    btn.addEventListener("pointerup", () => {
+      if (!drag) return;
+      drag = null;
+      if (dragged) {
+        try { chrome.storage.local.set({ btnPos }); } catch {}
+      }
+    });
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if (dragged) {  // sürükleme bitti: menü açılmaz
+        dragged = false;
+        return;
+      }
       if (e.target === close) {
         hiddenOn = location.href;
         closeMenus();
@@ -121,9 +165,18 @@
     // menü açıkken ya da fare düğmenin üstündeyken solmaz
     const idle = Date.now() - lastMove > IDLE_MS && !document.querySelector(".tdm-menu") && !btn.matches(":hover");
     btn.classList.toggle("tdm-idle", idle);
-    btn.style.top = window.scrollY + r.top + 10 + "px";
-    btn.style.left = window.scrollX + r.right - btn.offsetWidth - 10 + "px";
+    const w = btn.offsetWidth, h = btn.offsetHeight;
+    let x = r.right - w - 10, y = r.top + 10;  // varsayılan: sağ üst köşe
+    if (btnPos) {
+      x = r.left + Math.max(0, r.width - w) * btnPos.x;
+      y = r.top + Math.max(0, r.height - h) * btnPos.y;
+    }
+    btn.style.top = window.scrollY + y + "px";
+    btn.style.left = window.scrollX + x + "px";
   }
+
+  // Canlı yayın (süresi sonsuz): TurboDM canlı yayın indiremez, düğme gösterilmez
+  const isLive = (v) => v.duration === Infinity;
 
   // Ana video: görünür ve ekranın büyük kısmını kaplıyor (izleme sayfası, dikey kısa video oynatıcısı,
   // gömülü oynatıcı). Akış listelerindeki küçük önizlemeler sayılmaz.
@@ -221,18 +274,29 @@
       closeMenus();
       send({ type: "tdm-frame", url: location.href });
     }
+    // Site video öğesini değiştirdiyse (oynatıcı yeniden yüklendi, reklama geçildi) eskisinin düğmesi kaldırılır;
+    // yoksa sahipsiz düğme ekranda kalır ve × ile de kapanmaz
+    for (const [v, btn] of panels) {
+      if (!v.isConnected) { btn.remove(); panels.delete(v); }
+    }
+    // Aynı anda tek düğme: ekranda en büyük görünen video. Yan taraftaki önizlemeler, öneri ve
+    // fare üstündeyken oynayan küçük videolar düğme çıkarmaz.
+    let best = null, bestArea = 0;
     document.querySelectorAll("video").forEach((v) => {
-      let btn = panels.get(v);
-      if (!btn) {
-        const direct = v.currentSrc && /^https?:/i.test(v.currentSrc);
-        if (!isMainVideo(v) && mediaCount === 0 && !direct) return;
-        if (!visibleRect(v)) return; // küçük önizlemeler, gizli/kesilmiş videolar
-        btn = makeButton(v);
-        panels.set(v, btn);
-        if (direct) send({ type: "tdm-element-src", url: v.currentSrc });
-      }
-      place(btn, v);
+      if (isLive(v)) return;
+      const direct = v.currentSrc && /^https?:/i.test(v.currentSrc);
+      if (!panels.has(v) && !isMainVideo(v) && mediaCount === 0 && !direct) return;
+      const r = visibleRect(v);  // küçük önizlemeler, gizli/kesilmiş videolar: null
+      if (r && r.width * r.height > bestArea) { best = v; bestArea = r.width * r.height; }
     });
+    if (best && !panels.has(best)) {
+      panels.set(best, makeButton(best));
+      if (best.currentSrc && /^https?:/i.test(best.currentSrc)) send({ type: "tdm-element-src", url: best.currentSrc });
+    }
+    for (const [v, btn] of panels) {
+      if (v === best) place(btn, v);
+      else btn.style.display = "none";
+    }
   }
 
   chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
@@ -242,7 +306,7 @@
     } else if (msg.type === "tdm-has-video") {
       // eklenti penceresi soruyor: bu çerçevede görünen bir ana video var mı? Yalnızca varsa yanıt verilir
       // (videosuz çerçeveler sessiz kalır; hiçbiri yanıt vermezse pencere kalite listesini hiç göstermez)
-      if ([...document.querySelectorAll("video")].some(isMainVideo)) reply({ video: true });
+      if ([...document.querySelectorAll("video")].some((v) => isMainVideo(v) && !isLive(v))) reply({ video: true });
     }
   });
 

@@ -82,5 +82,8 @@
   },
   "hideButton": {
     "message": "Hide on this page (shows again when the page is reloaded)"
+  },
+  "moveHint": {
+    "message": "Drag to move it to another spot on the video"
   }
 }

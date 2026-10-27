@@ -7,6 +7,12 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.25
+• Fix: on some sites (e.g. Twitch, Kick), when the site reloaded its player, the old video's "Download this video" button stayed on screen, several buttons appeared and the leftover button couldn't be closed with ×. Now there is a single button, on the largest visible video
+• The video button can be dragged to any spot on the video; the chosen spot is remembered
+• The video button no longer appears on live streams (TurboDM doesn't download live streams)
+(browser extension 1.7.5)
+
 ## 1.7.24
 • The browser extension is now in the Microsoft Edge Add-ons store: after TurboDM is installed, Edge offers the extension by itself and updates come from the store (https://microsoftedge.microsoft.com/addons/detail/dpeakjonbfgodlhkbpeekljfgnpbbjai)
 • If the extension is installed twice (from the store and manually), downloads no longer reach TurboDM twice, and a download that TurboDM can't get and leaves to the browser is no longer grabbed and restarted over and over by the two copies (browser extension 1.7.4)

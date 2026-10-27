@@ -32,7 +32,7 @@
 - IDM'deki gibi indirme penceresi: bağlantıların parçalı ilerleme çubuğu, **hız sınırlayıcı**, **"bitince bilgisayarı kapat / uyut / programdan çık"**.
 
 ### 🎬 Video indirme
-- Tarayıcı eklentisi, sayfadaki videonun üstüne **"Bu videoyu indir"** düğmesi koyar; tıklayınca kaliteler listelenir (4K, 1080p, yalnızca ses…), seçilen kalite TurboDM'in kayıt penceresinde hazır gelir.
+- Tarayıcı eklentisi, sayfadaki videonun üstüne **"Bu videoyu indir"** düğmesi koyar; tıklayınca kaliteler listelenir (4K, 1080p, yalnızca ses…), seçilen kalite TurboDM'in kayıt penceresinde hazır gelir. Düğme sürüklenerek videonun istenen yerine taşınabilir; canlı yayınlarda çıkmaz.
 - Yüzlerce video sitesi desteklenir (yt-dlp ile). HLS (m3u8), DASH (mpd) ve şifreli (AES-128) akışlar indirilip tek dosyada birleştirilir.
 - Gömülü oynatıcılar (başka siteden gelen video) desteklenir: video, oynatıcının kendi adresiyle istenir.
 - **Biçim seçimi:** indirme bitince MP4 olarak bırakılır ya da **MKV** (kayıpsız, saniyeler sürer), **AVI** (eski TV/oynatıcılar için) veya **MP3** (yalnızca ses) olarak kaydedilir.

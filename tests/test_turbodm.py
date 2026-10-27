@@ -930,6 +930,25 @@ class ExtensionTests(unittest.TestCase):
             # × : düğme bu sayfada gizlenir (sayfa yenilenince geri gelir)
             "kapat": '<video style="width:1000px;height:560px"></video>'
                      '<script>setTimeout(()=>document.querySelector(".tdm-close").click(),900)</script>',
+            # site video öğesini değiştirdi (oynatıcı yeniden yüklendi / reklama geçildi): eski videonun düğmesi
+            # ekranda kalmamalı; ekranda tek düğme (Twitch'te 3-4 düğme ve × ile kapanmayan düğme şikâyeti)
+            "degisen": '<div id="o"><video style="width:1000px;height:560px"></video></div>'
+                       '<script>setTimeout(()=>{const o=document.getElementById("o");o.innerHTML="";'
+                       'o.appendChild(Object.assign(document.createElement("video"),{style:"width:1000px;height:560px"}))},'
+                       '1200)</script>',
+            # canlı yayın (süresi sonsuz): TurboDM canlı yayın indiremez, düğme gösterilmez
+            "canli": '<video id="c" style="width:1000px;height:560px"></video>'
+                     '<script>Object.defineProperty(document.getElementById("c"),"duration",{get:()=>Infinity})</script>',
+            # düğme sürüklenerek taşınır (sağ üstten sol alta); sürükleme menü açmaz (açarsa hata sayılır)
+            "tasi": '<video style="width:1000px;height:560px"></video>'
+                    '<script>setTimeout(()=>{const b=[...document.querySelectorAll(".tdm-grab")].find(e=>'
+                    'e.style.display==="block"),r=b.querySelector(".tdm-label").getBoundingClientRect(),'
+                    'x=r.left+5,y=r.top+5,o={bubbles:true,button:0,pointerId:1};'
+                    'b.querySelector(".tdm-label").dispatchEvent(new PointerEvent("pointerdown",{...o,clientX:x,clientY:y}));'
+                    'b.dispatchEvent(new PointerEvent("pointermove",{...o,clientX:x-900,clientY:y+500}));'
+                    'b.dispatchEvent(new PointerEvent("pointerup",{...o,clientX:x-900,clientY:y+500}));'
+                    'b.querySelector(".tdm-label").click();'
+                    'setTimeout(()=>{if(document.querySelector(".tdm-menu"))throw new Error("menu")},300)},1200)</script>',
         }
         procs = []
         try:
@@ -964,6 +983,12 @@ class ExtensionTests(unittest.TestCase):
         self.assertEqual(results.get("yetim"), "0@!0~0", results)  # düğme kaldırıldı, hiç hata fırlatılmadı
         self.assertEqual(results.get("kapat"), "0@!0~0", results)  # × ile gizlendi
         self.assertTrue(results.get("youtube", "").endswith("~1"), results)  # fare kıpırdamayınca soldu
+        self.assertTrue(results.get("degisen", "").startswith("1@"), results)  # eski videonun düğmesi kalmadı
+        self.assertEqual(results.get("canli"), "0@!0~0", results)  # canlı yayında düğme yok
+        count, _, rest = results.get("tasi", "0@").partition("@")
+        self.assertEqual(count, "1", results)
+        self.assertLess(int(rest.split("!")[0]), 100, results)  # sola taşındı (videonun sol kenarı ~8 px)
+        self.assertEqual(rest.split("!")[1].split("~")[0], "0", results)  # sürükleme menü açmadı, hata yok
 
     def test_extension_popup_hides_empty_media_section(self):
         # "Bu sayfadaki medyalar" yalnızca sayfada akış bulunduysa görünür (boş "Yok" yazısı gösterilmez)

@@ -82,5 +82,8 @@
   },
   "hideButton": {
     "message": "Masquer sur cette page (réapparaît après rechargement)"
+  },
+  "moveHint": {
+    "message": "Faites-le glisser pour le déplacer ailleurs sur la vidéo"
   }
 }

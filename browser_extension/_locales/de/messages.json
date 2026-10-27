@@ -82,5 +82,8 @@
   },
   "hideButton": {
     "message": "Auf dieser Seite ausblenden (erscheint nach dem Neuladen wieder)"
+  },
+  "moveHint": {
+    "message": "Ziehen, um ihn an eine andere Stelle im Video zu verschieben"
   }
 }

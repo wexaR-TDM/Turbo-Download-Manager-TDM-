@@ -7,6 +7,12 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.25
+• Düzeltme: bazı sitelerde (ör. Twitch, Kick) site oynatıcıyı yeniden yükleyince eski videonun "Bu videoyu indir" düğmesi ekranda kalıyor, birden çok düğme görünüyor ve kalan düğme × ile kapanmıyordu. Artık ekranda tek düğme var: en büyük görünen videoda
+• Video düğmesi sürüklenerek videonun istenen yerine taşınabiliyor; seçilen yer hatırlanıyor
+• Canlı yayınlarda video düğmesi artık çıkmıyor (TurboDM canlı yayın indirmiyor)
+(tarayıcı eklentisi 1.7.5)
+
 ## 1.7.24
 • Tarayıcı eklentisi artık Microsoft Edge Eklentileri mağazasında: TurboDM kurulunca Edge eklentiyi kendisi önerir, güncellemeler mağazadan gelir (https://microsoftedge.microsoft.com/addons/detail/dpeakjonbfgodlhkbpeekljfgnpbbjai)
 • Eklenti iki kez kuruluysa (mağazadan ve elle) indirme artık TurboDM'e iki kez gelmiyor; TurboDM'in alamayıp tarayıcıya bıraktığı indirmeyi iki kopya birbirinden kapıp sürekli yeniden başlatmıyor (tarayıcı eklentisi 1.7.4)
