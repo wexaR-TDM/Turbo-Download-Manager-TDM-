@@ -82,6 +82,9 @@ window.TDM_MSGS = {
   },
   "hideButton": {
     "message": "Bu sayfada gizle (sayfa yenilenince yeniden görünür)"
+  },
+  "moveHint": {
+    "message": "Sürükleyerek videonun başka bir yerine taşıyabilirsiniz"
   }
 }
 ;
