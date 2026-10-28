@@ -1,10 +1,12 @@
 // background.js'i sahte tarayıcı ortamında çalıştırır: form (POST) indirmesi, normal indirme, TurboDM kapalı,
 // TurboDM'in reddettiği ve TurboDM'de başlayamayıp tarayıcıya geri verilen indirmeleri dener.
-const src = Deno.readTextFileSync(Deno.args[0]);
+// TurboDM'in yanıt vermediği süre testte kısaltılır (gerçekte 30 sn)
+const src = Deno.readTextFileSync(Deno.args[0]).replace("const HANDOFF_DOWN = 30 * 1000", "const HANDOFF_DOWN = 2000");
 const listeners = {};
 const ev = (name) => ({ addListener: (fn) => { (listeners[name] ||= []).push(fn); } });
 const calls = { fetch: [], pause: [], cancel: [], native: [], resume: [], erase: [], download: [], ui: [], bodies: [] };
 let appOnline = true;  // TurboDM açık mı (kapalıyken fetch bağlantı hatası verir)
+let nativeOk = true;   // tarayıcı TurboDM'i açtırabiliyor mu (yardımcı kayıtlı değilse hayır)
 let nextId = 100;
 const handoffState = {};  // devir kimliği -> TurboDM'in /handoff yanıtı (yoksa "ok")
 const session = {};
@@ -13,7 +15,9 @@ globalThis.chrome = {
              session: { get: async (d) => ({ ...d, ...session }), set: async (v) => Object.assign(session, v) } },
   runtime: { onMessage: ev("msg"), onInstalled: ev("installed"), getManifest: () => ({ version: "x" }),
              // tarayıcının TurboDM yardımcısını çalıştırması: TurboDM açılır
-             sendNativeMessage: async (host, msg) => { calls.native.push([host, msg.cmd]); appOnline = true; return { ok: true, launched: true }; } },
+             sendNativeMessage: async (host, msg) => { calls.native.push([host, msg.cmd]);
+                                                       if (!nativeOk) return { ok: false };
+                                                       appOnline = true; return { ok: true, launched: true }; } },
   i18n: { getMessage: (k) => k },
   contextMenus: { create() {}, onClicked: ev("ctx") },
   tabs: { onUpdated: ev("tabUpd"), onRemoved: ev("tabRem"), sendMessage: () => Promise.resolve() },
@@ -143,6 +147,39 @@ calls.download.length = 0;
 await fire("created", { id: 8, url: "https://korumali-iki.example/dosya.zip", finalUrl: "https://korumali-iki.example/dosya.zip", filename: "dosya.zip", mime: "" });
 await sleep(400);
 result.two_copies_refused = { tarayicida_bir_kez: calls.download.length === 1, turbodm_e_bir_kez: added() === 1 };
+
+// 9) TurboDM devraldıktan sonra, indirme başlamadan çöktü: eklenti bir süre sonra TurboDM'i açtırır; yeniden açılan
+//    TurboDM devri kaydetmemişse "failed" der ve indirme tarayıcıda yeniden başlatılır (kaybolmaz)
+calls.fetch.length = 0;
+calls.download.length = 0;
+calls.native.length = 0;
+crypto.randomUUID = () => "devir-cokme";
+handoffState["devir-cokme"] = "pending";
+await fire("created", { id: 9, url: "https://depo.example/cokme.bin", finalUrl: "https://depo.example/cokme.bin", filename: "c.bin", mime: "" });
+await sleep(1700);
+appOnline = false;                      // çöktü
+handoffState["devir-cokme"] = "failed";  // yeniden açılan TurboDM devri tanımıyor
+await sleep(1700);
+const cokunce = calls.download.length;   // hemen tarayıcıya verilmez (TurboDM belki kendine gelir)
+await sleep(5000);
+crypto.randomUUID = realUUID;
+result.app_crashed = { hemen_verilmedi: cokunce === 0, acildi: calls.native.length > 0,
+                       tarayicida_yeniden: calls.download.includes("https://depo.example/cokme.bin") };
+
+// 10) TurboDM çöktü ve açtırılamıyor (yardımcı kayıtlı değil): indirme yine tarayıcıda yeniden başlatılır
+calls.download.length = 0;
+crypto.randomUUID = () => "devir-cokme-2";
+handoffState["devir-cokme-2"] = "pending";
+appOnline = true;
+await fire("created", { id: 10, url: "https://depo.example/cokme2.bin", finalUrl: "https://depo.example/cokme2.bin", filename: "d.bin", mime: "" });
+await sleep(1700);
+appOnline = false;
+nativeOk = false;
+await sleep(6000);
+crypto.randomUUID = realUUID;
+result.app_crashed_no_launch = { tarayicida_yeniden: calls.download.includes("https://depo.example/cokme2.bin") };
+// sorulan her devirde zaman bilgisi gönderilir (yeniden başlayan TurboDM için)
+result.handoff_has_time = calls.bodies.filter((b) => b.includes('"id":"devir-')).every((b) => b.includes('"t":') || b.includes('"returned":true'));
 
 console.log(JSON.stringify(result, null, 1));
 Deno.exit(0);

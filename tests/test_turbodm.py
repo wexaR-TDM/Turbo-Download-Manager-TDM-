@@ -1198,7 +1198,7 @@ class ExtensionTests(unittest.TestCase):
             self.skipTest("deno yok")
         r = subprocess.run([deno, "run", "--allow-read", os.path.join(ROOT, "tests", "extension_background_sim.js"),
                             os.path.join(ROOT, "browser_extension", "background.js")],
-                           capture_output=True, text=True, encoding="utf-8", timeout=60,
+                           capture_output=True, text=True, encoding="utf-8", timeout=120,
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         res = json.loads(r.stdout[r.stdout.index("{"):])
         self.assertFalse(res["form_post"]["turbodm_e_gitti"], res)   # form indirmesi tarayıcıda kalır
@@ -1223,6 +1223,11 @@ class ExtensionTests(unittest.TestCase):
         # yeniden başlar (kopyalar birbirinin indirmesini kapıp döngüye girmez)
         self.assertEqual(res["two_copies"], {"turbodm_e_bir_kez": True, "tarayicida_iptal": True}, res)
         self.assertEqual(res["two_copies_refused"], {"tarayicida_bir_kez": True, "turbodm_e_bir_kez": True}, res)
+        # TurboDM devraldıktan sonra çöktü: eklenti onu açtırır, açılan TurboDM devri bilmiyorsa indirme tarayıcıda
+        # yeniden başlar; açtırılamazsa da tarayıcıda başlar (indirme hiçbir durumda kaybolmaz)
+        self.assertEqual(res["app_crashed"], {"hemen_verilmedi": True, "acildi": True, "tarayicida_yeniden": True}, res)
+        self.assertEqual(res["app_crashed_no_launch"], {"tarayicida_yeniden": True}, res)
+        self.assertTrue(res["handoff_has_time"], res)
 
     def test_bridge_download_ownership(self):
         # turbodm/server.py: tarayıcı indirmesini yalnızca bir eklenti kopyası üstlenir; tarayıcıya bırakılan

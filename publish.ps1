@@ -45,19 +45,12 @@ if ($LASTEXITCODE) { throw "gh release create başarısız" }
 Remove-Item $notesFile
 
 
-# Silinecek sürümlerin indirme sayaçları kaybolmasın (stats/sayac.json, yerel)
+# İndirme sayaçları (stats/sayac.json, yerel)
 python (Join-Path $root "installer\stats.py") --kaydet
 if ($LASTEXITCODE) { Write-Warning "İndirme sayaçları kaydedilemedi" }
 
-# Son 3 sürüm kalır, daha eskiler (ve etiketleri) silinir. Güncelleme denetimi her zaman releases/latest adresini
-# kullandığı için kurulu programlar etkilenmez. 3 sürüm tutulur çünkü winget kayıtlı sürümün kurulum dosyasına
-# bağlantı verir: yeni sürümün winget kaydı onaylanana kadar (1-3 gün) önceki sürümün dosyası yerinde kalmalı.
-$keep = 3
-$tags = @(gh release list --repo $repo --limit 200 --json tagName,createdAt --jq "sort_by(.createdAt) | reverse | .[].tagName" | Where-Object { $_ })
-$old = $tags | Where-Object { $_ -ne "v$version" } | Select-Object -Skip ($keep - 1)
-foreach ($tag in $old) {
-    gh release delete $tag --repo $repo --cleanup-tag --yes
-    if ($LASTEXITCODE) { Write-Warning "$tag silinemedi" } else { Write-Host "Eski sürüm kaldırıldı: $tag" }
-}
+# Eski sürümler silinmez: winget (ve başka paket yöneticileri) kayıtlı sürümün kurulum dosyasına bağlantı verir;
+# onay bekleyen ya da onaylanmış bir kaydın dosyası silinirse o kayıt bozulur. GitHub'da sürüm saklamak ücretsiz.
+# Güncelleme denetimi her zaman releases/latest adresini kullandığı için eski sürümler kimseyi etkilemez.
 Write-Host "Yayımlandı. Kullanıcılar 'Güncellemeleri denetle' ile v$version'ı görecek:" -ForegroundColor Green
 Write-Host "  https://github.com/$repo/releases/latest/download/latest.json"

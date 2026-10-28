@@ -400,6 +400,27 @@ class GuiTests(unittest.TestCase):
                     self.assertTrue(all(b.isEnabled() for b in d.go_buttons))
                 d.close()
 
+    def test_handoff_answered_after_app_restart(self):
+        # TurboDM devirden sonra kapanıp yeniden açıldı (çökme): bellekteki devir kayıtları yok
+        win = self.win
+        h = win._handoff_handler
+        now_ms = time.time() * 1000
+        self.assertEqual(h({"id": "eski-devir", "t": (win._started - 60) * 1000})["state"], "failed")  # hiç kaydedilmemiş
+        self.assertEqual(h({"id": "yeni-devir", "t": now_ms}), {"state": "pending"})  # az önce geldi, işleniyor
+        self.assertEqual(h({"id": "eski-eklenti"}), {"state": "gone"})               # zaman göndermeyen eski eklenti
+        # indirme kaydedilmişti: yeniden açılan TurboDM onu kayıttan bulur (tarayıcıda ikinci kez inmez)
+        it = win.mgr.add_http(self.s.url("/arsiv.zip"), os.path.join(TMP, "dl", "devir-kayit.zip"), start=False)
+        self.addCleanup(lambda: it.id in win.mgr.items and win.mgr.remove(it.id))
+        it.extra["handoff"] = "kayitli-devir"
+        it.done_bytes = 100
+        self.assertEqual(h({"id": "kayitli-devir", "t": (win._started - 60) * 1000}), {"state": "ok"})
+        # eklenti tarayıcıda başlattığını bildirdi (TurboDM devri tanımasa da): adres tarayıcıya bırakılır
+        G.server._owners.clear()
+        self.assertEqual(h({"id": "eski-devir", "returned": True, "url": "https://example.com/b.zip"}),
+                         {"state": "returned"})
+        self.assertEqual(G.server.claim("https://example.com/b.zip"), {"handle": False, "reason": "browser"})
+        G.server._owners.clear()
+
     def test_outdated_extension_warning(self):
         # Köprü eski elle kurulmuş eklenti bildirdi: kullanıcıya eklentiyi nasıl yenileyeceği söylenir
         before = {id(w) for w in APP.topLevelWidgets() if isinstance(w, G.QMessageBox)}

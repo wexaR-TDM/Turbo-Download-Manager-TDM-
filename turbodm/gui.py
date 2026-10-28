@@ -593,6 +593,7 @@ class FileInfoDialog(QDialog):
         h = getattr(self.win, "_handoffs", {}).get(getattr(self, "handoff", None))
         if h is not None:
             h["iid"] = it.id
+            it.extra["handoff"] = self.handoff  # TurboDM yeniden başlasa da eklentinin sorusu yanıtlanabilsin
         if fmt:
             it.extra["convert"] = fmt  # indirme bitince ffmpeg ile dönüştürülür
         if start:
@@ -2135,6 +2136,7 @@ class MainWindow(QMainWindow):
         try:
             self._fmt_cache = {}
             self._handoffs = {}  # tarayıcıdan devralınan indirmeler: kimlik -> {"iid", "closed", "t"}
+            self._started = time.time()  # bundan önce başlamış ama bilinmeyen devir: TurboDM o sırada kapanmış
             self._error_boxes = {}  # açık hata uyarıları: iid -> QMessageBox
             server.handlers["/formats"] = self._formats_handler
             server.handlers["/check"] = self._check_handler
@@ -2779,12 +2781,25 @@ class MainWindow(QMainWindow):
         returned: eklenti indirmeyi tarayıcıda başlattı; TurboDM'deki başarısız kayıt kaldırılır."""
         token = data.get("id")
         h = self._handoffs.get(token) if isinstance(token, str) else None
-        if h is None:
-            return {"state": "gone"}
         if data.get("returned"):
             server.leave_to_browser(data.get("url"))  # yeniden başlatılan indirmeyi hiçbir eklenti kopyası yakalamasın
-            server.requests.put({"handoff_returned": token})
+            if h is not None:
+                server.requests.put({"handoff_returned": token})
             return {"state": "returned"}
+        if h is None and isinstance(token, str):
+            # TurboDM devirden sonra yeniden başladı: indirme kaydedildiyse kayıttan bulunur
+            it = next((i for i in list(self.mgr.items.values()) if i.extra.get("handoff") == token), None)
+            if it is not None:
+                h = self._handoffs.setdefault(token, {"iid": it.id, "closed": True, "t": time.time()})
+        if h is None:
+            t = data.get("t")
+            if not isinstance(t, (int, float)):
+                return {"state": "gone"}  # devir zamanını göndermeyen eski eklenti
+            if t / 1000 < self._started:
+                # devir TurboDM açılmadan önceydi ve hiç kaydedilmedi (TurboDM o sırada kapandı ya da çöktü):
+                # eklenti indirmeyi tarayıcıda yeniden başlatır
+                return {"state": "failed", "error": _t("TurboDM indirmeyi devralırken kapandı")}
+            return {"state": "pending"}  # istek az önce geldi, henüz işlenmedi
         if h["iid"] is None:
             return {"state": "gone" if h["closed"] else "pending"}
         it = self.mgr.items.get(h["iid"])

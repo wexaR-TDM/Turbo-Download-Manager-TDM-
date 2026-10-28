@@ -206,6 +206,8 @@ async function backToBrowser(url) {
 // Devralınan indirmeler: TurboDM'de hiç başlayamazsa (ör. sunucu bağlantıyı yalnızca bir kez verir, 403)
 // tarayıcıya geri verilir. Pencere açıkken kullanıcı düşünebilir: en fazla 15 dk izlenir.
 const HANDOFF_MAX = 15 * 60 * 1000;
+// TurboDM devir sırasında kapanır ya da çökerse bu süre sonra açtırılır; açılamazsa indirme tarayıcıya geri verilir
+const HANDOFF_DOWN = 30 * 1000;
 const handoffs = new Map();  // kimlik -> {url, t}
 let watching = false;
 const saveHandoffs = () => chrome.storage.session.set({ handoffs: [...handoffs] }).catch(() => {});
@@ -220,10 +222,24 @@ async function watchHandoffs() {
         if (Date.now() - h.t > HANDOFF_MAX) { handoffs.delete(id); continue; }
         let st;
         try {
+          // t: devrin zamanı. TurboDM bu arada yeniden başladıysa ve devri hiç kaydetmediyse "failed" der
           const r = await fetch(API + "/handoff", { method: "POST",
-            headers: HEADERS, body: JSON.stringify({ id }) });
+            headers: HEADERS, body: JSON.stringify({ id, t: h.t }) });
           st = (await r.json()).state;
-        } catch { continue; }  // TurboDM yanıt vermedi: sonra yine sorulur
+          h.down = 0;
+        } catch {
+          // TurboDM yanıt vermiyor (kapandı ya da çöktü): indirme kaybolmasın. Önce TurboDM açtırılır (indirmeyi
+          // kaydettiyse kendisi sürdürür); açılamazsa indirme tarayıcıda yeniden başlatılır
+          if (!h.down) { h.down = Date.now(); continue; }
+          if (Date.now() - h.down < HANDOFF_DOWN) continue;
+          if (!h.woke) {
+            h.woke = true;
+            if (await wakeApp()) continue;
+          }
+          handoffs.delete(id);
+          await backToBrowser(h.url);
+          continue;
+        }
         if (st === "pending") continue;
         handoffs.delete(id);
         if (st === "failed") {
