@@ -68,7 +68,7 @@ Multi-connection downloads · Video grabber · Torrent · Browser integration</p
 ## Installation
 1. Download **TurboDM-Setup-x.x.x.exe** from the [releases page](https://github.com/wexaR-TDM/TurboDM/releases/latest). (You don't need the "Source code" files; GitHub adds them to every release itself.)
 2. Run the setup and choose your language. Everything needed (ffmpeg, yt-dlp etc.) is included.
-3. Browser extension: [in the Microsoft Edge Add-ons store](https://microsoftedge.microsoft.com/addons/detail/dpeakjonbfgodlhkbpeekljfgnpbbjai). After TurboDM is installed, Edge offers the extension by itself; updates come from the store. For Chrome/Brave: Start menu → **TurboDM → "Browser extension (setup help)"**.
+3. Browser extension: [in the Microsoft Edge Add-ons store](https://microsoftedge.microsoft.com/addons/detail/dpeakjonbfgodlhkbpeekljfgnpbbjai). After TurboDM is installed, Edge offers the extension by itself; updates come from the store. For Chrome/Brave: Start menu → **TurboDM → "Browser extension (setup help)"**; after TurboDM is updated, click TurboDM's reload (↻) button on the extensions page (TurboDM reminds you if the extension is out of date).
 
 ## 🔒 Security and privacy
 - **No data collection:** no ads, usage statistics or tracking. The program connects only to the sites you download from, and to GitHub to check for updates.

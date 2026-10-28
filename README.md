@@ -68,7 +68,7 @@
 ## Kurulum
 1. [Sürümler sayfasından](https://github.com/wexaR-TDM/TurboDM/releases/latest) **TurboDM-Setup-x.x.x.exe** dosyasını indirin. ("Source code" dosyalarına gerek yok; GitHub onları her sürüme kendisi ekler.)
 2. Kurulumu çalıştırın. ffmpeg, yt-dlp vb. gerekli her şey içinde gelir.
-3. Tarayıcı eklentisi: [Microsoft Edge Eklentileri mağazasında](https://microsoftedge.microsoft.com/addons/detail/dpeakjonbfgodlhkbpeekljfgnpbbjai). TurboDM kurulunca Edge eklentiyi kendisi önerir; güncellemeleri mağazadan gelir. Chrome/Brave için: Başlat menüsü → **TurboDM → "Tarayıcı Eklentisi (kurulum yardımı)"**.
+3. Tarayıcı eklentisi: [Microsoft Edge Eklentileri mağazasında](https://microsoftedge.microsoft.com/addons/detail/dpeakjonbfgodlhkbpeekljfgnpbbjai). TurboDM kurulunca Edge eklentiyi kendisi önerir; güncellemeleri mağazadan gelir. Chrome/Brave için: Başlat menüsü → **TurboDM → "Tarayıcı Eklentisi (kurulum yardımı)"**; TurboDM güncellenince eklentiler sayfasında TurboDM'in yenile (↻) düğmesine basın (eklenti eski kalırsa TurboDM hatırlatır).
 
 ## 🔒 Güvenlik ve gizlilik
 - **Veri toplamaz:** reklam, kullanım istatistiği ya da izleme yok. Program yalnızca indirmek istediğiniz sitelere ve güncelleme denetimi için GitHub'a bağlanır.

@@ -20,6 +20,9 @@ Chrome / Brave / Opera (henüz kendi mağazalarında yok; elle kurulum):
        C:\Program Files\TurboDM\browser_extension
      (TurboDM'i başka bir klasöre kurduysanız oradaki browser_extension klasörü)
   5. Araç çubuğundaki yapboz simgesinden TurboDM'i sabitleyin.
+  TurboDM güncellendikten sonra: tarayıcı elle kurulan eklentiyi kendiliğinden yenilemez. Eklentiler
+  sayfasında TurboDM kartındaki yenile (↻) düğmesine basın ve açık sayfaları yenileyin. Eklenti eski
+  kaldıysa TurboDM bunu fark edip hatırlatır.
 
 Notlar:
   * TurboDM kapalıyken eklenti onu kendisi açar ve indirmeyi aktarır.

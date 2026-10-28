@@ -7,6 +7,9 @@ Kurulu TurboDM'i güncellemek için: *Yardım → Güncellemeleri denetle*. · [
 <!-- Geliştirici notu: her yeni sürümde en üste "## x.y.z" bölümü eklenir (İngilizcesi RELEASE_NOTES.md'ye). "Güncellemeleri denetle"
      penceresinde o sürümün bölümü gösterilir (build.ps1 otomatik olarak latest.json'a koyar). -->
 
+## 1.7.27
+• Chrome, Brave ve Opera'da elle kurulan tarayıcı eklentisini tarayıcı, TurboDM güncellense de kendiliğinden yenilemiyor; eski eklenti çalışmayı sürdürüyordu (ör. video düğmesi taşınamıyordu). Artık TurboDM eski eklentiyi fark ediyor ve nasıl yenileneceğini söylüyor: eklentiler sayfasında TurboDM kartındaki yenile (↻) düğmesi. Edge mağazasından kurulan eklenti mağazadan güncellendiği için uyarı çıkmaz (tarayıcı eklentisi 1.7.6)
+
 ## 1.7.26
 • Düzeltme: duraklatılan bir indirmenin dosyası sunucuda değişirse (yeni sürüm yüklenmesi gibi) eski ve yeni dosyanın parçaları birleşip bozuk bir dosya "tamamlandı" görünebiliyordu. Artık değişiklik fark ediliyor ve dosya baştan indiriliyor; sunucunun yanlış yerden gönderdiği parçalar da dosyaya yazılmıyor
 • Güvenlik: bir indirme başka bir siteye yönlendirildiğinde (ör. dosya barındırma sunucusu) tarayıcıdan gelen oturum çerezi artık oraya gönderilmiyor; tarayıcı da göndermez

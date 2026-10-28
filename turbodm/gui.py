@@ -2598,6 +2598,24 @@ class MainWindow(QMainWindow):
                                   else open_folder(path) if b is b_dir else None)
         bring_to_front(box)
 
+    def _extension_outdated(self, info):
+        """Elle kurulmuş tarayıcı eklentisi eski: tarayıcı onu TurboDM güncellenince kendiliğinden yenilemez."""
+        have, latest = str(info.get("version") or ""), str(info.get("latest") or "")
+        box = QMessageBox(self)
+        box.setWindowTitle(_t("Tarayıcı eklentisi güncel değil"))
+        box.setIcon(QMessageBox.Information)
+        version = (_t("Bu tarayıcıdaki TurboDM eklentisi eski bir sürüm ({0}); TurboDM ile gelen sürüm {1}.").format(have, latest)
+                   if have else _t("Bu tarayıcıdaki TurboDM eklentisi eski bir sürüm; TurboDM ile gelen sürüm {0}.").format(latest))
+        box.setText(version + "<br><br>" + _t(
+            "Elle kurulan eklentiyi tarayıcı kendiliğinden yenilemez. Yeni özellikler ve düzeltmeler için:<br>"
+            "1. Tarayıcının eklentiler sayfasını açın (<b>chrome://extensions</b>, <b>brave://extensions</b>, "
+            "<b>edge://extensions</b> ya da <b>opera://extensions</b>)<br>"
+            "2. TurboDM Entegrasyonu kartındaki yenile (↻) düğmesine basın<br>"
+            "3. Açık sayfaları yenileyin (F5)"))
+        box.addButton(_t("Tamam"), QMessageBox.AcceptRole)
+        box.setAttribute(Qt.WA_DeleteOnClose)
+        bring_to_front(box)
+
     def perform_power_action(self, action, force=False):
         """Bitince yapılacaklar: önce indirme listesi kaydedilir, sonra işlem yapılır."""
         self.mgr.save()
@@ -2682,6 +2700,9 @@ class MainWindow(QMainWindow):
             return
         if req.get("handoff_returned"):
             self._handoff_returned(req["handoff_returned"])
+            return
+        if isinstance(req.get("ext_outdated"), dict):
+            self._extension_outdated(req["ext_outdated"])
             return
         tf = req.get("torrent_file")
         if isinstance(tf, str) and tf.lower().endswith(".torrent") and os.path.isfile(tf):

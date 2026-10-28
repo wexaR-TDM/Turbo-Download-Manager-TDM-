@@ -20,6 +20,9 @@ Chrome / Brave / Opera (not in their stores yet; manual install):
        C:\Program Files\TurboDM\browser_extension
      (if you installed TurboDM in another folder, the browser_extension folder there)
   5. Pin TurboDM from the puzzle icon in the toolbar.
+  After TurboDM is updated: the browser doesn't reload a manually installed extension by itself. On the
+  extensions page, click the reload (↻) button on the TurboDM card and reload open pages. If the
+  extension is out of date, TurboDM notices and reminds you.
 
 Notes:
   * If TurboDM is closed, the extension opens it by itself and hands over the download.

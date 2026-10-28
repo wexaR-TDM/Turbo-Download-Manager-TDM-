@@ -444,5 +444,10 @@
  "TurboDM bu dosyayı indiremedi ({0}). İndirme tarayıcıda başlatıldı.": "TurboDM n'a pas pu télécharger ce fichier ({0}). Le téléchargement a été lancé dans le navigateur.",
  "Dosya sunucuda değişmiş": "Le fichier a changé sur le serveur",
  "Sunucu parçanın yerini (Content-Range) bildirmedi": "Le serveur n'a pas indiqué la position de la partie (Content-Range)",
- "Sunucu istenenden farklı bir parça gönderdi": "Le serveur a envoyé une autre partie que celle demandée"
+ "Sunucu istenenden farklı bir parça gönderdi": "Le serveur a envoyé une autre partie que celle demandée",
+ "Tarayıcı eklentisi güncel değil": "L'extension du navigateur n'est pas à jour",
+ "Tamam": "OK",
+ "Elle kurulan eklentiyi tarayıcı kendiliğinden yenilemez. Yeni özellikler ve düzeltmeler için:<br>1. Tarayıcının eklentiler sayfasını açın (<b>chrome://extensions</b>, <b>brave://extensions</b>, <b>edge://extensions</b> ya da <b>opera://extensions</b>)<br>2. TurboDM Entegrasyonu kartındaki yenile (↻) düğmesine basın<br>3. Açık sayfaları yenileyin (F5)": "Le navigateur ne recharge pas de lui-même une extension installée manuellement. Pour obtenir les nouveautés et corrections :<br>1. Ouvrez la page des extensions du navigateur (<b>chrome://extensions</b>, <b>brave://extensions</b>, <b>edge://extensions</b> ou <b>opera://extensions</b>)<br>2. Cliquez sur le bouton Recharger (↻) de la carte Intégration TurboDM<br>3. Rechargez les pages ouvertes (F5)",
+ "Bu tarayıcıdaki TurboDM eklentisi eski bir sürüm ({0}); TurboDM ile gelen sürüm {1}.": "L'extension TurboDM de ce navigateur est une ancienne version ({0}) ; la version fournie avec TurboDM est la {1}.",
+ "Bu tarayıcıdaki TurboDM eklentisi eski bir sürüm; TurboDM ile gelen sürüm {0}.": "L'extension TurboDM de ce navigateur est une ancienne version ; la version fournie avec TurboDM est la {0}."
 }

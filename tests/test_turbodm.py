@@ -1256,6 +1256,51 @@ class ExtensionTests(unittest.TestCase):
         self.assertEqual(S.claim(v), {"handle": True})
         S._owners.clear()
 
+    def test_outdated_manual_extension_is_reported_once(self):
+        """Elle kurulmuş (Chrome/Brave) eklenti TurboDM güncellenince tarayıcıda kendiliğinden yenilenmez: köprü,
+        TurboDM ile gelenden eski sürümü (sürüm başlığı olmayan eski eklentiler dahil) her kopya için bir kez
+        bildirir. Mağaza kopyası (mağazadan güncellenir) ve güncel kopya bildirilmez."""
+        from turbodm import server as S
+        latest = json.load(open(os.path.join(ROOT, "browser_extension", "manifest.json"), encoding="utf-8"))["version"]
+        self.assertEqual(S.bundled_extension_version(), latest)
+        srv = S.start(0)
+        self.addCleanup(srv.shutdown)
+        port = srv.server_address[1]
+        S._ext_warned.clear()
+        while not S.requests.empty():
+            S.requests.get()
+
+        def claim(origin=None, version=None):
+            h = {"Content-Type": "application/json", "X-TurboDM": "1"}
+            if origin:
+                h["Origin"] = origin
+            if version:
+                h["X-TurboDM-Ext"] = version
+            req = urllib.request.Request(f"http://127.0.0.1:{port}/claim", method="POST", headers=h,
+                                         data=json.dumps({"url": "https://example.com/" + uuid.uuid4().hex}).encode())
+            urllib.request.urlopen(req, timeout=10).read()
+        old_id, new_id = "a" * 32, "b" * 32
+        claim("chrome-extension://" + old_id)               # 1.7.5 ve öncesi: sürüm başlığı yok
+        claim("chrome-extension://" + old_id)               # aynı kopya: ikinci kez bildirilmez
+        claim("chrome-extension://" + new_id, latest)       # güncel kopya
+        claim("chrome-extension://" + next(iter(S.STORE_IDS)), "1.0.0")  # mağaza kopyası
+        claim(None)                                         # eklenti değil (ikinci program örneği vb.)
+        got = []
+        while not S.requests.empty():
+            got.append(S.requests.get())
+        self.assertEqual([r for r in got if "ext_outdated" in r],
+                         [{"ext_outdated": {"version": "", "latest": latest}}])
+        claim("chrome-extension://" + "c" * 32, "1.7.5")    # eski sürüm başlıklı kopya
+        r = S.requests.get(timeout=5)
+        self.assertEqual(r, {"ext_outdated": {"version": "1.7.5", "latest": latest}})
+        S._ext_warned.clear()
+        S._owners.clear()
+
+    def test_extension_sends_its_version(self):
+        src = open(os.path.join(ROOT, "browser_extension", "background.js"), encoding="utf-8").read()
+        self.assertIn('"X-TurboDM-Ext": chrome.runtime.getManifest().version', src)
+        self.assertNotIn('{ "Content-Type": "application/json", "X-TurboDM": "1" }', src)  # her istek HEADERS ile
+
     def test_extension_tab_calls_tolerate_closed_tabs(self):
         # sekme kapanınca rozet çağrıları "No tab with id" hatası fırlatır: hepsi .catch ile yakalanmalı
         with open(os.path.join(ROOT, "browser_extension", "background.js"), encoding="utf-8") as f:

@@ -400,6 +400,17 @@ class GuiTests(unittest.TestCase):
                     self.assertTrue(all(b.isEnabled() for b in d.go_buttons))
                 d.close()
 
+    def test_outdated_extension_warning(self):
+        # Köprü eski elle kurulmuş eklenti bildirdi: kullanıcıya eklentiyi nasıl yenileyeceği söylenir
+        before = {id(w) for w in APP.topLevelWidgets() if isinstance(w, G.QMessageBox)}
+        self.win._handle_external({"ext_outdated": {"version": "", "latest": "1.7.6"}})
+        pump(0.2)
+        boxes = [w for w in APP.topLevelWidgets() if isinstance(w, G.QMessageBox) and id(w) not in before]
+        self.assertEqual(len(boxes), 1)
+        self.assertIn("brave://extensions", boxes[0].text())
+        self.assertIn("1.7.6", boxes[0].text())
+        boxes[0].close()
+
     def test_handoff_failed_download_goes_back_to_browser(self):
         # Eklenti tarayıcıdaki indirmeyi iptal edip TurboDM'e verdi; indirme TurboDM'de hiç veri alamadan erişim
         # hatasıyla düşerse (ör. 403) eklenti bunu /handoff ile öğrenir ve indirmeyi tarayıcıda yeniden başlatır.

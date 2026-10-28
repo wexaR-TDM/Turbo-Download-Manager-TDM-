@@ -64,6 +64,10 @@ async function getFormats(url) {
 // TurboDM kapalıysa tarayıcı onu açtırır (native messaging: TurboDM'in kurulumda kaydettiği yardımcı) ve
 // açılmasını bekler. Kayıt yoksa (eski sürüm, başka bilgisayar) sessizce vazgeçilir: indirme tarayıcıda kalır.
 const NATIVE_HOST = "com.turbodm.app";
+// TurboDM'e giden her istekte eklentinin sürümü: elle kurulan eklenti TurboDM güncellenince tarayıcıda kendiliğinden
+// yenilenmez; TurboDM eski kopyayı bu başlıktan tanıyıp kullanıcıya "eklentiyi yenileyin" der
+const HEADERS = { "Content-Type": "application/json", "X-TurboDM": "1",
+                  "X-TurboDM-Ext": chrome.runtime.getManifest().version };
 
 function setAppSeen(up) {
   if (up !== appSeen) {
@@ -86,7 +90,7 @@ async function claimFor(url) {
   let r;
   try {
     r = await fetch(API + "/claim", { method: "POST",
-      headers: { "Content-Type": "application/json", "X-TurboDM": "1" }, body: JSON.stringify({ url }) });
+      headers: HEADERS, body: JSON.stringify({ url }) });
   } catch {
     setAppSeen(false);
     return null;
@@ -112,7 +116,7 @@ async function wakeApp() {
 async function postToApp(path, body) {
   const send = () => fetch(API + path, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-TurboDM": "1" },
+    headers: HEADERS,
     body: JSON.stringify(body),
   });
   try {
@@ -159,7 +163,7 @@ chrome.downloads.onChanged.addListener(async (d) => {
     if (!item || !isTorrentName(item.filename)) return;
     await fetch(API + "/add", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-TurboDM": "1" },
+      headers: HEADERS,
       body: JSON.stringify({ url: item.finalUrl || item.url, torrent_file: item.filename }),
     });
   } catch {}
@@ -217,7 +221,7 @@ async function watchHandoffs() {
         let st;
         try {
           const r = await fetch(API + "/handoff", { method: "POST",
-            headers: { "Content-Type": "application/json", "X-TurboDM": "1" }, body: JSON.stringify({ id }) });
+            headers: HEADERS, body: JSON.stringify({ id }) });
           st = (await r.json()).state;
         } catch { continue; }  // TurboDM yanıt vermedi: sonra yine sorulur
         if (st === "pending") continue;
@@ -225,7 +229,7 @@ async function watchHandoffs() {
         if (st === "failed") {
           // önce TurboDM'e bildirilir (adres tarayıcıya bırakılmış sayılır), sonra tarayıcıda başlatılır
           try {
-            await fetch(API + "/handoff", { method: "POST", headers: { "Content-Type": "application/json", "X-TurboDM": "1" },
+            await fetch(API + "/handoff", { method: "POST", headers: HEADERS,
                                             body: JSON.stringify({ id, returned: true, url: h.url }) });
           } catch {}
           await backToBrowser(h.url);

@@ -5,10 +5,14 @@ bu başlık tarayıcıda CORS ön kontrolünü (preflight) tetikler ve biz ona i
 sıradan siteler istek gönderemez. Eklentiler host_permissions sayesinde CORS'tan muaftır.
 """
 import json
+import os
 import queue
+import re
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+from . import appinfo
 
 requests = queue.Queue()   # GUI tarafından tick'te okunur
 
@@ -47,6 +51,47 @@ def claim(url):
     ikinci kopya ya da tarayıcıya bırakılmış indirme için handle: False (indirmeye hiç dokunulmaz)."""
     who = _owner(url, take="app")
     return {"handle": True} if who is None else {"handle": False, "reason": who}
+
+# Eklenti sürümü: Chrome/Brave/Opera'da eklenti TurboDM klasöründen elle ("paketlenmemiş") kurulur. TurboDM
+# güncellenince klasördeki dosyalar yenilenir ama tarayıcı eklentiyi kendiliğinden yeniden yüklemez; eski kopya
+# çalışmayı sürdürür. Eklentinin istekleri Origin başlığında kimliğini taşır (eski sürümler de), 1.7.6'dan beri
+# X-TurboDM-Ext başlığında sürümünü. Mağaza kopyası mağazadan güncellendiği için uyarılmaz.
+STORE_IDS = {i for i in (appinfo.EDGE_EXTENSION_ID,) if i}
+_ext_warned = set()
+_bundled_ext = None
+
+
+def bundled_extension_version():
+    """TurboDM ile gelen (kurulum klasöründeki) eklentinin sürümü; okunamazsa None."""
+    global _bundled_ext
+    if _bundled_ext is None:
+        try:
+            with open(os.path.join(appinfo.install_dir(), "browser_extension", "manifest.json"), encoding="utf-8") as f:
+                _bundled_ext = str(json.load(f)["version"])
+        except (OSError, ValueError, KeyError):
+            _bundled_ext = ""
+    return _bundled_ext or None
+
+
+def _vtuple(v):
+    return tuple(int(x) for x in re.findall(r"\d+", v or ""))
+
+
+def check_extension(headers):
+    """Elle kurulmuş eklenti TurboDM ile gelen sürümden eskiyse GUI'ye bir kez (her eklenti kopyası için) bildirir."""
+    origin = headers.get("Origin") or ""
+    if not origin.startswith("chrome-extension://"):
+        return
+    ext_id = origin.split("://", 1)[1].strip("/")
+    latest = bundled_extension_version()
+    if not latest or ext_id in STORE_IDS or ext_id in _ext_warned:
+        return
+    have = headers.get("X-TurboDM-Ext") or ""
+    if have and _vtuple(have) >= _vtuple(latest):
+        return
+    _ext_warned.add(ext_id)
+    requests.put({"ext_outdated": {"version": have, "latest": latest}})
+
 
 # Eşzamanlı yanıt veren işleyiciler (yol → fonksiyon(data) → dict). GUI başlarken doldurur.
 # /formats: eklentinin sayfada kalite menüsü gösterebilmesi için video kaliteleri (yt-dlp, ~3 sn).
@@ -90,6 +135,7 @@ class _Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(min(n, 1 << 20)) or b"{}")
         except ValueError:
             return self._reply(400, {"error": "bad json"})
+        check_extension(self.headers)
         if self.path == "/add" and isinstance(data.get("url"), str):
             # Tarayıcının başlattığı indirme ("check"): kabul etmeden önce TurboDM dosyaya gerçekten ulaşabiliyor mu?
             # Ulaşamıyorsa (bot koruması, giriş, süresi dolmuş bağlantı…) reddedilir; eklenti indirmeyi tarayıcıda sürdürür.

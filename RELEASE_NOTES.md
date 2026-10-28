@@ -7,6 +7,9 @@ To update an installed TurboDM: *Help → Check for updates*. · [Türkçe sür�
 <!-- Developer note: add a "## x.y.z" section at the top for every new version, in the same order as
      SURUM_NOTLARI.md. The update window shows the section of that version (build.ps1 puts it into latest.json). -->
 
+## 1.7.27
+• In Chrome, Brave and Opera, the browser doesn't reload a manually installed extension by itself when TurboDM is updated, so the old extension kept running (e.g. the video button couldn't be moved). TurboDM now notices an outdated extension and tells you how to reload it: the reload (↻) button on the TurboDM card on the extensions page. The extension installed from the Edge store is updated by the store, so no warning is shown for it (browser extension 1.7.6)
+
 ## 1.7.26
 • Fix: if the file of a paused download changed on the server (e.g. a new version was uploaded), parts of the old and new file could be joined and a corrupted file shown as "completed". The change is now detected and the file is downloaded again from the start; parts that the server sends from the wrong position are no longer written to the file
 • Security: when a download is redirected to another site (e.g. a file hosting server), the session cookie from the browser is no longer sent there; browsers don't send it either
